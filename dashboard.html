@@ -10,53 +10,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-  <!-- TailwindCSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', 'sans-serif'],
-            serif: ['"Cormorant Garamond"', 'serif'],
-          },
-          colors: {
-            coral: {
-              50:  '#fef5f4',
-              100:'#fde8e5',
-              200:'#fad0c9',
-              300:'#f5a89d',
-              400:'#e85d5d',
-              500:'#d43b3a',
-              600:'#b52c2b',
-              800:'#7a1a1a',
-              900:'#4a1010',
-            },
-            ink:   '#1c1c1a',
-            paper: {
-              50:  '#fdfcfb',
-              100:'#f8f6f3',
-              200:'#efeae3',
-              300:'#e2dbd0',
-              400:'#c9bfaf',
-              500:'#9e907e',
-              600:'#75695a',
-              700:'#554c40',
-              800:'#352f28',
-              900:'#1c1916',
-            },
-          },
-          letterSpacing: {
-            wide2: '0.18em',
-          },
-        },
-      },
-    };
-  </script>
+  <!-- TailwindCSS: precompiled static build (see tailwind.css + tailwind.config.js) -->
+  <link rel="stylesheet" href="tailwind.css" />
+  <link rel="dns-prefetch" href="https://unpkg.com" />
 
   <style>
     html, body { height: 100%; background-color: #fef5f4; }
-    body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; transition: background .5s ease; }
+    body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; transition: background .5s ease; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    #app { overflow-x: hidden; }
 
     [v-cloak] { opacity: 0 !important; transition: opacity .3s ease; }
 
@@ -178,11 +139,11 @@
             </button>
             <div class="h-px bg-paper-300/60 my-3"></div>
             <button v-for="s in sections" :key="s.key" @click="openSection(s.key)" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-coral-100 transition-colors" :class="view===s.key?'bg-coral-100 ':''">
-              <span class="text-lg">{{ s.icon }}</span><span class="text-sm font-medium flex-1">{{ s.title }}</span>
+              <span class="text-lg" v-html="icon(s.icon)"></span><span class="text-sm font-medium flex-1">{{ s.title }}</span>
               <span v-if="s.dev" class="text-[10px] uppercase tracking-wide text-paper-400 border border-paper-300 rounded px-1.5 py-0.5">dev</span>
             </button>
           </nav>
-          <div class="mt-auto text-[11px] text-paper-500 leading-relaxed">955's workspace v4.2 · Vue 3 &amp; TailwindCSS</div>
+          <div class="mt-auto text-[11px] text-paper-500 leading-relaxed">955's workspace v1.0 · Vue 3 &amp; TailwindCSS</div>
         </aside>
       </transition>
     </div>
@@ -210,7 +171,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <button v-for="s in sections" :key="s.key" @click="openSection(s.key)"
                     class="group text-left rounded-2xl p-7 border border-paper-300/60 bg-white/70 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
-              <span class="text-3xl">{{ s.icon }}</span>
+              <span class="text-3xl" v-html="icon(s.icon)"></span>
               <h3 class="mt-5 text-xl font-medium">{{ s.title }}</h3>
               <p class="mt-2 text-sm text-paper-500 font-light">{{ s.desc }}</p>
               <div class="mt-5 flex items-center gap-2 text-sm font-medium" :class="s.dev ? 'text-paper-400' : 'text-ink '">
@@ -231,7 +192,7 @@
             <button v-for="t in allFoodTabs" :key="t.key" @click="switchFoodTab(t.key)"
                     class="px-4 py-2 rounded-full text-sm font-medium border transition-all"
                     :class="foodTab===t.key ? 'bg-coral-400 text-white border-coral-400' : 'border-paper-300 text-paper-600 hover:border-coral-300'">
-              <span class="mr-1.5">{{ t.icon }}</span>{{ t.label }}
+              <span class="mr-1.5" v-html="icon(t.icon)"></span>{{ t.label }}
             </button>
           </div>
 
@@ -246,7 +207,7 @@
                 <div class="relative" v-if="mealTemplates.length">
                   <button @click="showTemplatePicker=!showTemplatePicker"
                           class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1">
-                    📋 套餐模板
+                    <span v-html="icon('copy')"></span> 套餐模板
                     <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
                   </button>
                   <!-- Template dropdown -->
@@ -275,7 +236,7 @@
                 <!-- Copy day's records -->
                 <button @click="showCopyModal=true"
                         class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1">
-                  📋 复制记录
+                  <span v-html="icon('doc')"></span> 复制记录
                 </button>
 
                 <!-- Set as default breakfast -->
@@ -685,7 +646,7 @@
 
         <!-- ========== PLACEHOLDER SECTIONS ========== -->
         <section v-else :key="view" class="max-w-3xl mx-auto px-6 sm:px-8 py-24 text-center">
-          <div class="text-6xl mb-6">{{ currentSection.icon }}</div>
+          <div class="text-6xl mb-6" v-html="icon(currentSection.icon)"></div>
           <h2 class="font-display text-4xl">{{ currentSection.title }}</h2>
           <p class="mt-4 text-paper-500 font-light">板块正在精心打磨中。</p>
           <button @click="goHome()" class="mt-8 px-5 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50 transition-colors">← 返回首页</button>
@@ -1142,7 +1103,7 @@
       });
     })();
   </script>
-  <script src="https://unpkg.com/vue@3/dist/vue.global.js" onerror="document.getElementById('cdn-fallback').classList.add('show')"></script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js" onerror="document.getElementById('cdn-fallback').classList.add('show')"></script>
   <script>
     const { createApp, ref, reactive, computed, watch, nextTick } = Vue;
     const DB_KEY = 'pdash_v4';
@@ -1164,19 +1125,35 @@
         const navOpen = ref(false);
         const foodTab = ref('dailylog');
 
+        /* ---- Inline SVG icon system (replaces emoji for consistent, theme-aware icons) ---- */
+        const ICONS = {
+          leaf:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-5 4-9 16-9 0 11-5 16-9 16Z"/><path d="M11 20c0-4 2-8 7-11"/></svg>',
+          briefcase:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+          sprout:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V11"/><path d="M12 11C12 7 9 4 5 4c0 4 3 7 7 7Z"/><path d="M12 13c0-3 2-6 6-6 0 4-3 6-6 6Z"/></svg>',
+          book:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2z"/><path d="M4 19a2 2 0 0 0 2 2h14"/></svg>',
+          pencil:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
+          broccoli:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22v-8"/><circle cx="9" cy="9" r="3"/><circle cx="15" cy="9" r="3"/><circle cx="12" cy="6" r="3"/><circle cx="7" cy="12" r="2.5"/><circle cx="17" cy="12" r="2.5"/></svg>',
+          utensils:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v7a2 2 0 0 0 4 0V3M7 10v11"/><path d="M17 3c-1.5 0-3 2-3 5s1.5 4 3 4 3-1 3-4-1.5-5-3-5Zm0 9v9"/></svg>',
+          box:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>',
+          cart:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 13h11l2-9H6"/></svg>',
+          copy:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+          doc:'<svg viewBox="0 0 24 24" width="1.1em" height="1.1em" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+        };
+        const icon = (n) => ICONS[n] || '';
+
         const sections = [
-          { key:'food', icon:'🍃', title:'饮食', desc:'食材、菜谱、库存与采购的一体化管理', dev:false },
-          { key:'work', icon:'💼', title:'工作', desc:'任务、项目与专注时钟', dev:true },
-          { key:'life', icon:'🌿', title:'生活', desc:'习惯、日程与随手记', dev:true },
-          { key:'knowledge', icon:'📚', title:'知识', desc:'收藏、笔记与阅读追踪', dev:true },
+          { key:'food', icon:'leaf', title:'饮食', desc:'食材、菜谱、库存与采购的一体化管理', dev:false },
+          { key:'work', icon:'briefcase', title:'工作', desc:'任务、项目与专注时钟', dev:true },
+          { key:'life', icon:'sprout', title:'生活', desc:'习惯、日程与随手记', dev:true },
+          { key:'knowledge', icon:'book', title:'知识', desc:'收藏、笔记与阅读追踪', dev:true },
         ];
 
         const allFoodTabs = [
-          { key:'dailylog',    label:'每日记录', icon:'📝' },
-          { key:'ingredients', label:'原材料库', icon:'🥦' },
-          { key:'recipes',     label:'菜谱库',   icon:'🍳' },
-          { key:'pantry',      label:'动态库存', icon:'📦' },
-          { key:'shopping',    label:'采购清单', icon:'🛒' },
+          { key:'dailylog',    label:'每日记录', icon:'pencil' },
+          { key:'ingredients', label:'原材料库', icon:'broccoli' },
+          { key:'recipes',     label:'菜谱库',   icon:'utensils' },
+          { key:'pantry',      label:'动态库存', icon:'box' },
+          { key:'shopping',    label:'采购清单', icon:'cart' },
         ];
 
         function switchFoodTab(key) {
@@ -2585,7 +2562,7 @@
           shopPickerOpen, logPickerOpen,
           selectShopIngredient, selectLogIngredient, groupedLogIngredientsFlat,
           /* helpers (unit system) */
-          unitLabel, toGrams, fromGrams, round1, fmt1, healthTags, aiRecognize, detectMicrons, aiResult, micronGroups, catClass, classifyTag,
+          unitLabel, toGrams, fromGrams, round1, fmt1, healthTags, aiRecognize, detectMicrons, aiResult, micronGroups, catClass, classifyTag, icon,
           /* daily log */
           logDate, logForm, targets, currentDayEntries, addLogEntry, removeLogEntry, removeLogEntryByMeal,
           entryNutri, dayTotals, pct,

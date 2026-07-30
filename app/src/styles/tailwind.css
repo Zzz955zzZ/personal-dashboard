@@ -2,11 +2,227 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Base — migrated from dashboard.html v1.0 <style> block
+   ========================================================================== */
 @layer base {
-  html {
+  html,
+  body {
+    height: 100%;
+    background-color: #fef5f4;
     -webkit-text-size-adjust: 100%;
   }
+
   body {
-    @apply font-sans antialiased;
+    @apply font-sans text-ink antialiased;
+    text-rendering: optimizeLegibility;
+    transition: background 0.5s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
   }
+
+  #app {
+    overflow-x: hidden;
+  }
+
+  /* Hide number input spinners */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(180, 160, 140, 0.3);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ==========================================================================
+   Components
+   ========================================================================== */
+@layer components {
+  .font-display {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  /* --- Avatar ------------------------------------------------------------ */
+  .avatar-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    object-fit: cover;
+    background: #efeae3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .avatar-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .avatar-img.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  .avatar-img.avatar-lg {
+    width: 64px;
+    height: 64px;
+    font-size: 30px;
+  }
+
+  /* --- Macro bars -------------------------------------------------------- */
+  .macro-bar {
+    height: 8px;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+  .macro-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  /* --- Emoji picker ------------------------------------------------------ */
+  .emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+  }
+  .emoji-btn {
+    font-size: 20px;
+    padding: 6px;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+  }
+  .emoji-btn:hover {
+    background: rgba(232, 93, 93, 0.12);
+  }
+
+  /* --- Search input ------------------------------------------------------ */
+  .ing-search {
+    position: relative;
+  }
+  .ing-search input {
+    padding-left: 2.2rem;
+  }
+  .ing-search svg {
+    position: absolute;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    color: #9e907e;
+    pointer-events: none;
+  }
+
+  /* --- Undo toast -------------------------------------------------------- */
+  .undo-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: 14px;
+    background: #1c1916;
+    color: #fef5f4;
+    font-size: 13px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    animation: undoIn 0.3s ease forwards;
+  }
+  .undo-toast button {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #e85d5d;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .undo-toast button:hover {
+    opacity: 0.9;
+  }
+}
+
+@keyframes undoIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ==========================================================================
+   Transitions (Vue <Transition> class hooks — kept outside @layer so they are
+   never purged and always win over utility ordering)
+   ========================================================================== */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+.pop-enter-active,
+.pop-leave-active {
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+}
+
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  transform: translateX(100%);
 }

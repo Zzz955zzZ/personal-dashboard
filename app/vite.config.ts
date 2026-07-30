@@ -23,7 +23,8 @@ export default defineConfig(({ mode }) => {
       assetsInlineLimit: single ? 100_000_000 : 4096,
     },
     test: {
-      environment: 'node',
+      // 持久化与组件用例都需要 DOM（localStorage / 挂载）
+      environment: 'jsdom',
       include: ['src/**/*.spec.ts'],
     },
   };

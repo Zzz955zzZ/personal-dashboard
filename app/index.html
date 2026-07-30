@@ -3,10 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#fdfcfb" />
-    <title>Personal Dashboard</title>
+    <meta name="theme-color" content="#fef5f4" />
+    <title>工作台 · Personal Dashboard</title>
+
+    <!-- 字体走 CDN；离线时自动回退到系统 serif/sans，不影响功能 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
   </head>
-  <body class="bg-paper-50 text-ink">
+  <body class="bg-coral-50 text-ink">
+    <noscript>
+      <div style="padding: 40px; text-align: center; font-family: system-ui, sans-serif">
+        <h2>⚠ 需要启用 JavaScript</h2>
+        <p style="color: #75695a">此页面需要 JavaScript 才能运行，请在浏览器设置中启用后刷新。</p>
+      </div>
+    </noscript>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>

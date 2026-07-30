@@ -1,34 +1,44 @@
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
-import { ING_DB } from '@/modules/diet';
+import { useRouter } from 'vue-router';
 
-const sections = [
-  { key: 'diet', to: '/diet', title: '饮食', desc: `食材知识库 ${ING_DB.length} 条 · 估算引擎已迁移`, ready: true },
-  { key: 'work', to: '/', title: '工作', desc: '任务、项目与专注时钟', ready: false },
-  { key: 'life', to: '/', title: '生活', desc: '习惯、日程与随手记', ready: false },
-  { key: 'knowledge', to: '/', title: '知识', desc: '收藏、笔记与阅读追踪', ready: false },
-];
+import { icon } from '@/shared/icons';
+import { SECTIONS } from '@/shared/sections';
+
+const router = useRouter();
+
+function open(key: string, dev: boolean): void {
+  if (dev) return;
+  void router.push({ name: key });
+}
 </script>
 
 <template>
-  <section>
-    <h1 class="font-serif text-3xl text-ink sm:text-4xl">工作台</h1>
-    <p class="mt-2 text-sm text-paper-600">v2 工程化骨架 — Vite + Vue 3 + TypeScript</p>
+  <section class="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-24">
+    <div class="mb-14">
+      <h1 class="font-display text-5xl sm:text-7xl leading-[1.05] font-medium">工作台</h1>
+      <p class="mt-5 text-lg text-paper-500 font-light max-w-xl leading-relaxed">
+        一处安静、有序的空间。收纳你的饮食、工作、生活与知识 — 少即是多。
+      </p>
+    </div>
 
-    <div class="mt-8 grid gap-4 sm:grid-cols-2">
-      <RouterLink
-        v-for="s in sections"
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <button
+        v-for="s in SECTIONS"
         :key="s.key"
-        :to="s.to"
-        class="block rounded-xl border border-paper-200 bg-white p-5 transition hover:border-coral-300"
-        :class="s.ready ? '' : 'pointer-events-none opacity-50'"
+        class="group text-left rounded-2xl p-7 border border-paper-300/60 bg-white/70 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md"
+        @click="open(s.key, s.dev)"
       >
-        <div class="flex items-baseline justify-between">
-          <h2 class="text-base font-medium text-ink">{{ s.title }}</h2>
-          <span v-if="!s.ready" class="text-[11px] tracking-wide2 text-paper-500">开发中</span>
+        <span class="text-3xl" v-html="icon(s.icon)"></span>
+        <h3 class="mt-5 text-xl font-medium">{{ s.title }}</h3>
+        <p class="mt-2 text-sm text-paper-500 font-light">{{ s.desc }}</p>
+        <div
+          class="mt-5 flex items-center gap-2 text-sm font-medium"
+          :class="s.dev ? 'text-paper-400' : 'text-ink'"
+        >
+          {{ s.dev ? '开发中' : '进入' }}
+          <span v-if="!s.dev" class="transition-transform group-hover:translate-x-1">→</span>
         </div>
-        <p class="mt-1 text-sm text-paper-600">{{ s.desc }}</p>
-      </RouterLink>
+      </button>
     </div>
   </section>
 </template>

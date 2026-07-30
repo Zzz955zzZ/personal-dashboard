@@ -8,6 +8,8 @@
 export * from './types';
 export * from './engine';
 export { ING_DB } from './data/ing-db';
+export { dietRoutes } from './routes';
+export { useDietStore } from './store/diet-store';
 
 /** localStorage 键名，与 v1.0 单文件版一致，不可更改 */
 export const DIET_DB_KEY = 'pdash_v4';

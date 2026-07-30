@@ -1,0 +1,2625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>工作台 · Personal Dashboard</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- TailwindCSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['"Cormorant Garamond"', 'serif'],
+          },
+          colors: {
+            coral: {
+              50:  '#fef5f4',
+              100:'#fde8e5',
+              200:'#fad0c9',
+              300:'#f5a89d',
+              400:'#e85d5d',
+              500:'#d43b3a',
+              600:'#b52c2b',
+              800:'#7a1a1a',
+              900:'#4a1010',
+            },
+            ink:   '#1c1c1a',
+            paper: {
+              50:  '#fdfcfb',
+              100:'#f8f6f3',
+              200:'#efeae3',
+              300:'#e2dbd0',
+              400:'#c9bfaf',
+              500:'#9e907e',
+              600:'#75695a',
+              700:'#554c40',
+              800:'#352f28',
+              900:'#1c1916',
+            },
+          },
+          letterSpacing: {
+            wide2: '0.18em',
+          },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html, body { height: 100%; background-color: #fef5f4; }
+    body { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; transition: background .5s ease; }
+
+    [v-cloak] { opacity: 0 !important; transition: opacity .3s ease; }
+
+    #cdn-fallback {
+      position: fixed; inset: 0; z-index: 9999;
+      display: none; align-items: center; justify-content: center;
+      background: #fef5f4; color: #1c1c1a;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+    #cdn-fallback.show { display: flex; }
+    #cdn-fallback .box {
+      max-width: 480px; text-align: center; padding: 40px 28px;
+    }
+    #cdn-fallback h2 { font-family: 'Cormorant Garamond', serif; font-size: 28px; margin-bottom: 12px; }
+    #cdn-fallback p { font-size: 14px; color: #75695a; line-height: 1.7; margin-bottom: 16px; }
+    #cdn-fallback a { color: #e85d5d; text-decoration: underline; }
+
+    .fade-enter-active,.fade-leave-active{transition:opacity .32s ease,transform .32s ease}
+    .fade-enter-from{opacity:0;transform:translateY(10px)}
+    .fade-leave-to{opacity:0;transform:translateY(-10px)}
+
+    .slide-enter-active,.slide-leave-active{transition:transform .42s cubic-bezier(.22,.61,.36,1)}
+    .slide-enter-from,.slide-leave-to{transform:translateX(100%)}
+
+    .pop-enter-active,.pop-leave-active{transition:opacity .28s ease,transform .28s ease}
+    .pop-enter-from,.pop-leave-to{opacity:0;transform:scale(.96) translateY(8px)}
+
+    ::-webkit-scrollbar{width:7px;height:7px}
+    ::-webkit-scrollbar-thumb{background:rgba(180,160,140,.3);border-radius:99px}
+    ::-webkit-scrollbar-track{background:transparent}
+
+    .font-display{font-family:'Cormorant Garamond',serif}
+
+    .avatar-img{width:48px;height:48px;border-radius:999px;object-fit:cover;background:#efeae3;display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+    .avatar-img img{width:100%;height:100%;object-fit:cover}
+
+    .macro-bar{height:8px;border-radius:99px;overflow:hidden}
+    .macro-fill{height:100%;border-radius:99px;transition:width .5s ease}
+
+    .emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+    .emoji-btn{font-size:20px;padding:6px;border-radius:8px;cursor:pointer;text-align:center}
+    .emoji-btn:hover{background:rgba(232,93,93,.12)}
+
+    input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+    input[type="number"]{-moz-appearance:textfield}
+
+    /* Search input styling */
+    .ing-search{position:relative}
+    .ing-search input{padding-left:2.2rem}
+    .ing-search svg{position:absolute;left:.65rem;top:50%;transform:translateY(-50%);width:14px;height:14px;color:#9e907e;pointer-events:none}
+
+    /* Undo toast */
+    .undo-toast{
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      z-index:9999;display:flex;align-items:center;gap:12px;
+      padding:12px 20px;border-radius:14px;
+      background:#1c1916;color:#fef5f4;font-size:13px;
+      box-shadow:0 8px 32px rgba(0,0,0,.18);
+      animation:undoIn .3s ease forwards;
+    }
+    @keyframes undoIn{from{opacity:0;transform:translateX(-50%) translateY(16px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .undo-toast button{padding:6px 14px;border-radius:8px;background:#e85d5d;color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:500}
+    .undo-toast button:hover{opacity:.9}
+  </style>
+</head>
+
+<body class="bg-coral-50 text-ink font-sans antialiased">
+
+  <!-- CDN fallback -->
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#fef5f4;color:#1c1c1a;font-family:Inter,system-ui,sans-serif">
+      <div style="max-width:440px;text-align:center;padding:40px 28px">
+        <h2 style="font-family:'Cormorant Garamond',serif;font-size:28px;margin-bottom:12px">⚠ 需要启用 JavaScript</h2>
+        <p style="font-size:14px;color:#75695a;line-height:1.7">此页面需要 JavaScript 才能运行。请在浏览器设置中启用 JavaScript 后刷新页面。</p>
+      </div>
+    </div>
+  </noscript>
+  <div id="cdn-fallback">
+    <div class="box">
+      <h2>⚠ 无法加载页面资源</h2>
+      <p>页面需要从 CDN 加载 Vue.js 和 TailwindCSS。如果你是从本地文件（file://）直接打开的，浏览器可能阻止了外部资源加载。</p>
+      <p><strong>解决方案：</strong><br/>1. 通过公网链接打开（推荐）：<br/><a href="https://7cffd56058a944e0af4c48e3a200f7c5.bj10.agentos-app.net" target="_blank">https://7cffd56058a944e0af4c48e3a200f7c5.bj10.agentos-app.net</a><br/><br/>2. 或使用任意本地 HTTP 服务器运行此文件。</p>
+    </div>
+  </div>
+
+  <div id="app" v-cloak>
+
+    <!-- ===================== TOP BAR ===================== -->
+    <header class="fixed top-0 inset-x-0 z-40 h-16 px-4 sm:px-8 flex items-center justify-between border-b border-paper-300/60 bg-coral-50/85 backdrop-blur-xl">
+      <div class="flex items-center gap-3">
+        <button @click="navOpen=!navOpen" class="w-10 h-10 flex flex-col items-center justify-center rounded-xl hover:bg-coral-100 transition-colors" aria-label="菜单">
+          <span class="block w-5 h-px bg-ink transition-all" :class="navOpen?'rotate-45 translate-y-[3px]':''"></span>
+          <span class="block w-5 h-px bg-ink my-[3px] transition-all" :class="navOpen?'opacity-0':''"></span>
+          <span class="block w-5 h-px bg-ink transition-all" :class="navOpen?'-rotate-45 -translate-y-[3px]':''"></span>
+        </button>
+        <div class="leading-tight">
+          <div class="text-[11px] tracking-wide2 uppercase text-paper-500">Personal Dashboard</div>
+          <div class="text-sm font-medium">{{ breadcrumb }}</div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <div class="hidden sm:block text-sm tabular-nums text-paper-500 font-light">{{ clock }}</div>
+      </div>
+    </header>
+
+    <!-- ===================== NAV DRAWER ===================== -->
+    <div v-if="navOpen" class="fixed inset-0 z-50" @click="navOpen=false">
+      <div class="absolute inset-0 bg-black/25 backdrop-blur-sm"></div>
+      <transition name="slide" appear>
+        <aside class="absolute left-0 top-0 h-full w-72 max-w-[80vw] bg-coral-50 border-r border-paper-300/60 p-6 flex flex-col" @click.stop>
+          <div class="mb-10">
+            <div class="font-display text-3xl tracking-wide">工作台</div>
+            <div class="text-[11px] tracking-wide2 uppercase text-paper-500 mt-1">Navigation</div>
+          </div>
+          <nav class="flex flex-col gap-1">
+            <button @click="goHome()" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-coral-100 transition-colors" :class="view==='home'?'bg-coral-100 ':''">
+              <span class="text-paper-500">⌂</span><span class="text-sm font-medium">首页</span>
+            </button>
+            <div class="h-px bg-paper-300/60 my-3"></div>
+            <button v-for="s in sections" :key="s.key" @click="openSection(s.key)" class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-coral-100 transition-colors" :class="view===s.key?'bg-coral-100 ':''">
+              <span class="text-lg">{{ s.icon }}</span><span class="text-sm font-medium flex-1">{{ s.title }}</span>
+              <span v-if="s.dev" class="text-[10px] uppercase tracking-wide text-paper-400 border border-paper-300 rounded px-1.5 py-0.5">dev</span>
+            </button>
+          </nav>
+          <div class="mt-auto text-[11px] text-paper-500 leading-relaxed">955's workspace v4.2 · Vue 3 &amp; TailwindCSS</div>
+        </aside>
+      </transition>
+    </div>
+
+    <!-- ===================== UNDO TOAST ===================== -->
+    <transition name="fade">
+      <div v-if="undoToast.visible" class="undo-toast">
+        <span>{{ undoToast.message }}</span>
+        <button @click="executeUndo()">撤销</button>
+        <button @click="undoToast.visible=false" style="background:transparent;color:#9e907e;border:none;cursor:pointer;font-size:12px">✕</button>
+      </div>
+    </transition>
+
+    <!-- ===================== MAIN ===================== -->
+    <main class="pt-16 min-h-screen">
+
+      <transition name="fade" mode="out-in">
+
+        <!-- ========== HOME ========== -->
+        <section v-if="view==='home'" key="home" class="max-w-5xl mx-auto px-6 sm:px-8 py-16 sm:py-24">
+          <div class="mb-14">
+            <h1 class="font-display text-5xl sm:text-7xl leading-[1.05] font-medium">工作台</h1>
+            <p class="mt-5 text-lg text-paper-500 font-light max-w-xl leading-relaxed">一处安静、有序的空间。收纳你的饮食、工作、生活与知识 — 少即是多。</p>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <button v-for="s in sections" :key="s.key" @click="openSection(s.key)"
+                    class="group text-left rounded-2xl p-7 border border-paper-300/60 bg-white/70 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
+              <span class="text-3xl">{{ s.icon }}</span>
+              <h3 class="mt-5 text-xl font-medium">{{ s.title }}</h3>
+              <p class="mt-2 text-sm text-paper-500 font-light">{{ s.desc }}</p>
+              <div class="mt-5 flex items-center gap-2 text-sm font-medium" :class="s.dev ? 'text-paper-400' : 'text-ink '">
+                {{ s.dev ? '开发中' : '进入' }}<span v-if="!s.dev" class="transition-transform group-hover:translate-x-1">→</span>
+              </div>
+            </button>
+          </div>
+        </section>
+
+        <!-- ========== FOOD SECTION ========== -->
+        <section v-else-if="view==='food'" key="food" class="max-w-5xl mx-auto px-6 sm:px-8 py-10">
+
+          <!-- === Centered Section Title === -->
+          <h2 class="font-display text-3xl sm:text-4xl text-center mb-8">饮食</h2>
+
+          <!-- Food sub-tabs -->
+          <div class="flex flex-wrap gap-2 mb-8 justify-center">
+            <button v-for="t in allFoodTabs" :key="t.key" @click="switchFoodTab(t.key)"
+                    class="px-4 py-2 rounded-full text-sm font-medium border transition-all"
+                    :class="foodTab===t.key ? 'bg-coral-400 text-white border-coral-400' : 'border-paper-300 text-paper-600 hover:border-coral-300'">
+              <span class="mr-1.5">{{ t.icon }}</span>{{ t.label }}
+            </button>
+          </div>
+
+          <transition name="fade" mode="out-in">
+
+            <!-- ===== DAILY LOG ===== -->
+            <div v-if="foodTab==='dailylog'" key="dailylog">
+
+              <!-- === TOOLBAR: Templates + Copy + Auto-fill === -->
+              <div class="flex flex-wrap items-center gap-2 mb-5">
+                <!-- Meal Template quick-add -->
+                <div class="relative" v-if="mealTemplates.length">
+                  <button @click="showTemplatePicker=!showTemplatePicker"
+                          class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1">
+                    📋 套餐模板
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                  </button>
+                  <!-- Template dropdown -->
+                  <div v-if="showTemplatePicker" class="absolute top-full left-0 mt-1 w-72 z-30 bg-white border border-paper-300/60 rounded-xl shadow-lg overflow-hidden">
+                    <div class="p-2 max-h-64 overflow-y-auto">
+                      <button v-for="tmpl in mealTemplates" :key="tmpl.id"
+                              @click="applyTemplate(tmpl)"
+                              class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-coral-50 transition-colors flex items-center gap-2">
+                        <span class="text-base">{{ tmpl.emoji || '🍽️' }}</span>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-xs font-medium truncate">{{ tmpl.name }}</div>
+                          <div class="text-[10px] text-paper-400">{{ tmpl.items.length }} 种食材 · {{ mealTypeLabel(tmpl.defaultMealType) }}</div>
+                        </div>
+                        <span class="text-[10px] text-coral-500" v-if="tmpl.isDefault">默认</span>
+                      </button>
+                    </div>
+                    <div class="border-t border-paper-300/60 p-2">
+                      <button @click="showTemplateModal=true;showTemplatePicker=false;editingTemplate=null;resetTemplateForm()"
+                              class="w-full text-left px-3 py-2 rounded-lg text-xs text-coral-500 hover:bg-coral-50 transition-colors">
+                        + 新建模板
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Copy day's records -->
+                <button @click="showCopyModal=true"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1">
+                  📋 复制记录
+                </button>
+
+                <!-- Set as default breakfast -->
+                <button v-if="currentDayEntries.length"
+                        @click="saveAsDefaultBreakfast()"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1">
+                  ⭐ 设为默认早餐
+                </button>
+
+                <!-- Manage templates -->
+                <button @click="showTemplateModal=true;editingTemplate=null;resetTemplateForm()"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all ml-auto">
+                  ⚙️ 管理套餐
+                </button>
+              </div>
+
+              <!-- Date selector & targets -->
+              <div class="flex flex-wrap items-end gap-4 mb-6 p-5 rounded-xl border border-paper-300/60 bg-white/70">
+                <div>
+                  <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">日期</label>
+                  <input v-model="logDate" type="date" class="px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                </div>
+                <div class="grid grid-cols-4 gap-3 flex-1">
+                  <div>
+                    <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">目标热量 kcal</label>
+                    <input v-model.number="targets.calories" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                  </div>
+                  <div>
+                    <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">碳水 g</label>
+                    <input v-model.number="targets.carbs" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                  </div>
+                  <div>
+                    <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">蛋白质 g</label>
+                    <input v-model.number="targets.protein" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                  </div>
+                  <div>
+                    <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">脂肪 g</label>
+                    <input v-model.number="targets.fat" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Meal category tabs -->
+              <div class="flex gap-2 mb-5">
+                <button v-for="m in mealTypes" :key="m.key" @click="logMealType=m.key"
+                        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                        :class="logMealType===m.key ? 'bg-coral-100 border-coral-300 ' : 'border-paper-300/60 text-paper-500 hover:border-coral-300'">
+                  {{ m.icon }} {{ m.label }}
+                </button>
+              </div>
+
+              <!-- Unified search-to-select ingredient picker -->
+              <form @submit.prevent="addLogEntry" class="mb-5">
+                <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                  <!-- Search bar -->
+                  <div class="ing-search mb-3">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input v-model="logSearch" type="text" placeholder="搜索并选择食材…"
+                           class="w-full px-3 py-2.5 pl-8 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+                           @focus="logPickerOpen=true"/>
+                  </div>
+                  <!-- Ingredient chips (click to select) -->
+                  <div v-if="logPickerOpen || logSearch.trim()" class="flex flex-wrap gap-2 max-h-44 overflow-y-auto mb-3">
+                    <button v-for="it in groupedLogIngredientsFlat" :key="it.id" type="button"
+                            @click="selectLogIngredient(it.id)"
+                            class="px-2.5 py-1.5 rounded-full text-xs border transition-all"
+                            :class="Number(logForm.ingredientId)===it.id ? 'bg-coral-400 text-white border-coral-400' : 'border-paper-300/60 text-paper-600 hover:border-coral-300 hover:bg-coral-50 '">
+                      {{ it.emoji }} {{ it.name }}
+                      <span class="text-[9px] opacity-60 ml-0.5">{{ fmt1(it.nutrition?.calories) }}kcal</span>
+                    </button>
+                    <div v-if="!groupedLogIngredientsFlat.length" class="text-xs text-paper-400 py-2">无匹配食材</div>
+                  </div>
+                  <!-- Selected item + amount + meal + submit -->
+                  <div v-if="logForm.ingredientId" class="flex gap-2 flex-wrap items-center pt-3 border-t border-paper-200/60">
+                    <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                      <span class="shrink-0 text-sm font-medium truncate">
+                        {{ findIng(Number(logForm.ingredientId))?.emoji }} {{ findIng(Number(logForm.ingredientId))?.name }}
+                      </span>
+                      <button type="button" @click="logForm.ingredientId=''; logSearch=''" class="shrink-0 text-paper-400 hover:text-red-500 text-xs">&times; 清除</button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <input v-model.number="logForm.amount" type="number" :placeholder="logUnitPlaceholder" min="0.1" step="0.1"
+                             class="w-24 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                      <span class="text-sm text-paper-500 whitespace-nowrap">{{ currentLogUnit }}</span>
+                    </div>
+                    <select v-model="logForm.mealType" class="px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                      <option v-for="m in mealTypes" :key="m.key" :value="m.key">{{ m.icon }} {{ m.label }}</option>
+                    </select>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">记录</button>
+                  </div>
+                  <div v-else class="text-xs text-paper-400 pt-2">↑ 搜索或点击上方食材进行选择</div>
+                </div>
+                <!-- Preview card -->
+                <div v-if="logPreview.ingredientId && logForm.amount > 0" class="mt-3 p-3 rounded-xl border border-coral-200 bg-coral-50/70 text-xs">
+                  <div class="text-paper-500 mb-1.5 font-medium">添加后预计摄入量</div>
+                  <div class="grid grid-cols-4 gap-2">
+                    <div><span class="text-paper-400">热量:</span> <strong>{{ logPreview.totals.calories.toFixed(0) }}</strong> / {{ targets.calories||'—' }} kcal <span class="text-paper-400">({{ logPreviewPct('calories') }}%)</span></div>
+                    <div><span class="text-paper-400">碳水:</span> <strong>{{ logPreview.totals.carbs.toFixed(1) }}</strong> / {{ targets.carbs||'—' }}g <span class="text-paper-400">({{ logPreviewPct('carbs') }}%)</span></div>
+                    <div><span class="text-paper-400">蛋白:</span> <strong>{{ logPreview.totals.protein.toFixed(1) }}</strong> / {{ targets.protein||'—' }}g <span class="text-paper-400">({{ logPreviewPct('protein') }}%)</span></div>
+                    <div><span class="text-paper-400">脂肪:</span> <strong>{{ logPreview.totals.fat.toFixed(1) }}</strong> / {{ targets.fat||'—' }}g <span class="text-paper-400">({{ logPreviewPct('fat') }}%)</span></div>
+                  </div>
+                </div>
+              </form>
+
+              <!-- Summary bars -->
+              <div class="grid grid-cols-4 gap-3 mb-6">
+                <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                  <div class="text-[11px] uppercase tracking-wide2 text-paper-500">热量</div>
+                  <div class="text-lg font-semibold mt-1">{{ dayTotals.calories.toFixed(0) }} <span class="text-xs font-normal text-paper-400">/ {{ targets.calories||'—' }} kcal</span></div>
+                  <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-coral-400" :style="{width: pct('calories')+'%'}"></div></div>
+                </div>
+                <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                  <div class="text-[11px] uppercase tracking-wide2 text-paper-500">碳水</div>
+                  <div class="text-lg font-semibold mt-1">{{ dayTotals.carbs.toFixed(1) }} <span class="text-xs font-normal text-paper-400">/ {{ targets.carbs||'—' }} g</span></div>
+                  <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-yellow-400" :style="{width: pct('carbs')+'%'}"></div></div>
+                </div>
+                <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                  <div class="text-[11px] uppercase tracking-wide2 text-paper-500">蛋白质</div>
+                  <div class="text-lg font-semibold mt-1">{{ dayTotals.protein.toFixed(1) }} <span class="text-xs font-normal text-paper-400">/ {{ targets.protein||'—' }} g</span></div>
+                  <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-blue-400" :style="{width: pct('protein')+'%'}"></div></div>
+                </div>
+                <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                  <div class="text-[11px] uppercase tracking-wide2 text-paper-500">脂肪</div>
+                  <div class="text-lg font-semibold mt-1">{{ dayTotals.fat.toFixed(1) }} <span class="text-xs font-normal text-paper-400">/ {{ targets.fat||'—' }} g</span></div>
+                  <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-purple-400" :style="{width: pct('fat')+'%'}"></div></div>
+                </div>
+              </div>
+
+              <!-- Log entries by meal -->
+              <template v-for="m in mealTypes" :key="m.key">
+                <div v-if="mealEntries(m.key).length" class="mb-5">
+                  <div class="text-xs uppercase tracking-wide2 text-paper-500 mb-2 flex items-center gap-2">
+                    <span>{{ m.icon }} {{ m.label }}</span>
+                    <span class="text-paper-300">· {{ fmt1(mealMacroSum(m.key).calories) }}kcal</span>
+                    <!-- Copy this meal button -->
+                    <button @click="openCopyMeal(m.key)" class="ml-auto text-coral-500 hover:text-coral-600 text-[11px] font-medium">📋 复制此餐</button>
+                  </div>
+                  <div class="flex flex-col gap-2">
+                    <div v-for="(entry,idx) in mealEntries(m.key)" :key="entry._idx"
+                         class="flex items-center gap-3 p-4 rounded-xl border border-paper-300/60 bg-white/70 group"
+                         :class="editingLogEntry && editingLogEntry._idx===entry._idx && editingLogMealType===m.key ? 'ring-2 ring-coral-300' : ''">
+                      <div class="avatar-img shrink-0" style="width:36px;height:36px;font-size:17px">
+                        <img v-if="findIng(entry.ingredientId)?.image" :src="findIng(entry.ingredientId).image" alt=""/>
+                        <span v-else>{{ findIng(entry.ingredientId)?.emoji || '?' }}</span>
+                      </div>
+                      <!-- Normal view -->
+                      <template v-if="!(editingLogEntry && editingLogEntry._idx===entry._idx && editingLogMealType===m.key)">
+                        <div class="flex-1">
+                          <div class="text-sm font-medium">{{ findIng(entry.ingredientId)?.name || entry.ingredientId }}</div>
+                          <div class="text-[11px] text-paper-400">{{ round1(fromGrams(findIng(entry.ingredientId), entry.amount)) }}{{ unitLabel(findIng(entry.ingredientId)) }} · ≈ {{ fmt1(entryNutri(entry)) }}kcal</div>
+                        </div>
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button @click="startEditLogEntry(entry, m.key, idx)" class="text-paper-400 hover:text-coral-500 transition-all text-sm px-2">编辑</button>
+                          <button @click="removeLogEntryByMeal(m.key, idx)" class="text-paper-400 hover:text-red-500 transition-all text-sm px-2">删除</button>
+                        </div>
+                      </template>
+                      <!-- Edit mode inline -->
+                      <template v-else>
+                        <div class="flex-1 flex gap-2 items-center">
+                          <select v-model="editLogForm.ingredientId" class="flex-1 min-w-[140px] px-2 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                            <option v-for="it in store.ingredients" :key="it.id" :value="it.id">{{ it.emoji }} {{ it.name }}</option>
+                          </select>
+                          <input v-model.number="editLogForm.amount" type="number" min="1" class="w-20 px-2 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                          <select v-model="editLogForm.mealType" class="px-2 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                            <option v-for="mt in mealTypes" :key="mt.key" :value="mt.key">{{ mt.icon }} {{ mt.label }}</option>
+                          </select>
+                          <button @click="saveLogEntryEdit(m.key, idx)" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-coral-400 text-white hover:opacity-90">保存</button>
+                          <button @click="cancelLogEntryEdit()" class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300 hover:bg-coral-50">取消</button>
+                        </div>
+                      </template>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div v-if="!currentDayEntries.length" class="text-center text-paper-400 py-12 text-sm font-light">今日暂无记录。</div>
+            </div>
+
+            <!-- ===== INGREDIENTS ===== -->
+            <div v-else-if="foodTab==='ingredients'" key="ingredients">
+              <div class="flex flex-wrap items-center gap-2 mb-4">
+                <template v-for="(c,key) in catDefs" :key="key">
+                  <button @click="ingCat=key" class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                          :class="ingCat===key ? 'bg-coral-100 border-coral-300 ' : 'border-paper-300/60 text-paper-500 hover:border-coral-300'">
+                    {{ c.emoji }} {{ c.label }}
+                    <span class="ml-1 opacity-50">({{ ingByCat(key).length }})</span>
+                  </button>
+                </template>
+                <button @click="showIngForm=true;editingIng=null;resetIngForm()"
+                        class="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-coral-400 text-white hover:opacity-90 transition-opacity">
+                  + 新增食材
+                </button>
+              </div>
+              <div class="ing-search mb-4">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input v-model="ingSearch" type="text" placeholder="搜索食材名称…"
+                       class="w-full px-3 py-2 pl-8 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div v-for="it in searchedIngList" :key="it.id"
+                     class="group relative p-4 rounded-xl border border-paper-300/60 bg-white/70 hover:border-coral-300 hover:shadow-sm transition-all cursor-pointer"
+                     @click="openIngDetail(it)">
+                  <div class="avatar-img mx-auto mb-2" :style="it.image?`background:none`:''">
+                    <img v-if="it.image" :src="it.image" alt="" />
+                    <span v-else>{{ it.emoji || catDefs[it.category].emoji }}</span>
+                  </div>
+                  <div class="text-sm font-medium text-center truncate">{{ it.name }}</div>
+                  <div class="mt-1 text-[10px] text-paper-400 text-center truncate">
+                    碳{{ fmt1(it.nutrition?.carbs) }}g · 蛋白{{ fmt1(it.nutrition?.protein) }}g · 脂肪{{ fmt1(it.nutrition?.fat) }}g /100g
+                  </div>
+                  <div class="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button @click.stop="startEditIng(it)" class="w-6 h-6 rounded-md bg-paper-200 text-xs hover:bg-coral-100">✎</button>
+                    <button @click.stop="deleteIng(it.id)" class="w-6 h-6 rounded-md bg-red-50 text-red-500 text-xs hover:bg-red-100">×</button>
+                  </div>
+                </div>
+                <div v-if="!searchedIngList.length" class="col-span-full text-center text-paper-400 py-12 text-sm font-light">未找到匹配的食材。</div>
+              </div>
+            </div>
+
+            <!-- ===== RECIPES ===== -->
+            <div v-else-if="foodTab==='recipes'" key="recipes">
+              <!-- Ingredient selection panel (always visible — used to filter recipes) -->
+              <div class="mb-4 p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-xs font-medium text-paper-600">点击食材筛选包含该食材的菜谱</span>
+                  <div class="flex items-center gap-2">
+                    <span v-if="selectedIngIds.length" class="text-xs text-coral-500 font-medium">已选 {{ selectedIngIds.length }} 种 · 自动筛选中</span>
+                    <button v-if="selectedIngIds.length" @click="selectedIngIds=[]" class="text-xs text-paper-400 hover:text-coral-500 transition-colors">清除选择</button>
+                  </div>
+                </div>
+                <!-- Selected chips -->
+                <div v-if="selectedIngIds.length" class="flex flex-wrap gap-1.5 mb-3">
+                  <span v-for="sid in selectedIngIds" :key="sid"
+                        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-coral-100 border border-coral-300 text-coral-700">
+                    {{ findIng(sid)?.emoji || '?' }} {{ findIng(sid)?.name || sid }}
+                    <button @click="toggleIngSelect(sid)" class="ml-0.5 hover:text-red-500 font-bold">&times;</button>
+                  </span>
+                </div>
+                <!-- Search + chip picker -->
+                <div class="ing-search mb-3">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                  <input v-model="recSelSearch" type="text" placeholder="搜索食材…"
+                         class="w-full px-3 py-2 pl-8 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                </div>
+                <div class="flex flex-wrap gap-2 max-h-44 overflow-y-auto">
+                  <button v-for="it in sortedSelectIngredients" :key="it.id" @click="toggleIngSelect(it.id)"
+                          class="px-2.5 py-1.5 rounded-full text-xs border transition-all"
+                          :class="selectedIngIds.includes(it.id) ? 'bg-coral-400 text-white border-coral-400' : 'border-paper-300/60 text-paper-600 hover:border-coral-300 hover:bg-coral-50 '">
+                    {{ it.emoji }} {{ it.name }}
+                  </button>
+                </div>
+                <!-- Add-to-log action -->
+                <div v-if="selectedIngIds.length" class="mt-3 pt-3 border-t border-paper-200/60 flex justify-end">
+                  <button @click="addSelectedToDailyLog()"
+                          class="px-3 py-1.5 rounded-lg text-xs font-medium bg-coral-400 text-white hover:opacity-90 transition-opacity">
+                    ➕ 添加选中至今日记录
+                  </button>
+                </div>
+              </div>
+
+              <!-- Filter bar (category + inventory) -->
+              <div class="flex flex-wrap items-center gap-2 mb-6">
+                <button @click="setRecipeFilter('all')" class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                        :class="recipeFilter==='all'?'bg-coral-100 border-coral-300':'border-paper-300/60 text-paper-500'">全部</button>
+                <template v-for="(rc,key) in recipeCats" :key="key">
+                  <button @click="setRecipeFilter(key)" class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                          :class="recipeFilter===key?'bg-coral-100 border-coral-300':'border-paper-300/60 text-paper-500'">
+                    {{ rc.emoji }} {{ rc.label }}
+                  </button>
+                </template>
+                <span class="w-px h-6 bg-paper-300 mx-1"></span>
+                <button @click="inventoryFilter = !inventoryFilter" class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                        :class="inventoryFilter?'bg-green-50 border-green-300 text-green-700 ':'border-paper-300/60 text-paper-500 hover:border-green-200'">
+                  ✅ 材料齐全
+                </button>
+                <button @click="showRecipeForm=true;editingRecipe=null;resetRecipeForm()"
+                        class="ml-auto px-3 py-1.5 rounded-lg text-xs font-medium bg-coral-400 text-white hover:opacity-90">+ 新增菜谱</button>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div v-for="r in filteredRecipes" :key="r.id"
+                     class="p-5 rounded-xl border border-paper-300/60 bg-white/70 group">
+                  <div class="flex items-start justify-between">
+                    <div>
+                      <h4 class="text-base font-medium">{{ r.name }}</h4>
+                      <span class="text-[10px] uppercase tracking-wide border border-paper-300 rounded px-1.5 py-0.5 text-paper-400 mt-1 inline-block">
+                        {{ recipeCats[r.category]?.emoji }} {{ recipeCats[r.category]?.label }}
+                      </span>
+                    </div>
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button @click="startEditRecipe(r)" class="w-6 h-6 rounded-md bg-paper-200 text-xs hover:bg-coral-100">✎</button>
+                      <button @click="deleteRecipe(r.id)" class="w-6 h-6 rounded-md bg-red-50 text-red-500 text-xs hover:bg-red-100">×</button>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex flex-wrap gap-1.5">
+                    <span v-for="iid in r.ingredientIds" :key="iid" class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]"
+                          :class="hasInPantry(iid)?'bg-green-50 text-green-700 border border-green-200 ':'bg-paper-100 text-paper-500 border border-paper-200 '">
+                      {{ findIng(iid)?.emoji || '?' }} {{ findIng(iid)?.name || iid }}
+                      <span v-if="selectedIngIds.includes(iid)" class="text-coral-500 text-[9px]">★</span>
+                    </span>
+                  </div>
+                  <p class="mt-3 text-sm text-paper-500 font-light leading-relaxed">{{ r.method }}</p>
+                </div>
+                <div v-if="!filteredRecipes.length" class="col-span-full text-center text-paper-400 py-12 text-sm font-light">暂无符合条件的菜谱。</div>
+              </div>
+            </div>
+
+            <!-- ===== PANTRY ===== -->
+            <div v-else-if="foodTab==='pantry'" key="pantry">
+              <div class="flex items-center justify-between mb-5">
+                <p class="text-sm text-paper-500 font-light">库存追踪：采购入库自动增加，饮食消耗自动扣减。</p>
+                <button @click="showPantryForm=true;resetPantryForm()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-coral-400 text-white hover:opacity-90">+ 手动添加</button>
+              </div>
+              <div v-if="zeroStockItems.length" class="mb-4 p-3 rounded-xl border border-yellow-300 bg-yellow-50 text-xs text-yellow-700">
+                ⚠ 以下食材库存为空，已自动加入采购清单：
+                <span v-for="z in zeroStockItems" :key="z" class="inline-flex items-center gap-1 ml-2 px-2 py-0.5 rounded-full bg-white border border-yellow-200">
+                  {{ findIng(z)?.emoji || '?' }} {{ findIng(z)?.name || z }}
+                </span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div v-for="p in pantryList" :key="p.id"
+                     class="flex items-center gap-3 p-4 rounded-xl border border-paper-300/60 bg-white/70 group">
+                  <div class="avatar-img shrink-0" style="width:36px;height:36px;font-size:17px">
+                    <img v-if="findIng(p.ingredientId)?.image" :src="findIng(p.ingredientId).image" alt=""/>
+                    <span v-else>{{ findIng(p.ingredientId)?.emoji || '?' }}</span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium truncate">{{ findIng(p.ingredientId)?.name || p.ingredientId }}</div>
+                    <div class="text-[11px]" :class="p.quantity>0?'text-green-600 ':'text-red-400'">
+                      库存：<strong>{{ round1(fromGrams(findIng(p.ingredientId), p.quantity)) }}</strong> {{ unitLabel(findIng(p.ingredientId)) }}
+                    </div>
+                  </div>
+                  <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button @click="adjustPantry(p.id, -pantryStep(p.ingredientId))" class="w-9 h-7 rounded-md bg-paper-200 text-xs hover:bg-red-50">−{{ pantryStep(p.ingredientId) }}</button>
+                    <button @click="adjustPantry(p.id, pantryStep(p.ingredientId))" class="w-9 h-7 rounded-md bg-paper-200 text-xs hover:bg-green-50">+{{ pantryStep(p.ingredientId) }}</button>
+                    <button @click="removePantry(p.id)" class="w-7 h-7 rounded-md bg-red-50 text-red-500 text-xs">×</button>
+                  </div>
+                </div>
+                <div v-if="!pantryList.length" class="col-span-full text-center text-paper-400 py-12 text-sm font-light">库存为空。</div>
+              </div>
+            </div>
+
+            <!-- ===== SHOPPING ===== -->
+            <div v-else-if="foodTab==='shopping'" key="shopping">
+              <!-- Unified search-to-select ingredient picker -->
+              <form @submit.prevent="addShoppingItem" class="mb-5">
+                <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
+                  <div class="ing-search mb-3">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input v-model="shopSearch" type="text" placeholder="搜索并选择食材…"
+                           class="w-full px-3 py-2.5 pl-8 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+                           @focus="shopPickerOpen=true"/>
+                  </div>
+                  <div v-if="shopPickerOpen || shopSearch.trim()" class="flex flex-wrap gap-2 max-h-44 overflow-y-auto mb-3">
+                    <button v-for="it in groupedShopIngredientsFlat" :key="it.id" type="button"
+                            @click="selectShopIngredient(it.id)"
+                            class="px-2.5 py-1.5 rounded-full text-xs border transition-all"
+                            :class="Number(shopForm.ingredientId)===it.id ? 'bg-coral-400 text-white border-coral-400' : 'border-paper-300/60 text-paper-600 hover:border-coral-300 hover:bg-coral-50 '">
+                      {{ it.emoji }} {{ it.name }}
+                    </button>
+                    <div v-if="!groupedShopIngredientsFlat.length" class="text-xs text-paper-400 py-2">无匹配食材</div>
+                  </div>
+                  <div v-if="shopForm.ingredientId" class="flex gap-2 flex-wrap items-center pt-3 border-t border-paper-200/60">
+                    <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                      <span class="shrink-0 text-sm font-medium truncate">
+                        {{ findIng(Number(shopForm.ingredientId))?.emoji }} {{ findIng(Number(shopForm.ingredientId))?.name }}
+                      </span>
+                      <button type="button" @click="shopForm.ingredientId=''; shopSearch=''" class="shrink-0 text-paper-400 hover:text-red-500 text-xs">&times; 清除</button>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <input v-model.number="shopForm.qty" type="number" :placeholder="shopUnitPlaceholder" min="0.1" step="0.1"
+                             class="w-24 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                      <span class="text-sm text-paper-500 whitespace-nowrap">{{ shopUnitLabel }}</span>
+                    </div>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">添加</button>
+                  </div>
+                  <div v-else class="text-xs text-paper-400 pt-2">↑ 搜索或点击上方食材进行选择</div>
+                </div>
+              </form>
+              <div class="flex flex-col gap-2">
+                <div v-for="s in shoppingList" :key="s.id"
+                     class="flex items-center gap-3 p-4 rounded-xl border border-paper-300/60 bg-white/70 group">
+                  <input type="checkbox" v-model="s.done" @change="onShopBought(s)" class="w-5 h-5 accent-coral-400 rounded"/>
+                  <div class="avatar-img shrink-0" style="width:36px;height:36px;font-size:17px">
+                    <img v-if="findIng(s.ingredientId)?.image" :src="findIng(s.ingredientId).image" alt=""/>
+                    <span v-else>{{ findIng(s.ingredientId)?.emoji || '?' }}</span>
+                  </div>
+                  <div class="flex items-center gap-2 flex-1 min-w-0">
+                    <span class="text-sm truncate" :class="s.done?'line-through text-paper-400':''">{{ findIng(s.ingredientId)?.name || s.name }}</span>
+                    <div class="flex items-center gap-1 shrink-0">
+                      <input type="number" :value="round1(fromGrams(findIng(s.ingredientId), s.quantity))" @change="updateShopQty(s, $event)" min="0.1" step="0.1"
+                             class="w-16 px-2 py-1 rounded-lg border border-paper-300/60 bg-white text-xs focus:outline-none focus:border-coral-300"/>
+                      <span class="text-xs text-paper-400">{{ unitLabel(findIng(s.ingredientId)) }}</span>
+                    </div>
+                  </div>
+                  <button @click="removeShopping(s.id)" class="opacity-0 group-hover:opacity-100 text-paper-400 hover:text-red-500 transition-all text-sm px-2">删除</button>
+                </div>
+                <div v-if="!shoppingList.length" class="text-center text-paper-400 py-12 text-sm font-light">清单为空。</div>
+              </div>
+              <div class="mt-5 flex items-center justify-between text-xs text-paper-500">
+                <span>共 {{ shoppingList.length }} 项 · 已购 {{ shoppingList.filter(s=>s.done).length }} 项</span>
+                <button v-if="shoppingList.length" @click="clearBought()" class="hover:text-coral-500 transition-colors">清除已购</button>
+              </div>
+            </div>
+
+          </transition>
+        </section>
+
+        <!-- ========== PLACEHOLDER SECTIONS ========== -->
+        <section v-else :key="view" class="max-w-3xl mx-auto px-6 sm:px-8 py-24 text-center">
+          <div class="text-6xl mb-6">{{ currentSection.icon }}</div>
+          <h2 class="font-display text-4xl">{{ currentSection.title }}</h2>
+          <p class="mt-4 text-paper-500 font-light">板块正在精心打磨中。</p>
+          <button @click="goHome()" class="mt-8 px-5 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50 transition-colors">← 返回首页</button>
+        </section>
+
+      </transition>
+    </main>
+
+    <!-- ===================== INGREDIENT DETAIL DRAWER ===================== -->
+    <transition name="slide">
+      <aside v-if="selectedIng" class="fixed inset-0 z-50" @click="selectedIng=null">
+        <div class="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+        <div class="absolute right-0 top-0 h-full w-[420px] max-w-[92vw] bg-coral-50 border-l border-paper-300/60 p-7 overflow-y-auto" @click.stop>
+          <button @click="selectedIng=null" class="self-end text-paper-400 hover:text-ink transition-colors text-sm float-right">✕ 关闭</button>
+          <div class="clear-both pt-2">
+            <div class="avatar-img mx-auto mb-3" style="width:80px;height:80px;font-size:38px">
+              <img v-if="selectedIng.image" :src="selectedIng.image" alt=""/>
+              <span v-else>{{ selectedIng.emoji || '?' }}</span>
+            </div>
+            <h3 class="font-display text-3xl text-center">{{ selectedIng.name }}</h3>
+            <div class="text-[11px] tracking-wide2 uppercase text-paper-500 text-center mt-1">{{ catDefs[selectedIng.category]?.label }}</div>
+            <div class="h-px bg-paper-300/60 my-6"></div>
+            <div class="mb-6">
+              <div class="text-xs uppercase tracking-wide2 text-paper-500 mb-3">营养数据 / 每 100g</div>
+              <div class="grid grid-cols-2 gap-2">
+                <div class="p-3 rounded-xl border border-paper-300/60 bg-white/70 text-center">
+                  <div class="text-[11px] text-paper-400">热量</div>
+                  <div class="text-lg font-semibold text-coral-500">{{ fmt1(selectedIng.nutrition?.calories) }} <span class="text-xs font-normal">kcal</span></div>
+                </div>
+                <div class="p-3 rounded-xl border border-paper-300/60 bg-white/70 text-center">
+                  <div class="text-[11px] text-paper-400">碳水</div>
+                  <div class="text-lg font-semibold text-yellow-500">{{ fmt1(selectedIng.nutrition?.carbs) }} <span class="text-xs font-normal">g</span></div>
+                </div>
+                <div class="p-3 rounded-xl border border-paper-300/60 bg-white/70 text-center">
+                  <div class="text-[11px] text-paper-400">蛋白质</div>
+                  <div class="text-lg font-semibold text-blue-500">{{ fmt1(selectedIng.nutrition?.protein) }} <span class="text-xs font-normal">g</span></div>
+                </div>
+                <div class="p-3 rounded-xl border border-paper-300/60 bg-white/70 text-center">
+                  <div class="text-[11px] text-paper-400">脂肪</div>
+                  <div class="text-lg font-semibold text-purple-500">{{ fmt1(selectedIng.nutrition?.fat) }} <span class="text-xs font-normal">g</span></div>
+                </div>
+              </div>
+              <p v-if="selectedIng.unit==='个'" class="mt-3 text-[11px] text-paper-500 text-center leading-relaxed">
+                每 {{ selectedIng.gramsPerUnit||50 }}g（1{{ unitLabel(selectedIng) }}）：≈ {{ fmt1((selectedIng.nutrition?.calories||0)*(selectedIng.gramsPerUnit||50)/100) }} kcal · 碳水 {{ fmt1((selectedIng.nutrition?.carbs||0)*(selectedIng.gramsPerUnit||50)/100) }}g · 蛋白 {{ fmt1((selectedIng.nutrition?.protein||0)*(selectedIng.gramsPerUnit||50)/100) }}g · 脂肪 {{ fmt1((selectedIng.nutrition?.fat||0)*(selectedIng.gramsPerUnit||50)/100) }}g
+              </p>
+            </div>
+            <div class="mb-6">
+              <div class="text-xs uppercase tracking-wide2 text-paper-500 mb-3">营养标签</div>
+
+              <!-- 膳食特征 (macro-derived) -->
+              <div v-if="healthTags(selectedIng).length" class="flex flex-wrap gap-1.5 mb-2.5">
+                <span v-for="ht in healthTags(selectedIng)" :key="ht.text" class="px-2.5 py-1 rounded-full text-xs font-medium border" :class="ht.cls">{{ ht.text }}</span>
+              </div>
+
+              <!-- 微量营养 (grouped by category, hierarchical) -->
+              <div v-if="micronGroups(selectedIng).length">
+                <div v-for="grp in micronGroups(selectedIng)" :key="grp.cat" class="mb-2">
+                  <div class="text-[10px] uppercase tracking-wide2 text-paper-400 mb-1">{{ grp.cat }}</div>
+                  <div class="flex flex-wrap gap-1.5">
+                    <span v-for="n in grp.items" :key="n" class="px-2.5 py-1 rounded-full text-xs font-medium border" :class="catClass(grp.cat)">{{ n }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 自定义标签 -->
+              <div v-if="(selectedIng.tags||[]).length" class="flex flex-wrap gap-1.5">
+                <span v-for="t in selectedIng.tags" :key="t" class="px-2.5 py-1 rounded-full text-xs font-medium border"
+                      :class="catClass(classifyTag(t))">{{ t }}</span>
+              </div>
+            </div>
+            <p v-if="selectedIng.note" class="text-sm text-paper-600 font-light leading-relaxed">{{ selectedIng.note }}</p>
+          </div>
+        </div>
+      </aside>
+    </transition>
+
+    <!-- ===================== INGREDIENT FORM MODAL ===================== -->
+    <transition name="pop">
+      <div v-if="showIngForm" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showIngForm=false">
+        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-lg bg-coral-50 rounded-2xl border border-paper-300/60 p-7 max-h-[90vh] overflow-y-auto" @click.stop>
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-display text-2xl">{{ editingIng ? '编辑食材' : '新增食材' }}</h3>
+            <button @click="showIngForm=false" class="text-paper-400 hover:text-ink text-sm">✕</button>
+          </div>
+          <form @submit.prevent="saveIng" class="flex flex-col gap-4">
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">名称 *</label>
+              <input v-model="ingForm.name" required type="text" placeholder="例如：鸡胸肉"
+                     class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">分类 *</label>
+              <select v-model="ingForm.category" required class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                <option v-for="(c,key) in catDefs" :key="key" :value="key">{{ c.emoji }} {{ c.label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">计量单位</label>
+              <div class="mt-1.5 flex items-center gap-3 flex-wrap">
+                <select v-model="ingForm.unit" class="px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                  <option value="g">克 (g)</option>
+                  <option value="个">个 (piece)</option>
+                </select>
+                <div v-if="ingForm.unit==='个'" class="flex items-center gap-2">
+                  <span class="text-xs text-paper-500">每个约</span>
+                  <input v-model.number="ingForm.gramsPerUnit" type="number" min="1" class="w-20 px-3 py-2 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+                  <span class="text-xs text-paper-500">g</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">图标 Emoji</label>
+              <div class="mt-1.5 emoji-grid p-2 rounded-xl border border-paper-300/60 bg-white">
+                <button v-for="e in emojiOptions" :type="'button'" :key="e" @click="ingForm.emoji=e"
+                        class="emoji-btn" :class="ingForm.emoji===e?'ring-2 ring-coral-400 rounded-lg':''">{{ e }}</button>
+              </div>
+              <input v-model="ingForm.emoji" class="mt-2 w-full px-4 py-2 rounded-lg border border-paper-300/60 bg-white text-sm" placeholder="或输入自定义 emoji"/>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">产品照片（可选）</label>
+              <div class="mt-1.5 flex items-center gap-3">
+                <div class="avatar-img shrink-0" style="width:56px;height:56px;font-size:26px">
+                  <img v-if="ingForm.imagePreview" :src="ingForm.imagePreview" alt=""/>
+                  <span v-else>{{ ingForm.emoji || '📷' }}</span>
+                </div>
+                <label class="px-4 py-2 rounded-xl border border-paper-300/60 text-sm cursor-pointer hover:bg-coral-50 transition-colors">
+                  上传图片
+                  <input type="file" accept="image/*" @change="onIngImage($event)" class="hidden"/>
+                </label>
+                <button v-if="ingForm.imageData" type="button" @click="ingForm.imageData='';ingForm.imagePreview=''" class="text-red-400 text-sm hover:underline">清除图片</button>
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">营养数据 / 每 100g</label>
+              <div class="mt-1.5 grid grid-cols-4 gap-2">
+                <div><input v-model.number="ingForm.nCalories" type="number" step="0.1" placeholder="热量(kcal)" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/></div>
+                <div><input v-model.number="ingForm.nCarbs" type="number" step="0.1" placeholder="碳水(g)" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/></div>
+                <div><input v-model.number="ingForm.nProtein" type="number" step="0.1" placeholder="蛋白(g)" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/></div>
+                <div><input v-model.number="ingForm.nFat" type="number" step="0.1" placeholder="脂肪(g)" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/></div>
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">标签（逗号分隔，自定义描述）</label>
+              <input v-model="ingForm.tagsStr" type="text" placeholder="高蛋白, 饱腹, 低GI"
+                     class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+              <div class="mt-2">
+                <div class="flex items-start gap-2">
+                  <span class="text-[10px] text-paper-400 mt-1 shrink-0">🧬 AI 识别</span>
+                  <div class="flex-1">
+                    <template v-if="aiResult.match">
+                      <!-- Auto-fill / estimate indicator -->
+                      <div v-if="aiResult.macros && ingForm.nCalories" class="mb-1.5 px-2.5 py-1.5 rounded-lg border"
+                           :class="aiResult.estimated ? 'bg-amber-50 border-amber-200/60 ' : 'bg-green-50 border-green-200/60 '">
+                        <span class="text-[11px] font-medium" :class="aiResult.estimated ? 'text-amber-700 ' : 'text-green-700 '">
+                          {{ aiResult.estimated ? '⚡ 已智能估算营养（参考值）' : '✓ 营养数据已自动填充' }}
+                        </span>
+                        <span class="text-[10px] ml-1.5" :class="aiResult.estimated ? 'text-amber-600 ' : 'text-green-600 '">
+                          {{ fmt1(aiResult.macros.calories) }}kcal ·
+                          蛋白{{ fmt1(aiResult.macros.protein) }}g ·
+                          碳水{{ fmt1(aiResult.macros.carbs) }}g ·
+                          脂肪{{ fmt1(aiResult.macros.fat) }}g /100g
+                          <template v-if="aiResult.estimated"> · 类别：{{ aiResult.category }}</template>
+                        </span>
+                      </div>
+                      <!-- Micronutrient tags -->
+                      <div class="flex flex-wrap gap-1.5">
+                        <span v-for="mt in aiResult.micros" :key="mt.name" class="px-2 py-0.5 rounded-full text-[11px] font-medium border" :class="catClass(mt.cat)">{{ mt.name }}</span>
+                      </div>
+                    </template>
+                    <span v-else class="text-[11px] text-paper-400">输入食材名称（如鸡蛋/螃蟹/三文鱼）自动识别或估算营养数据</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">备注</label>
+              <textarea v-model="ingForm.note" rows="2" placeholder="简短描述…"
+                        class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300 resize-none"></textarea>
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button type="button" @click="showIngForm=false" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50 transition-colors">取消</button>
+              <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90 transition-opacity">保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===================== RECIPE FORM MODAL ===================== -->
+    <transition name="pop">
+      <div v-if="showRecipeForm" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showRecipeForm=false">
+        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-lg bg-coral-50 rounded-2xl border border-paper-300/60 p-7 max-h-[90vh] overflow-y-auto" @click.stop>
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-display text-2xl">{{ editingRecipe ? '编辑菜谱' : '新增菜谱' }}</h3>
+            <button @click="showRecipeForm=false" class="text-paper-400 hover:text-ink text-sm">✕</button>
+          </div>
+          <form @submit.prevent="saveRecipe" class="flex flex-col gap-4">
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">菜名 *</label>
+              <input v-model="recForm.name" required type="text" placeholder="香煎三文鱼"
+                     class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">分类 *</label>
+              <select v-model="recForm.category" class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                <option v-for="(rc,key) in recipeCats" :key="key" :value="key">{{ rc.emoji }} {{ rc.label }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">所需食材（从原材料库选择）</label>
+              <div class="ing-search mt-1.5 mb-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input v-model="recIngSearch" type="text" placeholder="搜索食材…"
+                       class="w-full px-3 py-2 pl-8 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+              </div>
+              <div class="flex flex-wrap gap-2 p-3 rounded-xl border border-paper-300/60 bg-white max-h-48 overflow-y-auto">
+                <template v-for="it in sortedRecIngredients" :key="it.id">
+                  <button type="button" @click="toggleRecIng(it.id)"
+                          class="px-2.5 py-1 rounded-full text-xs border transition-all"
+                          :class="recForm.ingredientIds.includes(it.id) ? 'bg-coral-100 border-coral-300 ' : 'border-paper-300/60 text-paper-500 hover:border-coral-300'">
+                    {{ it.emoji }} {{ it.name }}
+                    <span v-if="recForm.ingredientIds.includes(it.id)" class="ml-0.5 text-coral-500">✓</span>
+                  </button>
+                </template>
+              </div>
+              <p class="mt-1 text-[11px] text-paper-400">已选 {{ recForm.ingredientIds.length }} 种食材</p>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">做法</label>
+              <textarea v-model="recForm.method" rows="3" placeholder="两面撒盐煎至金黄，挤柠檬汁即可。"
+                        class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300 resize-none"></textarea>
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button type="button" @click="showRecipeForm=false" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50 transition-colors">取消</button>
+              <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90 transition-opacity">保存</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===================== PANTRY ADD FORM ===================== -->
+    <transition name="pop">
+      <div v-if="showPantryForm" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showPantryForm=false">
+        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-sm bg-coral-50 rounded-2xl border border-paper-300/60 p-7" @click.stop>
+          <h3 class="font-display text-2xl mb-5">添加到库存</h3>
+          <form @submit.prevent="savePantryAdd" class="flex flex-col gap-4">
+            <!-- Unified search-to-select ingredient picker -->
+            <div class="ing-search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input v-model="pantrySearch" type="text" placeholder="搜索并选择食材…"
+                     class="w-full px-3 py-2.5 pl-8 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+                     @focus="pantryPickerOpen=true"/>
+            </div>
+            <div v-if="pantryPickerOpen || pantrySearch.trim()" class="flex flex-wrap gap-2 max-h-44 overflow-y-auto p-3 rounded-xl border border-paper-300/60 bg-white">
+              <button v-for="it in pantryFlatList" :key="it.id" type="button"
+                      @click="selectPantryIngredient(it.id)"
+                      class="px-2.5 py-1.5 rounded-full text-xs border transition-all"
+                      :class="Number(pantryForm.ingredientId)===it.id ? 'bg-coral-400 text-white border-coral-400' : 'border-paper-300/60 text-paper-600 hover:border-coral-300 hover:bg-coral-50 '">
+                {{ it.emoji }} {{ it.name }}
+              </button>
+              <div v-if="!pantryFlatList.length" class="text-xs text-paper-400 py-2 w-full text-center">无匹配食材</div>
+            </div>
+            <!-- Selected item display -->
+            <div v-if="pantryForm.ingredientId" class="flex items-center gap-2 pt-2">
+              <span class="text-sm font-medium truncate">
+                {{ findIng(Number(pantryForm.ingredientId))?.emoji }} {{ findIng(Number(pantryForm.ingredientId))?.name }}
+              </span>
+              <button type="button" @click="pantryForm.ingredientId=''; pantrySearch=''" class="text-paper-400 hover:text-red-500 text-xs">&times;</button>
+            </div>
+            <div v-else class="text-xs text-paper-400">↑ 搜索或点击上方食材进行选择</div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">数量（{{ pantryUnitLabel }}）</label>
+              <input v-model.number="pantryForm.qty" type="number" required min="0" :placeholder="String(pantryForm.qty||500)"
+                     class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button type="button" @click="showPantryForm=false" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50">取消</button>
+              <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">添加</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===================== COPY DAY MODAL (Feature 1) ===================== -->
+    <transition name="pop">
+      <div v-if="showCopyModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showCopyModal=false">
+        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md bg-coral-50 rounded-2xl border border-paper-300/60 p-7" @click.stop>
+          <h3 class="font-display text-2xl mb-5">📋 复制饮食记录</h3>
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">来源日期（当前查看的日期）</label>
+              <div class="text-sm font-medium text-paper-700">{{ logDate }}</div>
+              <div class="text-[11px] text-paper-400 mt-1">共 {{ currentDayEntries.length }} 条记录</div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">复制到目标日期</label>
+              <input v-model="copyTargetDate" type="date" class="w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+              <div class="flex gap-2 mt-2">
+                <button @click="copyTargetDate=todayStr()" class="px-3 py-1.5 rounded-lg text-xs border border-paper-300 hover:bg-coral-50 text-paper-600">复制到今天</button>
+                <button @click="copyTargetDate=tomorrowStr()" class="px-3 py-1.5 rounded-lg text-xs border border-paper-300 hover:bg-coral-50 text-paper-600">复制到明天</button>
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">复制选项</label>
+              <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-paper-600 mt-2">
+                <input type="checkbox" v-model="copyWithPantryDeduct" class="accent-coral-400 rounded"/>
+                同时扣减库存（模拟真实食用）
+              </label>
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button type="button" @click="showCopyModal=false" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50">取消</button>
+              <button type="button" @click="executeCopyDay()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">确认复制</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===================== COPY SINGLE MEAL MODAL (Feature 1b) ===================== -->
+    <transition name="pop">
+      <div v-if="showCopyMealModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showCopyMealModal=false">
+        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-md bg-coral-50 rounded-2xl border border-paper-300/60 p-7" @click.stop>
+          <h3 class="font-display text-2xl mb-5">📋 复制「{{ copyMealLabel }}」</h3>
+          <div class="flex flex-col gap-4">
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">目标日期</label>
+              <input v-model="copyTargetDate" type="date" class="w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">目标餐次</label>
+              <select v-model="copyTargetMealType" class="w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                <option v-for="m in mealTypes" :key="m.key" :value="m.key">{{ m.icon }} {{ m.label }}</option>
+              </select>
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button type="button" @click="showCopyMealModal=false" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50">取消</button>
+              <button type="button" @click="executeCopyMeal()" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">确认复制</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===================== MEAL TEMPLATE MODAL (Feature 3) ===================== -->
+    <transition name="pop">
+      <div v-if="showTemplateModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showTemplateModal=false">
+        <div class="absolute inset-0 bg-black/35 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-lg bg-coral-50 rounded-2xl border border-paper-300/60 p-7 max-h-[90vh] overflow-y-auto" @click.stop>
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-display text-2xl">{{ editingTemplate ? '编辑套餐模板' : '新建套餐模板' }}</h3>
+            <button @click="showTemplateModal=false" class="text-paper-400 hover:text-ink text-sm">✕</button>
+          </div>
+          <form @submit.prevent="saveTemplate" class="flex flex-col gap-4">
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">模板名称 *</label>
+              <input v-model="tmplForm.name" required type="text" placeholder="例如：我的标准早餐"
+                     class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+            </div>
+            <div class="flex gap-3">
+              <div class="flex-1">
+                <label class="text-[11px] uppercase tracking-wide2 text-paper-500">图标</label>
+                <input v-model="tmplForm.emoji" class="mt-1.5 w-full px-4 py-2 rounded-lg border border-paper-300/60 bg-white text-sm" placeholder="🍽️"/>
+              </div>
+              <div class="flex-1">
+                <label class="text-[11px] uppercase tracking-wide2 text-paper-500">默认餐次</label>
+                <select v-model="tmplForm.defaultMealType" class="mt-1.5 w-full px-4 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                  <option v-for="m in mealTypes" :key="m.key" :value="m.key">{{ m.icon }} {{ m.label }}</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label class="text-[11px] uppercase tracking-wide2 text-paper-500">食材列表</label>
+              <div class="ing-search mt-1.5 mb-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                <input v-model="tmplIngSearch" type="text" placeholder="搜索食材…"
+                       class="w-full px-3 py-2 pl-8 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"/>
+              </div>
+              <!-- Template item list -->
+              <div class="space-y-2 mb-2 max-h-48 overflow-y-auto">
+                <div v-for="(item,idx) in tmplForm.items" :key="idx"
+                     class="flex items-center gap-2 p-2 rounded-lg border border-paper-300/60 bg-white">
+                  <span class="text-sm">{{ findIng(item.ingredientId)?.emoji || '?' }}</span>
+                  <span class="text-sm flex-1 truncate">{{ findIng(item.ingredientId)?.name || item.ingredientId }}</span>
+                  <input v-model.number="item.amount" type="number" min="1" class="w-20 px-2 py-1 rounded border border-paper-300/60 bg-white text-xs text-right"/>
+                  <span class="text-[11px] text-paper-400">g</span>
+                  <button type="button" @click="tmplForm.items.splice(idx,1)" class="text-red-400 text-xs hover:font-bold">×</button>
+                </div>
+                <div v-if="!tmplForm.items.length" class="text-center text-paper-400 py-4 text-xs">点击下方按钮添加食材</div>
+              </div>
+              <!-- Ingredient picker for template -->
+              <div class="flex flex-wrap gap-1.5 p-2 rounded-lg border border-paper-300/60 max-h-32 overflow-y-auto">
+                <button v-for="it in filteredTmplIngredients" :key="it.id" type="button"
+                        @click="addTmplIngredient(it.id)"
+                        class="px-2 py-1 rounded-full text-[11px] border border-paper-300/60 text-paper-500 hover:border-coral-300 hover:bg-coral-50 transition-all">
+                  {{ it.emoji }} {{ it.name }}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-paper-600">
+                <input type="checkbox" v-model="tmplForm.isDefault" class="accent-coral-400 rounded"/>
+                设为默认早餐模板（新日期自动填充）
+              </label>
+            </div>
+            <div class="flex gap-3 mt-1">
+              <button type="button" @click="showTemplateModal=false" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 hover:bg-coral-50">取消</button>
+              <button type="submit" class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">保存模板</button>
+            </div>
+          </form>
+          <!-- Existing templates list -->
+          <div v-if="mealTemplates.length && !editingTemplate" class="mt-6 pt-5 border-t border-paper-300/60">
+            <div class="text-[11px] uppercase tracking-wide2 text-paper-500 mb-3">已保存的模板</div>
+            <div class="space-y-2">
+              <div v-for="tmpl in mealTemplates" :key="tmpl.id"
+                   class="flex items-center gap-3 p-3 rounded-xl border border-paper-300/60 bg-white/70 group">
+                <span class="text-lg">{{ tmpl.emoji || '🍽️' }}</span>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium truncate">{{ tmpl.name }}</div>
+                  <div class="text-[11px] text-paper-400">{{ tmpl.items.length }} 种 · {{ mealTypeLabel(tmpl.defaultMealType) }} <span v-if="tmpl.isDefault" class="text-coral-500">· 默认</span></div>
+                </div>
+                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button type="button" @click="startEditTemplate(tmpl)" class="text-paper-400 hover:text-coral-500 text-xs px-2">编辑</button>
+                  <button type="button" @click="deleteTemplate(tmpl.id)" class="text-paper-400 hover:text-red-500 text-xs px-2">删除</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+  </div>
+
+  <!-- ===================== VUE APP ===================== -->
+  <script>
+    (function(){
+      var t = setTimeout(function(){
+        var el = document.getElementById('cdn-fallback');
+        if (el && !window.__pdashMounted) { el.classList.add('show'); }
+      }, 8000);
+      window.__pdashClearSafety = function(){ clearTimeout(t); };
+      window.addEventListener('error', function(e){
+        if (!window.__pdashMounted) {
+          var el = document.getElementById('cdn-fallback');
+          if (el) el.classList.add('show');
+        }
+      });
+    })();
+  </script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js" onerror="document.getElementById('cdn-fallback').classList.add('show')"></script>
+  <script>
+    const { createApp, ref, reactive, computed, watch, nextTick } = Vue;
+    const DB_KEY = 'pdash_v4';
+
+    const app = createApp({
+      setup() {
+        /* ---- Dark mode removed (light-only theme) ---- */
+
+        /* ---- Clock ---- */
+        const clock = ref('');
+        const tick = () => {
+          const d = new Date(), p=n=>String(n).padStart(2,'0');
+          clock.value = `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+        };
+        setInterval(tick,1000); tick();
+
+        /* ---- Navigation ---- */
+        const view = ref('home');
+        const navOpen = ref(false);
+        const foodTab = ref('dailylog');
+
+        const sections = [
+          { key:'food', icon:'🍃', title:'饮食', desc:'食材、菜谱、库存与采购的一体化管理', dev:false },
+          { key:'work', icon:'💼', title:'工作', desc:'任务、项目与专注时钟', dev:true },
+          { key:'life', icon:'🌿', title:'生活', desc:'习惯、日程与随手记', dev:true },
+          { key:'knowledge', icon:'📚', title:'知识', desc:'收藏、笔记与阅读追踪', dev:true },
+        ];
+
+        const allFoodTabs = [
+          { key:'dailylog',    label:'每日记录', icon:'📝' },
+          { key:'ingredients', label:'原材料库', icon:'🥦' },
+          { key:'recipes',     label:'菜谱库',   icon:'🍳' },
+          { key:'pantry',      label:'动态库存', icon:'📦' },
+          { key:'shopping',    label:'采购清单', icon:'🛒' },
+        ];
+
+        function switchFoodTab(key) {
+          foodTab.value = key;
+          // Auto-fill default breakfast when switching to dailylog on a new empty day
+          if (key === 'dailyLog' || key === 'dailylog') {
+            checkAndAutoFill();
+          }
+        }
+
+        /* ---- Meal types ---- */
+        const mealTypes = [
+          { key:'breakfast', label:'早餐', icon:'🌅' },
+          { key:'lunch',     label:'午餐', icon:'☀️' },
+          { key:'dinner',    label:'晚餐', icon:'🌙' },
+        ];
+        function mealTypeLabel(key) {
+          const m = mealTypes.find(x => x.key === key);
+          return m ? `${m.icon} ${m.label}` : key;
+        }
+        const logMealType = ref('breakfast');
+
+        const currentSection = computed(() => sections.find(s => s.key === view.value) || sections[0]);
+        const breadcrumb = computed(() => {
+          if (view.value === 'home') return '首页';
+          const s = currentSection.value;
+          if (view.value !== 'food') return `工作台 / ${s.title}`;
+          const t = allFoodTabs.find(t => t.key === foodTab.value);
+          return `工作台 / ${s.title} / ${t?t.label:''}`;
+        });
+        const goHome = () => { view.value='home'; navOpen.value=false; };
+        const openSection = (k) => { view.value=k; navOpen.value=false; };
+
+        /* ---- Category definitions ---- */
+        const catDefs = reactive({
+          protein:{ label:'蛋白质', emoji:'🥩' },
+          carbs:  { label:'碳水',   emoji:'🌾' },
+          fat:    { label:'脂肪',   emoji:'🥑' },
+          veg:    { label:'蔬菜',   emoji:'🥬' },
+        });
+
+        const recipeCats = reactive({
+          meat:    { label:'荤菜',     emoji:'🍖' },
+          veg:     { label:'素菜/副菜', emoji:'🥗' },
+          staple:  { label:'主食',     emoji:'🍚' },
+          dessert: { label:'甜品',     emoji:'🍰' },
+        });
+
+        /* ---- Emoji options ---- */
+        const emojiOptions = [
+          '🥩','🍗','🥓','🐟','🦐','🥚','🧀','🫘',
+          '🌾','🍞','🥯','🥐','🍚','🥔','🍠','🌽',
+          '🥑','🫒','🥜','🧈','🥛','🍯','🥥','🌰',
+          '🥦','🥬','🥒','🍅','🥕','🌶️','🧅','🥗',
+          '🍋','🍊','🍎','🍇','🍓','🫐','🥝','🍑',
+          '☕','🍵','🧃','🥤','🍨','🧁','🍰','🍪',
+        ];
+
+        /* ================================================================
+           DATA STORE
+           ================================================================ */
+
+        const store = reactive({
+          ingredients: [],
+          recipes: [],
+          pantry: [],
+          shopping: [],
+          dailyLogs: {},
+          targets: { calories:2000, carbs:250, protein:120, fat:67 },
+          mealTemplates: [], // Feature 3: saved meal combo templates
+        });
+
+        /* Seed data on first run */
+        function seed() {
+          if (store.ingredients.length > 0) return;
+          store.ingredients = [
+            { id:1, name:'鸡胸肉',   category:'protein', emoji:'🍗', image:'', tags:['高蛋白','低脂肪','易吸收'], nutrition:{calories:165, carbs:0, protein:31, fat:3.6}, note:'健身减脂期优质蛋白来源。' },
+            { id:2, name:'牛肉',     category:'protein', emoji:'🥩', image:'', tags:['肌氨酸','高蛋白'], nutrition:{calories:250, carbs:0, protein:26, fat:15}, note:'红肉代表，补铁效果好。' },
+            { id:3, name:'三文鱼',   category:'protein', emoji:'🐟', image:'', tags:['优质脂肪'], nutrition:{calories:208, carbs:0, protein:20, fat:13}, note:'深海鱼，有益心血管健康。' },
+            { id:4, name:'鸡蛋',     category:'protein', emoji:'🥚', image:'', unit:'个', gramsPerUnit:50, tags:['完全蛋白','性价比高'], nutrition:{calories:155, carbs:1.1, protein:13, fat:11}, note:'氨基酸组成最接近人体需要。' },
+            { id:5, name:'虾',       category:'protein', emoji:'🦐', image:'', tags:['低脂肪','高蛋白','微量元素'], nutrition:{calories:99, carbs:0, protein:24, fat:0.3}, note:'富含锌与硒。' },
+            { id:6, name:'豆腐',     category:'protein', emoji:'🫘', image:'', tags:['植物蛋白'], nutrition:{calories:76, carbs:1.9, protein:8, fat:4.8}, note:'优质植物蛋白。' },
+            { id:7, name:'希腊酸奶', category:'protein', emoji:'🥛', image:'', tags:['高蛋白'], nutrition:{calories:59, carbs:3.6, protein:10, fat:0.4}, note:'过滤去乳清，蛋白密度更高。' },
+            { id:8, name:'糙米',     category:'carbs',   emoji:'🌾', image:'', tags:['全谷','低GI'], nutrition:{calories:216, carbs:45, protein:5, fat:1.8}, note:'升糖更平稳。' },
+            { id:9, name:'燕麦',     category:'carbs',   emoji:'🥣', image:'', tags:['饱腹'], nutrition:{calories:389, carbs:66, protein:17, fat:7}, note:'有助降低胆固醇。' },
+            { id:10,name:'全麦面包', category:'carbs',   emoji:'🍞', image:'', tags:['复合碳水'], nutrition:{calories:247, carbs:41, protein:13, fat:3.4}, note:'选择真正全麦产品。' },
+            { id:11,name:'红薯',     category:'carbs',   emoji:'🍠', image:'', tags:[], nutrition:{calories:86, carbs:20, protein:1.6, fat:0.1}, note:'优质主食替代。' },
+            { id:12,name:'藜麦',     category:'carbs',   emoji:'🌾', image:'', tags:['完整蛋白','无麸质'], nutrition:{calories:120, carbs:21, protein:4.4, fat:1.9}, note:'含全部必需氨基酸的谷物。' },
+            { id:13,name:'牛油果',   category:'fat',     emoji:'🥑', image:'', tags:[], nutrition:{calories:160, carbs:9, protein:2, fat:15}, note:'健康脂肪代表。' },
+            { id:14, name:'橄榄油',   category:'fat',     emoji:'🫒', image:'', tags:['抗氧化'], nutrition:{calories:884, carbs:0, protein:0, fat:100}, note:'地中海饮食核心，适合凉拌。' },
+            { id:15,name:'坚果',     category:'fat',     emoji:'🥜', image:'', tags:[], nutrition:{calories:607, carbs:20, protein:20, fat:54}, note:'每日一小把即可。' },
+            { id:16,name:'奇亚籽',   category:'fat',     emoji:'🌰', image:'', tags:[], nutrition:{calories:486, carbs:34, protein:17, fat:31}, note:'泡发后形成凝胶增加饱腹感。' },
+            { id:17, name:'西兰花',   category:'veg',     emoji:'🥦', image:'', tags:['十字花科'], nutrition:{calories:34, carbs:7, protein:2.8, fat:0.4}, note:'强力抗氧化蔬菜。' },
+            { id:18, name:'菠菜',     category:'veg',     emoji:'🥬', image:'', tags:[], nutrition:{calories:23, carbs:3.6, protein:2.9, fat:0.4}, note:'焯水去草酸后更佳。' },
+            { id:19, name:'番茄',     category:'veg',     emoji:'🍅', image:'', tags:[], nutrition:{calories:18, carbs:3.9, protein:0.9, fat:0.2}, note:'熟制后番茄红素更易吸收。' },
+            { id:20, name:'胡萝卜',   category:'veg',     emoji:'🥕', image:'', tags:[], nutrition:{calories:41, carbs:10, protein:0.9, fat:0.2}, note:'与少量油脂同食更好。' },
+            { id:21, name:'芦笋',     category:'veg',     emoji:'🌱', image:'', tags:[], nutrition:{calories:20, carbs:4, protein:2.2, fat:0.1}, note:'春季时令蔬菜。' },
+            { id:22, name:'羽衣甘蓝', category:'veg',     emoji:'🥬', image:'', tags:['十字花科'], nutrition:{calories:49, carbs:9, protein:4.3, fat:0.9}, note:'营养密度极高的深绿叶菜。' },
+          ];
+          store.ingredients.forEach(it => { it.microns = detectMicrons(it.name); });
+          store.recipes = [
+            { id:1, name:'香煎三文鱼', category:'meat', ingredientIds:[3], method:'鱼排两面撒盐与黑胡椒，热锅少油每面煎2分钟，出锅挤柠檬汁。' },
+            { id:2, name:'红烧牛肉',   category:'meat', ingredientIds:[2], method:'牛肉焯水后与调料炖煮40分钟至软烂收汁。' },
+            { id:3, name:'清炒西兰花', category:'veg',  ingredientIds:[17], method:'西兰花焯水1分钟，蒜末爆香后快炒加盐调味。' },
+            { id:4, name:'凉拌菠菜',   category:'veg',  ingredientIds:[18], method:'菠菜焯水去草酸，挤干切段拌入调料与芝麻。' },
+            { id:5, name:'藜麦饭',     category:'staple', ingredientIds:[12], method:'藜麦洗净按1:2加水煮15分钟焖5分钟松散。' },
+            { id:6, name:'希腊酸奶杯', category:'dessert', ingredientIds:[7], method:'酸奶打底铺莓果坚果淋少许蜂蜜。' },
+          ];
+          store.pantry = [
+            { id:1, ingredientId:1, quantity:500 },
+            { id:2, ingredientId:8, quantity:1000 },
+            { id:3, ingredientId:13, quantity:0 },
+            { id:4, ingredientId:17, quantity:300 },
+            { id:5, ingredientId:4, quantity:600 },
+          ];
+          store.shopping = [
+            { id:1, ingredientId:14, quantity:500, done:false },
+            { id:2, ingredientId:13, quantity:300, done:true },
+            { id:3, ingredientId:21, quantity:200, done:false },
+          ];
+          // Default meal template example
+          store.mealTemplates = [
+            { id:1, name:'经典早餐', emoji:'🌅', isDefault:true, defaultMealType:'breakfast', items:[
+              { ingredientId:4, amount:50 },   // 鸡蛋
+              { ingredientId:7, amount:200 },  // 希腊酸奶
+              { ingredientId:9, amount:40 },   // 燕麦
+              { ingredientId:11,amount:100 },  // 红薯
+            ]},
+          ];
+          persist();
+        }
+
+        /* ---- Computed helpers ---- */
+        const allIngredients = computed(() => store.ingredients);
+        const ingByCat = (cat) => store.ingredients.filter(i => i.category === cat);
+
+        const findIng = (id) => store.ingredients.find(i => i.id === id);
+        const hasInPantry = (iid) => {
+          const p = store.pantry.find(x => x.ingredientId === iid);
+          return p && p.quantity > 0;
+        };
+
+        /* ---- Unit system (g / 个) ---- */
+        function unitLabel(ing){ return (ing && ing.unit === '个') ? '个' : 'g'; }
+        function toGrams(ing, val){
+          if (ing && ing.unit === '个') return val * (Number(ing.gramsPerUnit) || 1);
+          return val;
+        }
+        function fromGrams(ing, g){
+          if (ing && ing.unit === '个'){ const gp = Number(ing.gramsPerUnit) || 1; return gp ? g / gp : g; }
+          return g;
+        }
+        function round1(n){ return Math.round((Number(n) || 0) * 10) / 10; }
+        function fmt1(n){ const v = Number(n); return (v > 0) ? v.toFixed(1) : '—'; }
+
+        /* Auto health tags based on per-100g nutrition */
+        function healthTags(ing) {
+          if (!ing?.nutrition) return [];
+          const n = ing.nutrition;
+          const tags = [];
+          if (n.protein >= 20) tags.push({ text: '高蛋白', cls: 'bg-blue-50  text-blue-700  border-blue-200' });
+          if (n.fat <= 3 && n.calories > 0) tags.push({ text: '低脂', cls: 'bg-green-50  text-green-700  border-green-200' });
+          if (n.calories <= 100 && n.calories > 0) tags.push({ text: '低卡', cls: 'bg-coral-50  text-coral-700  border-coral-200' });
+          if (n.carbs <= 5 && n.calories > 0) tags.push({ text: '低碳水', cls: 'bg-yellow-50  text-yellow-700  border-yellow-200' });
+          if (n.protein >= 10 && n.protein < 20 && n.calories > 0) tags.push({ text: '中蛋白', cls: 'bg-indigo-50  text-indigo-700  border-indigo-200' });
+          if (n.calories >= 300) tags.push({ text: '高热量', cls: 'bg-orange-50  text-orange-700  border-orange-200' });
+          return tags;
+        }
+
+        /* ---- Ingredient knowledge base (structured AI recognition) ---- */
+        /* Each entry: kw=keywords, m=micronutrients [{cat,name}], macros=per-100g {calories,carbs,protein,fat} */
+        const ING_DB = [
+          { kw:['鸡胸肉'],   m:[{cat:'矿物质',name:'硒'},{cat:'维生素',name:'维生素B6'}],                     macros:{calories:165, carbs:0,    protein:31,  fat:3.6} },
+          { kw:['牛肉'],     m:[{cat:'矿物质',name:'铁'},{cat:'矿物质',name:'锌'},{cat:'维生素',name:'维生素B12'}], macros:{calories:250, carbs:0,    protein:26,  fat:15} },
+          { kw:['三文鱼'],   m:[{cat:'脂肪酸',name:'Omega-3'},{cat:'维生素',name:'维生素D'},{cat:'矿物质',name:'硒'}], macros:{calories:208, carbs:0,    protein:20,  fat:13} },
+          { kw:['金枪鱼','吞拿鱼','鳕鱼','鳕'], m:[{cat:'脂肪酸',name:'Omega-3'},{cat:'维生素',name:'维生素D'}],       macros:{calories:116, carbs:0,    protein:26,  fat:1.2} },
+          { kw:['鸡蛋'],     m:[{cat:'功能性',name:'卵磷脂'},{cat:'功能性',name:'胆碱'},{cat:'维生素',name:'维生素D'},{cat:'矿物质',name:'硒'}], macros:{calories:155, carbs:1.1,  protein:13,  fat:11}, unit:'个', gramsPerUnit:50 },
+          { kw:['虾'],       m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'硒'},{cat:'矿物质',name:'碘'}],        macros:{calories:99,  carbs:0,    protein:24,  fat:0.3} },
+          { kw:['豆腐','黑豆','黄豆','大豆'], m:[{cat:'功能性',name:'大豆异黄酮'},{cat:'矿物质',name:'钙'},{cat:'矿物质',name:'镁'}], macros:{calories:76,  carbs:1.9,  protein:8,   fat:4.8} },
+          { kw:['希腊酸奶','酸奶','牛奶','奶'], m:[{cat:'功能性',name:'益生菌'},{cat:'矿物质',name:'钙'},{cat:'维生素',name:'维生素B12'}], macros:{calories:59,  carbs:3.6,  protein:10,  fat:0.4} },
+          { kw:['糙米'],     m:[{cat:'矿物质',name:'镁'},{cat:'矿物质',name:'锰'},{cat:'功能性',name:'膳食纤维'}],      macros:{calories:216, carbs:45,   protein:5,   fat:1.8} },
+          { kw:['燕麦'],     m:[{cat:'功能性',name:'β-葡聚糖'},{cat:'功能性',name:'膳食纤维'}],                   macros:{calories:389, carbs:66,   protein:17,  fat:7} },
+          { kw:['全麦','全麦面包'], m:[{cat:'功能性',name:'膳食纤维'}],                                        macros:{calories:247, carbs:41,   protein:13,  fat:3.4} },
+          { kw:['红薯','地瓜','紫薯'], m:[{cat:'维生素',name:'β-胡萝卜素'},{cat:'矿物质',name:'钾'}],            macros:{calories:86,  carbs:20,   protein:1.6, fat:0.1} },
+          { kw:['藜麦'],     m:[{cat:'矿物质',name:'镁'},{cat:'矿物质',name:'铁'},{cat:'矿物质',name:'锌'}],         macros:{calories:120, carbs:21,   protein:4.4, fat:1.9} },
+          { kw:['牛油果'],   m:[{cat:'脂肪酸',name:'单不饱和脂肪酸'},{cat:'矿物质',name:'钾'}],                  macros:{calories:160, carbs:9,    protein:2,   fat:15} },
+          { kw:['橄榄油'],   m:[{cat:'脂肪酸',name:'单不饱和脂肪酸'},{cat:'维生素',name:'维生素E'}],             macros:{calories:884, carbs:0,    protein:0,   fat:100} },
+          { kw:['坚果','杏仁','巴旦木'], m:[{cat:'维生素',name:'维生素E'},{cat:'脂肪酸',name:'不饱和脂肪酸'},{cat:'矿物质',name:'钙'}], macros:{calories:607, carbs:20,   protein:20,  fat:54} },
+          { kw:['奇亚籽','亚麻籽'], m:[{cat:'脂肪酸',name:'Omega-3'},{cat:'矿物质',name:'钙'},{cat:'功能性',name:'膳食纤维'}], macros:{calories:486, carbs:34,   protein:17,  fat:31} },
+          { kw:['芝麻'],     m:[{cat:'矿物质',name:'钙'},{cat:'矿物质',name:'铁'}],                               macros:{calories:573, carbs:23,   protein:18,  fat:50} },
+          { kw:['西兰花','花椰菜'], m:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'萝卜硫素'}],            macros:{calories:34,  carbs:7,    protein:2.8, fat:0.4} },
+          { kw:['菠菜'],     m:[{cat:'维生素',name:'叶酸'},{cat:'矿物质',name:'铁'},{cat:'维生素',name:'叶黄素'}], macros:{calories:23,  carbs:3.6,  protein:2.9, fat:0.4} },
+          { kw:['番茄','西红柿'], m:[{cat:'功能性',name:'番茄红素'},{cat:'维生素',name:'维生素C'}],            macros:{calories:18,  carbs:3.9,  protein:0.9, fat:0.2} },
+          { kw:['胡萝卜'],   m:[{cat:'维生素',name:'β-胡萝卜素'},{cat:'功能性',name:'膳食纤维'}],               macros:{calories:41,  carbs:10,   protein:0.9, fat:0.2} },
+          { kw:['芦笋'],     m:[{cat:'维生素',name:'叶酸'},{cat:'矿物质',name:'钾'}],                           macros:{calories:20,  carbs:4,    protein:2.2, fat:0.1} },
+          { kw:['羽衣甘蓝','甘蓝'], m:[{cat:'维生素',name:'维生素K'},{cat:'矿物质',name:'钙'}],                macros:{calories:49,  carbs:9,    protein:4.3, fat:0.9} },
+          { kw:['猪肝','肝脏','鸡肝'], m:[{cat:'维生素',name:'维生素A'},{cat:'矿物质',name:'铁'},{cat:'维生素',name:'叶酸'}], macros:{calories:135, carbs:5,    protein:20,  fat:4.5}, note:'富含维A和铁，每周适量。' },
+          { kw:['蘑菇','香菇'], m:[{cat:'维生素',name:'维生素D'},{cat:'矿物质',name:'硒'}],                    macros:{calories:22,  carbs:3.3,  protein:2.8, fat:0.3} },
+          { kw:['紫菜','海带','海藻','昆布'], m:[{cat:'矿物质',name:'碘'},{cat:'矿物质',name:'钙'}],              macros:{calories:35,  carbs:5,    protein:5.5, fat:0.1} },
+          { kw:['香蕉'],     m:[{cat:'矿物质',name:'钾'},{cat:'维生素',name:'维生素B6'}],                      macros:{calories:89,  carbs:23,   protein:1.1, fat:0.3} },
+          { kw:['橙','橘子','橙汁','柠檬'], m:[{cat:'维生素',name:'维生素C'}],                                macros:{calories:47,  carbs:12,   protein:0.9, fat:0.1} },
+          { kw:['蓝莓','草莓','莓'], m:[{cat:'功能性',name:'花青素'},{cat:'维生素',name:'维生素C'}],             macros:{calories:57,  carbs:14,   protein:0.7, fat:0.3} },
+          { kw:['苹果'],     m:[{cat:'功能性',name:'果胶'},{cat:'维生素',name:'维生素C'}],                      macros:{calories:52,  carbs:14,   protein:0.3, fat:0.2} },
+          { kw:['南瓜'],     m:[{cat:'维生素',name:'β-胡萝卜素'}],                                            macros:{calories:26,  carbs:6.5,  protein:1,   fat:0.1} },
+          { kw:['大蒜'],     m:[{cat:'功能性',name:'大蒜素'}],                                                macros:{calories:149, carbs:33,   protein:6.4, fat:0.5} },
+          { kw:['姜','生姜'], m:[{cat:'功能性',name:'姜黄素'}],                                               macros:{calories:80,  carbs:18,   protein:0.8, fat:0.8} },
+          { kw:['葡萄','葡萄干'], m:[{cat:'功能性',name:'白藜芦醇'}],                                          macros:{calories:69,  carbs:18,   protein:0.7, fat:0.2} },
+          { kw:['绿茶','茶'], m:[{cat:'功能性',name:'茶多酚'}],                                                macros:{calories:1,   carbs:0.2,  protein:0,   fat:0} },
+          { kw:['咖啡'],     m:[{cat:'功能性',name:'绿原酸'}],                                                 macros:{calories:2,   carbs:0.3,  protein:0.2, fat:0} },
+          { kw:['辣椒','辣'], m:[{cat:'维生素',name:'维生素C'}],                                             macros:{calories:40,  carbs:8.4,  protein:1.9, fat:0.4} },
+          { kw:['五花肉','猪五花','肥牛'], m:[{cat:'矿物质',name:'铁'},{cat:'维生素',name:'B1'}],              macros:{calories:395, carbs:0,    protein:14,  fat:37} },
+          { kw:['排骨','猪排'], m:[{cat:'矿物质',name:'钙'},{cat:'矿物质',name:'磷'}],                         macros:{calories:264, carbs:0,    protein:19,  fat:20} },
+          { kw:['鸡翅','鸡腿','鸡肉'], m:[{cat:'矿物质',name:'硒'},{cat:'维生素',name:'B6'}],                 macros:{calories:181, carbs:0,    protein:26,  fat:8} },
+          { kw:['带鱼','黄花鱼','鲈鱼','鲤鱼'], m:[{cat:'脂肪酸',name:'不饱和脂肪'},{cat:'矿物质',name:'磷'}], macros:{calories:127, carbs:3,    protein:18,  fat:5} },
+          { kw:['饺子','馄饨','包子','馒头','面条','米饭'], m:[{cat:'主食',name:'碳水化合物'}],               macros:{calories:220, carbs:45,   protein:7,   fat:3} },
+          { kw:['巧克力','可可'], m:[{cat:'矿物质',name:'镁'},{cat:'功能性',name:'多酚'}],                    macros:{calories:546, carbs:60,   protein:5,   fat:31} },
+          { kw:['蜂蜜'],     m:[{cat:'功能性',name:'酶类'},{cat:'矿物质',name:'钾'}],                            macros:{calories:304, carbs:82,   protein:0.3, fat:0} },
+          { kw:['黄油','奶油','芝士','奶酪'], m:[{cat:'维生素',name:'维生素A'},{cat:'矿物质',name:'钙'}],      macros:{calories:340, carbs:1.3,  protein:7,   fat:34} },
+          /* —— 新增：海鲜/水产扩展（螃蟹等） —— */
+          { kw:['螃蟹','蟹','大闸蟹','梭子蟹','青蟹','雪蟹'], m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'硒'},{cat:'矿物质',name:'钙'}], macros:{calories:95, carbs:0, protein:18, fat:1.5}, note:'高蛋白低脂肪，富含锌和硒。' },
+          { kw:['龙虾','小龙虾'], m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'硒'}], macros:{calories:112, carbs:0.6, protein:22, fat:1.5} },
+          { kw:['蛤蜊','花蛤','蚬','蛏子','蛏'], m:[{cat:'矿物质',name:'铁'},{cat:'矿物质',name:'锌'}], macros:{calories:62, carbs:2.5, protein:10, fat:1} },
+          { kw:['生蚝','牡蛎','蚝'], m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'硒'},{cat:'矿物质',name:'铁'}], macros:{calories:81, carbs:4.5, protein:9, fat:3}, note:'锌含量极高，被誉为“海中牛奶”。' },
+          { kw:['扇贝','带子'], m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'硒'}], macros:{calories:96, carbs:2.5, protein:17, fat:1} },
+          { kw:['鱿鱼','枪乌贼','墨鱼'], m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'硒'}], macros:{calories:92, carbs:1, protein:18, fat:1.4} },
+          { kw:['章鱼','八爪鱼'], m:[{cat:'矿物质',name:'锌'},{cat:'矿物质',name:'铁'}], macros:{calories:82, carbs:0, protein:14, fat:1.8} },
+          { kw:['海参'], m:[{cat:'功能性',name:'胶原蛋白'},{cat:'矿物质',name:'钙'}], macros:{calories:78, carbs:0, protein:16, fat:0.2} },
+          { kw:['鳗鱼','鳗'], m:[{cat:'脂肪酸',name:'Omega-3'},{cat:'维生素',name:'维生素A'}], macros:{calories:236, carbs:0, protein:20, fat:16} },
+          { kw:['沙丁鱼','鲱鱼'], m:[{cat:'脂肪酸',name:'Omega-3'},{cat:'维生素',name:'维生素D'},{cat:'矿物质',name:'钙'}], macros:{calories:208, carbs:0, protein:25, fat:12} },
+          /* —— 新增：畜禽肉扩展 —— */
+          { kw:['羊肉','羊排','羊腿'], m:[{cat:'矿物质',name:'铁'},{cat:'矿物质',name:'锌'}], macros:{calories:203, carbs:0, protein:25, fat:12} },
+          { kw:['鸭肉','鸭','鹅'], m:[{cat:'矿物质',name:'铁'},{cat:'维生素',name:'B6'}], macros:{calories:337, carbs:0, protein:18, fat:28} },
+          { kw:['火鸡','火鸡肉'], m:[{cat:'维生素',name:'B6'},{cat:'矿物质',name:'硒'}], macros:{calories:135, carbs:0, protein:30, fat:1} },
+          { kw:['猪里脊','里脊','瘦肉'], m:[{cat:'矿物质',name:'铁'},{cat:'维生素',name:'B1'}], macros:{calories:143, carbs:0, protein:26, fat:4} },
+          { kw:['火腿','培根','香肠','腊肉'], m:[{cat:'矿物质',name:'钠'},{cat:'矿物质',name:'磷'}], macros:{calories:330, carbs:1, protein:14, fat:28}, note:'加工肉类，钠含量偏高，适量食用。' },
+          /* —— 新增：水果扩展 —— */
+          { kw:['西瓜','哈密瓜','甜瓜'], m:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'番茄红素'}], macros:{calories:30, carbs:7, protein:0.6, fat:0.2} },
+          { kw:['芒果','菠萝','木瓜'], m:[{cat:'维生素',name:'维生素C'},{cat:'维生素',name:'β-胡萝卜素'}], macros:{calories:60, carbs:15, protein:0.8, fat:0.3} },
+          { kw:['桃子','梨','杏','樱桃'], m:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'膳食纤维'}], macros:{calories:50, carbs:12, protein:0.8, fat:0.2} },
+          { kw:['葡萄柚','柚子'], m:[{cat:'维生素',name:'维生素C'}], macros:{calories:42, carbs:10, protein:0.8, fat:0.2} },
+          { kw:['猕猴桃','奇异果'], m:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'膳食纤维'}], macros:{calories:61, carbs:15, protein:1.1, fat:0.5} },
+          { kw:['火龙果'], m:[{cat:'功能性',name:'膳食纤维'},{cat:'维生素',name:'维生素C'}], macros:{calories:50, carbs:13, protein:1, fat:0.4} },
+          /* —— 新增：蔬菜扩展 —— */
+          { kw:['芹菜','生菜','油麦菜','白菜','青菜','韭菜'], m:[{cat:'维生素',name:'维生素K'},{cat:'功能性',name:'膳食纤维'}], macros:{calories:18, carbs:3, protein:1.5, fat:0.2} },
+          { kw:['黄瓜','冬瓜','苦瓜'], m:[{cat:'功能性',name:'膳食纤维'}], macros:{calories:15, carbs:3, protein:0.6, fat:0.1} },
+          { kw:['茄子','青椒','彩椒'], m:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'膳食纤维'}], macros:{calories:25, carbs:5, protein:1, fat:0.2} },
+          { kw:['玉米','甜玉米'], m:[{cat:'功能性',name:'膳食纤维'},{cat:'维生素',name:'叶黄素'}], macros:{calories:86, carbs:19, protein:3, fat:1} },
+          { kw:['豌豆','毛豆','扁豆'], m:[{cat:'功能性',name:'膳食纤维'},{cat:'维生素',name:'叶酸'}], macros:{calories:81, carbs:14, protein:5, fat:0.4} },
+          /* —— 新增：坚果/豆类/主食扩展 —— */
+          { kw:['花生','花生米'], m:[{cat:'脂肪酸',name:'不饱和脂肪酸'},{cat:'矿物质',name:'镁'}], macros:{calories:567, carbs:16, protein:26, fat:49} },
+          { kw:['核桃','腰果','开心果','榛子'], m:[{cat:'脂肪酸',name:'不饱和脂肪酸'},{cat:'维生素',name:'维生素E'},{cat:'矿物质',name:'镁'}], macros:{calories:654, carbs:14, protein:15, fat:65} },
+          { kw:['豆腐干','千张','豆皮'], m:[{cat:'功能性',name:'大豆异黄酮'},{cat:'矿物质',name:'钙'}], macros:{calories:140, carbs:5, protein:15, fat:7} },
+          { kw:['毛豆'], m:[{cat:'功能性',name:'膳食纤维'},{cat:'矿物质',name:'镁'}], macros:{calories:122, carbs:10, protein:11, fat:5} },
+          { kw:['白米饭','白粥','白面'], m:[{cat:'主食',name:'碳水化合物'}], macros:{calories:130, carbs:28, protein:2.7, fat:0.3} },
+          { kw:['全麦面包','吐司'], m:[{cat:'功能性',name:'膳食纤维'}], macros:{calories:265, carbs:49, protein:9, fat:3.2} },
+          /* —— 新增：加工/饮品/补剂 —— */
+          { kw:['蛋糕','面包','甜甜圈'], m:[{cat:'矿物质',name:'钠'},{cat:'功能性',name:'糖'}], macros:{calories:350, carbs:55, protein:5, fat:12}, note:'精制碳水与糖较高，适量。' },
+          { kw:['薯条','薯片'], m:[{cat:'功能性',name:'钠'},{cat:'脂肪酸',name:'饱和脂肪'}], macros:{calories:540, carbs:50, protein:6, fat:35}, note:'油炸高能量零食，建议少量。' },
+          { kw:['可乐','汽水','雪碧'], m:[{cat:'功能性',name:'糖'}], macros:{calories:43, carbs:11, protein:0, fat:0}, note:'含糖饮料，无营养热量。' },
+          { kw:['啤酒','红酒','白酒','酒'], m:[{cat:'功能性',name:'酒精'}], macros:{calories:50, carbs:4, protein:0.2, fat:0}, note:'含酒精，注意热量。' },
+          { kw:['果汁','果味饮料'], m:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'糖'}], macros:{calories:45, carbs:11, protein:0.2, fat:0} },
+          { kw:['蛋白粉','乳清'], m:[{cat:'功能性',name:'支链氨基酸'},{cat:'矿物质',name:'钙'}], macros:{calories:380, carbs:8, protein:80, fat:5}, note:'高蛋白补剂，按冲调比例记录。' },
+          { kw:['能量棒','代餐'], m:[{cat:'功能性',name:'膳食纤维'},{cat:'矿物质',name:'铁'}], macros:{calories:380, carbs:45, protein:20, fat:12} },
+        ];
+
+        /**
+         * Category inference for UNKNOWN ingredient strings.
+         * When a name doesn't hit the hardcoded ING_DB, we guess its food category
+         * from substrings and return an estimated nutrition profile + likely micros.
+         * Returns null if no recognizable category is found.
+         */
+        function inferCategory(name) {
+          const n = String(name).toLowerCase();
+          const has = (...subs) => subs.some(s => n.includes(s));
+
+          if (has('蟹','虾','贝','蛤','蚬','蚝','牡蛎','扇贝','鱿','章鱼','海参','海胆','鱼','三文','吞拿','鳕','带鱼','鲈','鲤')) {
+            return { label:'海鲜/水产', macros:{calories:100, carbs:0, protein:18, fat:2},
+                     micros:[{cat:'脂肪酸',name:'Omega-3'},{cat:'矿物质',name:'硒'}], note:'按“海鲜/水产”类别估算' };
+          }
+          if (has('奶','酪','乳','芝士','黄油','奶油')) {
+            return { label:'乳制品', macros:{calories:120, carbs:5, protein:6, fat:8},
+                     micros:[{cat:'矿物质',name:'钙'},{cat:'维生素',name:'维生素B12'}], note:'按“乳制品”类别估算' };
+          }
+          if (has('蛋')) {
+            return { label:'蛋类', macros:{calories:155, carbs:1.1, protein:13, fat:11},
+                     micros:[{cat:'维生素',name:'维生素D'},{cat:'功能性',name:'胆碱'}], note:'按“蛋类”类别估算' };
+          }
+          if (has('肉','鸡','牛','猪','羊','鸭','鹅','腿','排','里脊')) {
+            return { label:'畜禽肉', macros:{calories:200, carbs:0, protein:22, fat:12},
+                     micros:[{cat:'矿物质',name:'铁'},{cat:'矿物质',name:'锌'}], note:'按“畜禽肉”类别估算' };
+          }
+          if (has('豆','腐','豌','扁','豆浆')) {
+            return { label:'豆类及制品', macros:{calories:100, carbs:10, protein:8, fat:4},
+                     micros:[{cat:'功能性',name:'膳食纤维'},{cat:'矿物质',name:'钙'}], note:'按“豆类”类别估算' };
+          }
+          if (has('坚果','籽','核桃','腰果','花生','开心果','杏仁','巴旦木')) {
+            return { label:'坚果种子', macros:{calories:600, carbs:20, protein:18, fat:50},
+                     micros:[{cat:'脂肪酸',name:'不饱和脂肪酸'},{cat:'维生素',name:'维生素E'}], note:'按“坚果种子”类别估算' };
+          }
+          if (has('油','橄榄油','菜籽油')) {
+            return { label:'油脂', macros:{calories:884, carbs:0, protein:0, fat:100},
+                     micros:[{cat:'脂肪酸',name:'不饱和脂肪酸'}], note:'按“油脂”类别估算' };
+          }
+          if (has('菜','蔬','芹','菠','瓜','萝卜','茄','椒','葱','蒜','姜','笋','菇','菌','苗','生菜','白菜','青菜','韭菜','苦')) {
+            return { label:'蔬菜', macros:{calories:25, carbs:4, protein:1.5, fat:0.3},
+                     micros:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'膳食纤维'}], note:'按“蔬菜”类别估算' };
+          }
+          if (has('果','蕉','莓','桃','梨','苹','橙','柚','葡','芒','荔','樱','枣','杏','榴','椰','柿','楂','杨','李')) {
+            return { label:'水果', macros:{calories:55, carbs:13, protein:0.6, fat:0.2},
+                     micros:[{cat:'维生素',name:'维生素C'},{cat:'功能性',name:'膳食纤维'}], note:'按“水果”类别估算' };
+          }
+          if (has('米','面','饭','粥','饼','包','麦','谷','薯','粮','粉','馒头','面条','饺子')) {
+            return { label:'主食/谷物', macros:{calories:220, carbs:45, protein:6, fat:2},
+                     micros:[{cat:'功能性',name:'膳食纤维'}], note:'按“主食/谷物”类别估算' };
+          }
+          if (has('茶','咖啡','饮','汁','汤','水')) {
+            return { label:'饮品', macros:{calories:10, carbs:2, protein:0, fat:0},
+                     micros:[], note:'按“饮品”类别估算' };
+          }
+          if (has('糖','巧克力','蜜','糕','甜','可乐','汽水','薯片','饼干','蛋糕','酒')) {
+            return { label:'甜食/加工', macros:{calories:400, carbs:70, protein:4, fat:12},
+                     micros:[{cat:'功能性',name:'糖'}], note:'按“甜食/加工”类别估算' };
+          }
+          return null;
+        }
+
+        /**
+         * Structured AI recognition - returns { match, macros, micros, unit, gramsPerUnit, note, estimated, category }
+         * - match:     boolean - true when name resolved (exact DB hit OR category estimate)
+         * - macros:    { calories, carbs, protein, fat } per 100g (or null)
+         * - micros:    [{ cat, name }] micronutrient tags
+         * - unit / gramsPerUnit: suggested unit override
+         * - note:      suggested description
+         * - estimated: true when value is a category-based estimate (not a verified DB entry)
+         * - category:  matched keyword or inferred category label
+         */
+        function aiRecognize(name) {
+          if (!name || !name.trim()) return { match:false, macros:null, micros:[], unit:null, gramsPerUnit:null, note:'', estimated:false, category:'' };
+          const low = String(name).toLowerCase();
+          const allMicros = {};
+          let foundMacros = null;
+          let suggestedUnit = null;
+          let suggestedGrams = null;
+          let suggestedNote = '';
+          let matchedKw = '';
+          ING_DB.forEach(row => {
+            if (row.kw.some(k => low.includes(k.toLowerCase()))) {
+              row.m.forEach(mt => { allMicros[mt.name] = mt; });
+              if (!foundMacros && row.macros) foundMacros = {...row.macros};
+              if (!suggestedUnit && row.unit) suggestedUnit = row.unit;
+              if (!suggestedGrams && row.gramsPerUnit) suggestedGrams = row.gramsPerUnit;
+              if (!suggestedNote && row.note) suggestedNote = row.note;
+              if (!matchedKw && row.kw[0]) matchedKw = row.kw[0];
+            }
+          });
+          // 1) Exact / verified DB hit
+          if (Object.keys(allMicros).length > 0 || foundMacros) {
+            return {
+              match: true,
+              macros: foundMacros,
+              micros: Object.values(allMicros),
+              unit: suggestedUnit,
+              gramsPerUnit: suggestedGrams,
+              note: suggestedNote,
+              estimated: false,
+              category: matchedKw,
+            };
+          }
+          // 2) Unknown string -> category-based estimate (still reacts)
+          const est = inferCategory(name);
+          if (est) {
+            return {
+              match: true,
+              macros: est.macros,
+              micros: est.micros,
+              unit: null,
+              gramsPerUnit: null,
+              note: est.note + '，仅供参考。',
+              estimated: true,
+              category: est.label,
+            };
+          }
+          // 3) Nothing recognized
+          return { match:false, macros:null, micros:[], unit:null, gramsPerUnit:null, note:'', estimated:false, category:'' };
+        }
+
+        /* Backward-compatible alias */
+        function detectMicrons(name) { return aiRecognize(name).micros; }
+
+        /* Group micronutrients by category for hierarchical display */
+        function micronGroups(ing) {
+          const ms = ing?.microns || [];
+          const map = {};
+          ms.forEach(m => { (map[m.cat] = map[m.cat] || []).push(m.name); });
+          return Object.keys(map).map(cat => ({ cat, items: [...new Set(map[cat])] }));
+        }
+
+        /* Category color classes for hierarchical tag system */
+        const TAG_CAT_CLASS = {
+          '维生素': 'bg-violet-50  text-violet-700  border-violet-200',
+          '矿物质': 'bg-emerald-50  text-emerald-700  border-emerald-200',
+          '脂肪酸': 'bg-amber-50  text-amber-700  border-amber-200',
+          '功能性': 'bg-teal-50  text-teal-700  border-teal-200',
+        };
+        function catClass(cat){ return TAG_CAT_CLASS[cat] || 'bg-paper-100  text-paper-600  border-paper-300/60 '; }
+        /* Classify a free-text custom tag into a known category (for unified coloring) */
+        function classifyTag(t){
+          const s = String(t);
+          if (/维[生A-Z]/.test(s) || /β-胡萝卜素/.test(s)) return '维生素';
+          if (['钾','钙','铁','锌','硒','碘','镁','锰','钠','磷'].some(x=>s.includes(x))) return '矿物质';
+          if (/脂肪酸|Omega|不饱和|饱和/.test(s)) return '脂肪酸';
+          if (['膳食纤维','果胶','花青素','番茄红素','萝卜硫素','大豆异黄酮','茶多酚','大蒜素','姜黄素','白藜芦醇','绿原酸','卵磷脂','胆碱','益生菌','β-葡聚糖'].some(x=>s.includes(x))) return '功能性';
+          return 'custom';
+        }
+
+        /* ---- Search & Selection for Ingredients ---- */
+        const ingSearch = ref('');
+        const ingSelectMode = ref(false);
+        const selectedIngIds = ref([]);
+        const ingLastSelected = reactive({});
+
+        const searchedIngList = computed(() => {
+          let list = ingByCat(ingCat.value);
+          if (ingSearch.value.trim()) {
+            const q = ingSearch.value.trim().toLowerCase();
+            list = list.filter(i => i.name.toLowerCase().includes(q));
+          }
+          list = [...list].sort((a,b) => {
+            const aT = ingLastSelected[a.id] || 0;
+            const bT = ingLastSelected[b.id] || 0;
+            return bT - aT;
+          });
+          return list;
+        });
+
+        function toggleIngSelect(id) {
+          const idx = selectedIngIds.value.indexOf(id);
+          if (idx > -1) selectedIngIds.value.splice(idx, 1);
+          else { selectedIngIds.value.push(id); }
+          ingLastSelected[id] = Date.now();
+        }
+
+        /* Selection panel (recipe library) — search merged into selection */
+        const recSelSearch = ref('');
+        const sortedSelectIngredients = computed(() => {
+          let list = filterIngs(store.ingredients, recSelSearch.value);
+          return [...list].sort((a,b) => {
+            const aT = ingLastSelected[a.id] || 0;
+            const bT = ingLastSelected[b.id] || 0;
+            return bT - aT;
+          });
+        });
+
+        /* ---- Recipe filter system ---- */
+        const recipeFilter = ref('all');
+        const inventoryFilter = ref(true); // true = only show recipes with all ingredients in stock
+
+        function setRecipeFilter(val) { recipeFilter.value = val; }
+
+        function recipeAllAvailable(r) {
+          if (!r.ingredientIds?.length) return true;
+          return r.ingredientIds.every(iid => hasInPantry(iid));
+        }
+
+        const filteredRecipes = computed(() => {
+          let list = store.recipes;
+          // Auto-filter: if ingredients are selected, only show recipes containing them
+          if (selectedIngIds.value.length) {
+            list = list.filter(r => r.ingredientIds.some(iid => selectedIngIds.value.includes(iid)));
+          }
+          // Category filter
+          if (recipeFilter.value !== 'all' && recipeFilter.value !== 'selected' && recipeCats[recipeFilter.value]) {
+            list = list.filter(r => r.category === recipeFilter.value);
+          }
+          // Inventory filter: when ON, only show recipes with all ingredients in stock
+          if (inventoryFilter.value) {
+            list = list.filter(r => recipeAllAvailable(r));
+          }
+          return list;
+        });
+
+        /* ---- Search helpers for selects (unified picker) ---- */
+        const shopSearch = ref('');
+        const logSearch = ref('');
+        const recIngSearch = ref('');
+        const pantrySearch = ref('');
+        const pantryPickerOpen = ref(false);
+
+        /* Picker open state */
+        const logPickerOpen = ref(false);
+        const shopPickerOpen = ref(false);
+
+        function filterIngs(list, query) {
+          if (!query || !query.trim()) return list;
+          const q = query.trim().toLowerCase();
+          return list.filter(i => i.name.toLowerCase().includes(q));
+        }
+
+        /* Flat sorted list for unified chip pickers */
+        function makeFlatList(query) {
+          let list = filterIngs(store.ingredients, query);
+          return [...list].sort((a,b) => {
+            const aT = ingLastSelected[a.id] || 0;
+            const bT = ingLastSelected[b.id] || 0;
+            return bT - aT;
+          });
+        }
+
+        const groupedLogIngredientsFlat = computed(() => makeFlatList(logSearch.value));
+        const groupedShopIngredientsFlat = computed(() => makeFlatList(shopSearch.value));
+
+        function selectLogIngredient(id) {
+          logForm.ingredientId = String(id);
+          const ing = findIng(id);
+          logForm.amount = ing?.unit === '个' ? 1 : 100;
+          logSearch.value = '';
+          logPickerOpen.value = false;
+          ingLastSelected[id] = Date.now();
+        }
+
+        function selectShopIngredient(id) {
+          shopForm.ingredientId = String(id);
+          shopSearch.value = '';
+          shopPickerOpen.value = false;
+          ingLastSelected[id] = Date.now();
+        }
+
+        const searchedPantryIngredients = computed(() => filterIngs(store.ingredients, pantrySearch.value));
+
+        /* Pantry unified picker */
+        const pantryFlatList = computed(() => makeFlatList(pantrySearch.value));
+        const pantryUnitLabel = computed(() => unitLabel(findIng(Number(pantryForm.ingredientId))));
+
+        function selectPantryIngredient(id) {
+          pantryForm.ingredientId = String(id);
+          pantrySearch.value = '';
+          pantryPickerOpen.value = false;
+          ingLastSelected[id] = Date.now();
+        }
+
+        const sortedRecIngredients = computed(() => {
+          let list = store.ingredients;
+          if (recIngSearch.value.trim()) {
+            const q = recIngSearch.value.trim().toLowerCase();
+            list = list.filter(i => i.name.toLowerCase().includes(q));
+          }
+          return [...list].sort((a,b) => {
+            const aSel = recForm.ingredientIds.includes(a.id) ? 0 : 1;
+            const bSel = recForm.ingredientIds.includes(b.id) ? 0 : 1;
+            return aSel - bSel;
+          });
+        });
+
+        /* ---- Pantry helpers ---- */
+        const pantryList = computed(() => [...store.pantry]);
+
+        const zeroStockItems = computed(() => {
+          return store.pantry
+            .filter(p => p.quantity <= 0)
+            .map(p => p.ingredientId);
+        });
+
+        let _lastZeroStock = [];
+        watch(zeroStockItems, (newVal) => {
+          newVal.forEach(iid => {
+            if (!_lastZeroStock.includes(iid)) {
+              const exists = store.shopping.find(s => s.ingredientId === iid && !s.done);
+              if (!exists) {
+                store.shopping.push({
+                  id: Date.now() + Math.random(),
+                  ingredientId: iid,
+                  quantity: 500,
+                  done: false,
+                });
+              }
+            }
+          });
+          _lastZeroStock = [...newVal];
+        }, { deep: true });
+
+        function getPantryEntry(ingredientId) {
+          let entry = store.pantry.find(p => p.ingredientId === ingredientId);
+          if (!entry) {
+            entry = { id: Date.now()+Math.random(), ingredientId, quantity: 0 };
+            store.pantry.push(entry);
+          }
+          return entry;
+        }
+
+        function adjustPantry(pid, delta) {
+          const p = store.pantry.find(x => x.id === pid);
+          if (p) { p.quantity = Math.max(0, p.quantity + delta); }
+        }
+
+        function pantryStep(ingredientId) {
+          const ing = findIng(ingredientId);
+          return (ing && ing.unit === '个') ? (Number(ing.gramsPerUnit) || 1) : 50;
+        }
+
+        function removePantry(pid) {
+          const i = store.pantry.findIndex(x => x.id === pid);
+          if (i > -1) store.pantry.splice(i, 1);
+        }
+
+        /* ---- Shopping ---- */
+        const shopForm = reactive({ ingredientId:'', qty:500 });
+        const shoppingList = computed(() => [...store.shopping]);
+        const shopUnitLabel = computed(() => unitLabel(findIng(Number(shopForm.ingredientId))));
+        const shopUnitPlaceholder = computed(() => findIng(Number(shopForm.ingredientId))?.unit==='个' ? '数量' : '克数');
+
+        function addShoppingItem() {
+          if (!shopForm.ingredientId || !shopForm.qty) return;
+          const iid = Number(shopForm.ingredientId);
+          const grams = toGrams(findIng(iid), shopForm.qty);
+          ingLastSelected[iid] = Date.now();
+          store.shopping.push({ id:Date.now(), ingredientId:iid, quantity:grams, done:false });
+          shopForm.ingredientId=''; shopForm.qty=500; shopSearch.value='';
+        }
+
+        function updateShopQty(item, ev) {
+          const v = parseFloat(ev.target.value);
+          if (isNaN(v) || v <= 0) { ev.target.value = round1(fromGrams(findIng(item.ingredientId), item.quantity)); return; }
+          item.quantity = toGrams(findIng(item.ingredientId), v);
+        }
+
+        function removeShopping(id) {
+          const i = store.shopping.findIndex(s => s.id === id);
+          if (i > -1) store.shopping.splice(i, 1);
+        }
+
+        function clearBought() {
+          for (let i = store.shopping.length-1; i >= 0; i--) if (store.shopping[i].done) store.shopping.splice(i,1);
+        }
+
+        function onShopBought(item) {
+          if (!item.done) return;
+          const entry = getPantryEntry(item.ingredientId);
+          entry.quantity += item.quantity;
+        }
+
+        /* ================================================================
+           DAILY LOG — Enhanced with Features 1-5
+           ================================================================ */
+
+        const logDate = ref(new Date().toISOString().slice(0,10));
+        const logForm = reactive({ ingredientId:'', amount:100, mealType:'breakfast' });
+        const targets = reactive(store.targets);
+
+        const currentLogUnit = computed(() => unitLabel(findIng(Number(logForm.ingredientId))));
+        const logUnitPlaceholder = computed(() => findIng(Number(logForm.ingredientId))?.unit==='个' ? '数量' : '克数');
+
+        function onLogIngChange(){
+          const ing = findIng(Number(logForm.ingredientId));
+          if (!ing) return;
+          logForm.amount = ing.unit==='个' ? 1 : 100;
+          logSearch.value = '';
+        }
+
+        function todayStr() { return new Date().toISOString().slice(0,10); }
+        function tomorrowStr() {
+          const d = new Date(); d.setDate(d.getDate()+1);
+          return d.toISOString().slice(0,10);
+        }
+
+        function getDayLog(date) {
+          if (!store.dailyLogs[date]) store.dailyLogs[date] = [];
+          return store.dailyLogs[date];
+        }
+
+        const currentDayEntries = computed(() => getDayLog(logDate.value));
+
+        function mealEntries(mealType) {
+          return getDayLog(logDate.value)
+            .map((e, i) => ({ ...e, _idx: i }))
+            .filter(e => e.mealType === mealType);
+        }
+
+        function removeLogEntryByMeal(mealType, globalIdx) {
+          const entries = getDayLog(logDate.value);
+          let count = 0;
+          let targetRealIdx = -1;
+          entries.forEach((e, i) => {
+            if (e.mealType === mealType) {
+              if (count === globalIdx) targetRealIdx = i;
+              count++;
+            }
+          });
+          if (targetRealIdx >= 0) {
+            const removed = entries.splice(targetRealIdx, 1)[0];
+            if (removed) {
+              pushUndo(`删除记录: ${findIng(removed.ingredientId)?.name || removed.ingredientId} (${removed.amount}g)`, () => {
+                getDayLog(logDate.value).splice(targetRealIdx, 0, removed);
+                const pe = getPantryEntry(removed.ingredientId);
+                pe.quantity = Math.max(0, pe.quantity - removed.amount);
+              });
+              const pe = getPantryEntry(removed.ingredientId);
+              pe.quantity += removed.amount;
+            }
+          }
+        }
+
+        function mealMacroSum(mealType) {
+          const entries = getDayLog(logDate.value).filter(e => e.mealType === mealType);
+          let cal=0, carb=0, pro=0, fat=0;
+          entries.forEach(e => {
+            const ing = findIng(e.ingredientId);
+            if (!ing?.nutrition) return;
+            const f = e.amount / 100;
+            cal += (ing.nutrition.calories||0)*f;
+            carb += (ing.nutrition.carbs||0)*f;
+            pro += (ing.nutrition.protein||0)*f;
+            fat += (ing.nutrition.fat||0)*f;
+          });
+          return { calories:cal, carbs:carb, protein:pro, fat:fat };
+        }
+
+        const logPreview = computed(() => {
+          if (!logForm.ingredientId || !logForm.amount) {
+            return { ingredientId: null, totals: { calories:0, carbs:0, protein:0, fat:0 } };
+          }
+          const ing = findIng(Number(logForm.ingredientId));
+          if (!ing?.nutrition) {
+            return { ingredientId: Number(logForm.ingredientId), totals: { calories:0, carbs:0, protein:0, fat:0 } };
+          }
+          const f = toGrams(ing, logForm.amount) / 100;
+          const base = dayTotals.value;
+          return {
+            ingredientId: Number(logForm.ingredientId),
+            totals: {
+              calories: base.calories + (ing.nutrition.calories||0)*f,
+              carbs: base.carbs + (ing.nutrition.carbs||0)*f,
+              protein: base.protein + (ing.nutrition.protein||0)*f,
+              fat: base.fat + (ing.nutrition.fat||0)*f,
+            }
+          };
+        });
+
+        function logPreviewPct(key) {
+          const t = targets[key];
+          if (!t || t <= 0) return 0;
+          return Math.min(100, Math.round((logPreview.value.totals[key]/t)*100));
+        }
+
+        function addLogEntry() {
+          if (!logForm.ingredientId || !logForm.amount) return;
+          const iid = Number(logForm.ingredientId);
+          const ing = findIng(iid);
+          const grams = toGrams(ing, logForm.amount);
+          ingLastSelected[iid] = Date.now();
+          const entries = getDayLog(logDate.value);
+          const newEntry = {
+            ingredientId:iid,
+            amount:grams,
+            mealType: logForm.mealType || 'breakfast',
+          };
+          entries.push(newEntry);
+          // Undo support
+          pushUndo(`记录: ${ing?.name || iid} (${logForm.amount}${unitLabel(ing)})`, () => {
+            // Revert: remove the last added entry and restore pantry
+            const idx = getDayLog(logDate.value).lastIndexOf(newEntry);
+            if (idx > -1) getDayLog(logDate.value).splice(idx, 1);
+            const pe = getPantryEntry(iid);
+            pe.quantity += grams;
+          });
+          const entry = getPantryEntry(iid);
+          entry.quantity = Math.max(0, entry.quantity - grams);
+          logForm.ingredientId=''; logForm.amount=100; logSearch.value='';
+        }
+
+        function removeLogEntry(idx) {
+          const entries = getDayLog(logDate.value);
+          const removed = entries.splice(idx,1)[0];
+          if (removed) {
+            pushUndo(`删除: ${findIng(removed.ingredientId)?.name}`, () => {
+              getDayLog(logDate.value).splice(idx, 0, removed);
+              const pe = getPantryEntry(removed.ingredientId);
+              pe.quantity = Math.max(0, pe.quantity - removed.amount);
+            });
+            const pe = getPantryEntry(removed.ingredientId);
+            pe.quantity += removed.amount;
+          }
+        }
+
+        function entryNutri(entry) {
+          const ing = findIng(entry.ingredientId);
+          if (!ing?.nutrition) return 0;
+          const factor = entry.amount / 100;
+          return (ing.nutrition.calories||0) * factor;
+        }
+
+        const dayTotals = computed(() => {
+          const entries = getDayLog(logDate.value);
+          let cal=0, carb=0, pro=0, fat=0;
+          entries.forEach(e => {
+            const ing = findIng(e.ingredientId);
+            if (!ing?.nutrition) return;
+            const f = e.amount / 100;
+            cal += (ing.nutrition.calories||0)*f;
+            carb += (ing.nutrition.carbs||0)*f;
+            pro += (ing.nutrition.protein||0)*f;
+            fat += (ing.nutrition.fat||0)*f;
+          });
+          return { calories:cal, carbs:carb, protein:pro, fat:fat };
+        });
+
+        function pct(key) {
+          const t = targets[key];
+          if (!t || t <= 0) return 0;
+          return Math.min(100, (dayTotals.value[key]/t)*100);
+        }
+
+        /* ---- Feature 4: Edit Log Entry Inline ---- */
+        const editingLogEntry = ref(null);
+        const editingLogMealType = ref('');
+        const editLogForm = reactive({ ingredientId:'', amount:0, mealType:'breakfast' });
+
+        function startEditLogEntry(entry, mealType, idx) {
+          editingLogEntry.value = entry;
+          editingLogMealType.value = mealType;
+          editLogForm.ingredientId = entry.ingredientId;
+          editLogForm.amount = round1(fromGrams(findIng(entry.ingredientId), entry.amount));
+          editLogForm.mealType = entry.mealType || mealType;
+        }
+
+        function saveLogEntryEdit(mealType, idx) {
+          const entries = getDayLog(logDate.value);
+          // Find real index
+          let count = 0, realIdx = -1;
+          entries.forEach((e, i) => {
+            if (e.mealType === mealType) {
+              if (count === idx) realIdx = i;
+              count++;
+            }
+          });
+          if (realIdx < 0) return;
+          const old = { ...entries[realIdx] };
+          // Apply edits
+          const newGrams = toGrams(findIng(Number(editLogForm.ingredientId)), editLogForm.amount);
+          entries[realIdx].ingredientId = Number(editLogForm.ingredientId);
+          entries[realIdx].amount = newGrams;
+          entries[realIdx].mealType = editLogForm.mealType;
+          // Adjust pantry diff
+          const oldPantryDelta = old.amount;
+          const newPantryDelta = newGrams;
+          if (old.ingredientId === Number(editLogForm.ingredientId)) {
+            // Same ingredient: adjust by difference
+            const diff = newPantryDelta - oldPantryDelta;
+            const pe = getPantryEntry(old.ingredientId);
+            pe.quantity = Math.max(0, pe.quantity - diff);
+          } else {
+            // Different ingredient: restore old, deduct new
+            const peOld = getPantryEntry(old.ingredientId);
+            peOld.quantity += oldPantryDelta;
+            const peNew = getPantryEntry(Number(editLogForm.ingredientId));
+            peNew.quantity = Math.max(0, peNew.quantity - newPantryDelta);
+          }
+          // Undo
+          pushUndo(`编辑记录`, () => {
+            entries.splice(realIdx, 1, old);
+            // Reverse pantry adjustment...
+          });
+          cancelLogEntryEdit();
+        }
+
+        function cancelLogEntryEdit() {
+          editingLogEntry.value = null;
+          editingLogMealType.value = '';
+        }
+
+        /* ================================================================
+           FEATURE 1: COPY DAY'S RECORDS / COPY SINGLE MEAL
+           ================================================================ */
+        const showCopyModal = ref(false);
+        const showCopyMealModal = ref(false);
+        const copyTargetDate = ref('');
+        const copyTargetMealType = ref('breakfast');
+        const copyWithPantryDeduct = ref(true);
+        const copyMealLabel = ref('');
+
+        function openCopyMeal(mealType) {
+          const m = mealTypes.find(x => x.key === mealType);
+          copyMealLabel.value = m ? `${m.icon} ${m.label}` : mealType;
+          copyTargetDate.value = tomorrowStr();
+          copyTargetMealType.value = mealType;
+          showCopyMealModal.value = true;
+        }
+
+        function executeCopyDay() {
+          if (!copyTargetDate.value || !currentDayEntries.value.length) return;
+          const sourceEntries = [...currentDayEntries.value];
+          const targetDate = copyTargetDate.value;
+          const targetLog = getDayLog(targetDate);
+
+          // Save snapshot for undo
+          const snapshotBefore = targetLog.length > 0 ? [...targetLog] : null;
+
+          sourceEntries.forEach(e => {
+            targetLog.push({ ...e });
+            if (copyWithPantryDeduct.value) {
+              const pe = getPantryEntry(e.ingredientId);
+              pe.quantity = Math.max(0, pe.quantity - e.amount);
+            }
+          });
+
+          pushUndo(`复制 ${sourceEntries.length} 条记录至 ${targetDate}`, () => {
+            // Undo: remove copied entries
+            const tl = getDayLog(targetDate);
+            tl.splice(0, tl.length);
+            if (snapshotBefore) snapshotBefore.forEach(e => tl.push(e));
+            // Restore pantry
+            if (copyWithPantryDeduct.value) {
+              sourceEntries.forEach(e => {
+                const pe = getPantryEntry(e.ingredientId);
+                pe.quantity += e.amount;
+              });
+            }
+          });
+
+          showCopyModal.value = false;
+          logDate.value = targetDate;
+        }
+
+        function executeCopyMeal() {
+          if (!copyTargetDate.value) return;
+          const sourceMealType = mealTypes.find(m => `${m.icon} ${m.label}` === copyMealLabel.value)?.key || copyMealLabel.value.replace(/^[^\s]+\s/,'');
+          // Actually we need to resolve from the label properly
+          const sourceEntries = mealEntries(sourceMealType);
+          if (!sourceEntries.length) return;
+
+          const targetLog = getDayLog(copyTargetDate.value);
+          const snapshotBefore = targetLog.length > 0 ? [...targetLog] : null;
+
+          sourceEntries.forEach(e => {
+            targetLog.push({
+              ingredientId: e.ingredientId,
+              amount: e.amount,
+              mealType: copyTargetMealType.value,
+            });
+            const pe = getPantryEntry(e.ingredientId);
+            pe.quantity = Math.max(0, pe.quantity - e.amount);
+          });
+
+          pushUndo(`复制 ${sourceEntries.length} 条${copyMealLabel.value}`, () => {
+            const tl = getDayLog(copyTargetDate.value);
+            tl.splice(0, tl.length);
+            if (snapshotBefore) snapshotBefore.forEach(e => tl.push(e));
+            sourceEntries.forEach(e => {
+              const pe = getPantryEntry(e.ingredientId);
+              pe.quantity += e.amount;
+            });
+          });
+
+          showCopyMealModal.value = false;
+          logDate.value = copyTargetDate.value;
+        }
+
+        /* ================================================================
+           FEATURE 2 & 3: MEAL TEMPLATES (Auto-fill + Combo System)
+           ================================================================ */
+        const showTemplatePicker = ref(false);
+        const showTemplateModal = ref(false);
+        const editingTemplate = ref(null);
+        const tmplForm = reactive({
+          name:'', emoji:'🍽️', isDefault:false, defaultMealType:'breakfast', items:[],
+        });
+        const tmplIngSearch = ref('');
+
+        const mealTemplates = computed(() => store.mealTemplates);
+
+        function resetTemplateForm() {
+          Object.assign(tmplForm, { name:'', emoji:'🍽️', isDefault:false, defaultMealType:'breakfast', items:[] });
+          tmplIngSearch.value = '';
+        }
+
+        const filteredTmplIngredients = computed(() => {
+          let list = store.ingredients;
+          if (tmplIngSearch.value.trim()) {
+            const q = tmplIngSearch.value.trim().toLowerCase();
+            list = list.filter(i => i.name.toLowerCase().includes(q));
+          }
+          // Exclude already-added
+          const addedIds = tmplForm.items.map(x => x.ingredientId);
+          return list.filter(i => !addedIds.includes(i.id));
+        });
+
+        function addTmplIngredient(id) {
+          const ing = findIng(id);
+          if (!ing) return;
+          // Default amount based on category
+          let defaultAmt = 100;
+          if (ing.category === 'protein') defaultAmt = 100;
+          else if (ing.category === 'carbs') defaultAmt = 150;
+          else if (ing.category === 'fat') defaultAmt = 20;
+          else if (ing.category === 'veg') defaultAmt = 100;
+          tmplForm.items.push({ ingredientId:id, amount:defaultAmt });
+        }
+
+        function applyTemplate(tmpl) {
+          const targetLog = getDayLog(logDate.value);
+          const snapshotBefore = [...targetLog];
+          let addedCount = 0;
+
+          tmpl.items.forEach(item => {
+            targetLog.push({
+              ingredientId: item.ingredientId,
+              amount: item.amount,
+              mealType: tmpl.defaultMealType || 'breakfast',
+            });
+            const pe = getPantryEntry(item.ingredientId);
+            pe.quantity = Math.max(0, pe.quantity - item.amount);
+            addedCount++;
+          });
+
+          pushUndo(`应用模板「${tmpl.name}」(${addedCount}项)`, () => {
+            const tl = getDayLog(logDate.value);
+            tl.splice(0, tl.length);
+            snapshotBefore.forEach(e => tl.push(e));
+            tmpl.items.forEach(item => {
+              const pe = getPantryEntry(item.ingredientId);
+              pe.quantity += item.amount;
+            });
+          });
+
+          showTemplatePicker.value = false;
+        }
+
+        function saveTemplate() {
+          const data = {
+            name: tmplForm.name.trim(),
+            emoji: tmplForm.emoji || '🍽️',
+            isDefault: tmplForm.isDefault,
+            defaultMealType: tmplForm.defaultMealType,
+            items: tmplForm.items.map(i => ({ ingredientId:i.ingredientId, amount:i.amount })),
+          };
+          if (editingTemplate.value) {
+            Object.assign(editingTemplate.value, data);
+          } else {
+            store.mealTemplates.push({ id: Date.now(), ...data });
+          }
+          showTemplateModal.value = false; editingTemplate.value = null; resetTemplateForm();
+        }
+
+        function startEditTemplate(tmpl) {
+          editingTemplate.value = tmpl;
+          Object.assign(tmplForm, {
+            name: tmpl.name,
+            emoji: tmpl.emoji || '🍽️',
+            isDefault: !!tmpl.isDefault,
+            defaultMealType: tmpl.defaultMealType || 'breakfast',
+            items: tmpl.items ? tmpl.items.map(i => ({...i})) : [],
+          });
+          showTemplateModal.value = true;
+        }
+
+        function deleteTemplate(id) {
+          if (!confirm('确定删除此套餐模板？')) return;
+          const i = store.mealTemplates.findIndex(t => t.id === id);
+          if (i > -1) store.mealTemplates.splice(i, 1);
+        }
+
+        /* Feature 2: Save current day as default breakfast */
+        function saveAsDefaultBreakfast() {
+          if (!currentDayEntries.value.length) return;
+          const breakfastEntries = getDayLog(logDate.value).filter(e => e.mealType === 'breakfast');
+          if (!breakfastEntries.length) {
+            alert('当前日期没有早餐记录。请先添加早餐条目，或使用午餐/晚餐记录创建模板。');
+            return;
+          }
+          // Clear existing default
+          store.mealTemplates.forEach(t => { t.isDefault = false; });
+          const newTmpl = {
+            id: Date.now(),
+            name: `默认早餐 (${logDate.value})`,
+            emoji:'🌅',
+            isDefault: true,
+            defaultMealType: 'breakfast',
+            items: breakfastEntries.map(e => ({ ingredientId:e.ingredientId, amount:e.amount })),
+          };
+          store.mealTemplates.push(newTmpl);
+          pushUndo(`设为默认早餐`, () => {
+            const idx = store.mealTemplates.findIndex(t => t.id === newTmpl.id);
+            if (idx > -1) store.mealTemplates.splice(idx, 1);
+          });
+        }
+
+        /* Auto-fill on date change or tab switch */
+        let _lastAutoFillDate = '';
+        function checkAndAutoFill() {
+          const date = logDate.value;
+          if (date === _lastAutoFillDate) return;
+          _lastAutoFillDate = date;
+          const entries = getDayLog(date);
+          if (entries.length > 0) return; // Already has entries
+
+          // Find default template
+          const defTmpl = store.mealTemplates.find(t => t.isDefault);
+          if (!defTmpl || !defTmpl.items?.length) return;
+
+          defTmpl.items.forEach(item => {
+            entries.push({
+              ingredientId: item.ingredientId,
+              amount: item.amount,
+              mealType: defTmpl.defaultMealType || 'breakfast',
+            });
+            const pe = getPantryEntry(item.ingredientId);
+            pe.quantity = Math.max(0, pe.quantity - item.amount);
+          });
+        }
+
+        // Watch date change for auto-fill
+        watch(logDate, () => { checkAndAutoFill(); });
+
+        /* ================================================================
+           FEATURE 5: Recipe → Daily Log Bridge
+           ================================================================ */
+        function addSelectedToDailyLog() {
+          if (!selectedIngIds.value.length) return;
+          const targetLog = getDayLog(todayStr());
+          const snapshotBefore = [...targetLog];
+          let addedCount = 0;
+
+          selectedIngIds.value.forEach(iid => {
+            const ing = findIng(iid);
+            const grams = toGrams(ing, ing && ing.unit==='个' ? 1 : 100);
+            targetLog.push({
+              ingredientId: iid,
+              amount: grams,
+              mealType: 'breakfast',
+            });
+            const pe = getPantryEntry(iid);
+            pe.quantity = Math.max(0, pe.quantity - grams);
+            ingLastSelected[iid] = Date.now();
+            addedCount++;
+          });
+
+          pushUndo(`从菜谱库添加 ${addedCount} 种食材至今日记录`, () => {
+            const tl = getDayLog(todayStr());
+            tl.splice(0, tl.length);
+            snapshotBefore.forEach(e => tl.push(e));
+            selectedIngIds.value.forEach(iid => {
+              const ing = findIng(iid);
+              const grams = toGrams(ing, ing && ing.unit==='个' ? 1 : 100);
+              const pe = getPantryEntry(iid);
+              pe.quantity += grams;
+            });
+          });
+
+          // Switch to daily log tab
+          foodTab.value = 'dailylog';
+          logDate.value = todayStr();
+          selectedIngIds.value = [];
+          ingSelectMode.value = false;
+        }
+
+        /* ================================================================
+           UNDO SYSTEM
+           ================================================================ */
+        const undoToast = reactive({ visible:false, message:'', redoFn:null });
+        let _undoTimer = null;
+
+        function pushUndo(message, redoFn) {
+          undoToast.message = message;
+          undoToast.redoFn = redoFn;
+          undoToast.visible = true;
+          if (_undoTimer) clearTimeout(_undoTimer);
+          _undoTimer = setTimeout(() => { undoToast.visible = false; }, 8000);
+        }
+
+        function executeUndo() {
+          if (typeof undoToast.redoFn === 'function') {
+            undoToast.redoFn();
+          }
+          undoToast.visible = false;
+          if (_undoTimer) clearTimeout(_undoTimer);
+        }
+
+        /* ---- Pantry manual add form ---- */
+        const showPantryForm = ref(false);
+        const pantryForm = reactive({ ingredientId:'', qty:500 });
+        function resetPantryForm(){ pantryForm.ingredientId=''; pantryForm.qty=500; pantrySearch.value=''; }
+        function savePantryAdd(){
+          if(!pantryForm.ingredientId) return;
+          const e = getPantryEntry(Number(pantryForm.ingredientId));
+          e.quantity += pantryForm.qty;
+          showPantryForm.value=false; resetPantryForm();
+        }
+
+        /* ---- Ingredient CRUD ---- */
+        const showIngForm = ref(false);
+        const editingIng = ref(null);
+        const selectedIng = ref(null);
+        const ingCat = ref('protein');
+
+        const ingForm = reactive({
+          name:'', category:'protein', emoji:'🍗', imageData:'', imagePreview:'',
+          unit:'g', gramsPerUnit:50,
+          nCalories:0, nCarbs:0, nProtein:0, nFat:0,
+          microns:[], tagsStr:'', note:'',
+        });
+
+        /* Reactive AI recognition of the current name - single source for the template. */
+        const aiResult = computed(() => aiRecognize(ingForm.name));
+
+        /* AI auto-fill: when ingredient name matches known DB, fill nutrition fields.
+           Declared AFTER ingForm to avoid TDZ (watch runs getter once on init). */
+        let _aiFillLocked = false;
+        let _lastAiName = ''; // track last matched name to detect switches
+        watch(() => ingForm.name, (newName) => {
+          if (_aiFillLocked || !newName || newName.length < 1) return;
+          const result = aiRecognize(newName.trim());
+          if (!result.match || !result.macros) { _lastAiName = ''; return; }
+          // Always refill when name changes to a (different) known ingredient —
+          // this lets users switch from 鸡蛋→三文鱼 and get fresh data each time.
+          if (newName.trim() === _lastAiName) return; // same name, skip
+          _lastAiName = newName.trim();
+          _aiFillLocked = true;
+          ingForm.nCalories = result.macros.calories;
+          ingForm.nCarbs = result.macros.carbs;
+          ingForm.nProtein = result.macros.protein;
+          ingForm.nFat = result.macros.fat;
+          if (result.unit) ingForm.unit = result.unit;
+          if (result.gramsPerUnit) ingForm.gramsPerUnit = result.gramsPerUnit;
+          if (result.note) ingForm.note = result.note;
+          nextTick(() => { _aiFillLocked = false; });
+        });
+
+        function resetIngForm(){
+          _lastAiName = '';
+          Object.assign(ingForm, { name:'', category:'protein', emoji:'🍗', imageData:'', imagePreview:'', unit:'g', gramsPerUnit:50, nCalories:0, nCarbs:0, nProtein:0, nFat:0, microns:[], tagsStr:'', note:'' });
+        }
+
+        function openIngDetail(it){ selectedIng.value = {...it}; }
+
+        function startEditIng(it){
+          editingIng.value = it;
+          Object.assign(ingForm, {
+            name:it.name, category:it.category, emoji:it.emoji||'',
+            imageData:it.image||'', imagePreview:it.image||'',
+            unit: it.unit==='个' ? '个' : 'g', gramsPerUnit: Number(it.gramsPerUnit)||50,
+            nCalories:it.nutrition?.calories||0, nCarbs:it.nutrition?.carbs||0,
+            nProtein:it.nutrition?.protein||0, nFat:it.nutrition?.fat||0,
+            microns: Array.isArray(it.microns) ? it.microns.map(x=>({...x})) : [],
+            tagsStr:(it.tags||[]).join(', '), note:it.note||'',
+          });
+          showIngForm.value = true;
+        }
+
+        function onIngImage(ev){
+          const f = ev.target.files[0]; if(!f) return;
+          const reader = new FileReader();
+          reader.onload = () => { ingForm.imageData = reader.result; ingForm.imagePreview = reader.result; };
+          reader.readAsDataURL(f);
+        }
+
+        function saveIng(){
+          const userTags = ingForm.tagsStr.split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+          const rawMicrons = detectMicrons(ingForm.name.trim());
+          // Deduplicate: remove microns whose name already appears in user tags
+          const tagSet = new Set(userTags.map(t => t.replace(/[^a-zA-Z\u4e00-\u9fff]/g, '')));
+          const dedupedMicrons = rawMicrons.filter(m => !tagSet.has(m.name.replace(/[^a-zA-Z\u4e00-\u9fff]/g, '')));
+          const data = {
+            name: ingForm.name.trim(),
+            category: ingForm.category,
+            emoji: ingForm.emoji,
+            image: ingForm.imageData,
+            unit: ingForm.unit === '个' ? '个' : 'g',
+            gramsPerUnit: Number(ingForm.gramsPerUnit) || 50,
+            tags: userTags,
+            nutrition: {
+              calories: Number(ingForm.nCalories)||0,
+              carbs: Number(ingForm.nCarbs)||0,
+              protein: Number(ingForm.nProtein)||0,
+              fat: Number(ingForm.nFat)||0,
+            },
+            microns: dedupedMicrons,
+            note: ingForm.note.trim(),
+          };
+          if (editingIng.value) {
+            Object.assign(editingIng.value, data);
+          } else {
+            store.ingredients.push({ id: Date.now(), ...data });
+          }
+          showIngForm.value = false; editingIng.value = null; resetIngForm();
+        }
+
+        function deleteIng(id){
+          if(!confirm('确定删除此食材？')) return;
+          const i = store.ingredients.findIndex(x=>x.id===id);
+          if(i>-1) store.ingredients.splice(i,1);
+          const si = selectedIngIds.value.indexOf(id);
+          if (si > -1) selectedIngIds.value.splice(si, 1);
+        }
+
+        /* ---- Recipe CRUD ---- */
+        const showRecipeForm = ref(false);
+        const editingRecipe = ref(null);
+        const recForm = reactive({ name:'', category:'meat', ingredientIds:[], method:'' });
+
+        function resetRecipeForm(){ Object.assign(recForm,{name:'',category:'meat',ingredientIds:[],method:''}); recIngSearch.value=''; }
+
+        function startEditRecipe(r){
+          editingRecipe.value=r;
+          Object.assign(recForm,{name:r.name,category:r.category,ingredientIds:[...(r.ingredientIds||[])],method:r.method});
+          showRecipeForm.value=true;
+        }
+
+        function toggleRecIng(id){
+          const idx = recForm.ingredientIds.indexOf(id);
+          if(idx>-1) recForm.ingredientIds.splice(idx,1);
+          else { recForm.ingredientIds.push(id); ingLastSelected[id] = Date.now(); }
+        }
+
+        function saveRecipe(){
+          const data={ name:recForm.name.trim(), category:recForm.category, ingredientIds:[...recForm.ingredientIds], method:recForm.method.trim() };
+          if(editingRecipe.value) Object.assign(editingRecipe.value,data);
+          else store.recipes.push({id:Date.now(), ...data});
+          showRecipeForm.value=false; editingRecipe.value=null; resetRecipeForm();
+        }
+
+        function deleteRecipe(id){
+          if(!confirm('确定删除此菜谱？'))return;
+          const i=store.recipes.findIndex(x=>x.id===id);
+          if(i>-1) store.recipes.splice(i,1);
+        }
+
+        /* ---- Persistence ---- */
+        function persist(){
+          try{
+            localStorage.setItem(DB_KEY, JSON.stringify({
+              ingredients:store.ingredients,
+              recipes:store.recipes,
+              pantry:store.pantry,
+              shopping:store.shopping,
+              dailyLogs:store.dailyLogs,
+              targets:store.targets,
+              ingLastSelected:ingLastSelected,
+              mealTemplates:store.mealTemplates,
+            }));
+          }catch(e){}
+        }
+
+        function load(){
+          try{
+            const raw = localStorage.getItem(DB_KEY);
+            if(!raw) return;
+            const d = JSON.parse(raw);
+            if(d.ingredients) store.ingredients.splice(0,store.ingredients.length,...d.ingredients);
+            if(d.recipes) store.recipes.splice(0,store.recipes.length,...d.recipes);
+            if(d.pantry) store.pantry.splice(0,store.pantry.length,...d.pantry);
+            if(d.shopping) store.shopping.splice(0,store.shopping.length,...d.shopping);
+            if(d.dailyLogs) Object.assign(store.dailyLogs,d.dailyLogs);
+            if(d.targets) Object.assign(store.targets,d.targets);
+            if(d.ingLastSelected) Object.assign(ingLastSelected,d.ingLastSelected);
+            if(d.mealTemplates) store.mealTemplates.splice(0,store.mealTemplates.length,...d.mealTemplates);
+            // Migrate old format
+            store.ingredients.forEach(ing => {
+              if (ing.unit === undefined || ing.unit === null) ing.unit = 'g';
+              if (ing.gramsPerUnit === undefined) ing.gramsPerUnit = 50;
+              if (ing.id === 4) { ing.unit = '个'; ing.gramsPerUnit = 50; } // 鸡蛋
+              if (!Array.isArray(ing.microns)) ing.microns = detectMicrons(ing.name);
+            });
+            Object.keys(store.dailyLogs).forEach(date => {
+              store.dailyLogs[date].forEach(entry => {
+                if (!entry.mealType) entry.mealType = 'breakfast';
+              });
+            });
+          }catch(e){}
+        }
+
+        load(); seed();
+        watch(()=>[...store.ingredients,...store.recipes,...store.pantry,...store.shopping,store.dailyLogs,store.targets,ingLastSelected,store.mealTemplates], persist, {deep:true});
+
+        /* Clear CDN-fail safety once Vue mounts */
+        window.__pdashMounted = true;
+        if (window.__pdashClearSafety) window.__pdashClearSafety();
+
+        return {
+          clock,
+          view, navOpen, foodTab, switchFoodTab, sections, allFoodTabs,
+          currentSection, breadcrumb, goHome, openSection,
+          catDefs, recipeCats, emojiOptions,
+          mealTypes, logMealType, mealTypeLabel,
+          /* ingredients */
+          ingCat, allIngredients, ingByCat, showIngForm, editingIng, selectedIng, ingForm,
+          openIngDetail, startEditIng, deleteIng, saveIng, resetIngForm, onIngImage,
+          ingSearch, ingSelectMode, selectedIngIds, toggleIngSelect, searchedIngList,
+          /* recipes */
+          recipeFilter, setRecipeFilter, inventoryFilter,
+          filteredRecipes, showRecipeForm, editingRecipe, recForm,
+          startEditRecipe, deleteRecipe, saveRecipe, resetRecipeForm, toggleRecIng,
+          recIngSearch, sortedRecIngredients,
+          recipeAllAvailable,
+          recSelSearch, sortedSelectIngredients,
+          addSelectedToDailyLog, /* Feature 5 */
+          /* pantry */
+          pantryList, showPantryForm, pantryForm, resetPantryForm, savePantryAdd,
+          adjustPantry, removePantry, findIng, hasInPantry, pantryStep,
+          zeroStockItems,
+          pantrySearch, searchedPantryIngredients,
+          pantryPickerOpen, pantryFlatList, selectPantryIngredient, pantryUnitLabel,
+          /* shopping */
+          shopForm, shoppingList, addShoppingItem, removeShopping, clearBought, onShopBought,
+          updateShopQty, shopUnitLabel, shopUnitPlaceholder,
+          shopSearch, groupedShopIngredientsFlat,
+          /* unified picker state */
+          shopPickerOpen, logPickerOpen,
+          selectShopIngredient, selectLogIngredient, groupedLogIngredientsFlat,
+          /* helpers (unit system) */
+          unitLabel, toGrams, fromGrams, round1, fmt1, healthTags, aiRecognize, detectMicrons, aiResult, micronGroups, catClass, classifyTag,
+          /* daily log */
+          logDate, logForm, targets, currentDayEntries, addLogEntry, removeLogEntry, removeLogEntryByMeal,
+          entryNutri, dayTotals, pct,
+          logSearch, groupedLogIngredientsFlat,
+          logPreview, logPreviewPct,
+          currentLogUnit, logUnitPlaceholder,
+          mealEntries, mealMacroSum,
+          /* Feature 1: Copy */
+          showCopyModal, showCopyMealModal, copyTargetDate, copyTargetMealType,
+          copyWithPantryDeduct, copyMealLabel, openCopyMeal, executeCopyDay, executeCopyMeal,
+          todayStr, tomorrowStr,
+          /* Feature 2 & 3: Templates */
+          showTemplatePicker, showTemplateModal, editingTemplate, tmplForm, tmplIngSearch,
+          mealTemplates, filteredTmplIngredients, resetTemplateForm, addTmplIngredient,
+          applyTemplate, saveTemplate, startEditTemplate, deleteTemplate,
+          saveAsDefaultBreakfast, checkAndAutoFill,
+          /* Feature 4: Edit Entry */
+          editingLogEntry, editingLogMealType, editLogForm,
+          startEditLogEntry, saveLogEntryEdit, cancelLogEntryEdit,
+          /* Undo */
+          undoToast, executeUndo,
+        };
+      },
+    });
+    app.config.errorHandler = function(err, instance, info) {
+      console.error('[Vue error]', err, info);
+      const el = document.getElementById('cdn-fallback');
+      if (el) {
+        el.innerHTML = '<div class="box"><h2>⚠ 渲染出错</h2><p>页面遇到了渲染错误，但你的数据已自动保存。请刷新页面重试。<br/><br/>错误信息：<br/><code style="color:#e85d5d;font-size:12px">' +
+          (err && err.message ? err.message : err) + '</code></p><button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;border-radius:12px;background:#e85d5d;color:#fff;border:none;cursor:pointer;font-size:14px">刷新</button></div>';
+        el.classList.add('show');
+      }
+    };
+    app.mount('#app');
+  </script>
+</body>
+</html>

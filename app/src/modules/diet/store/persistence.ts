@@ -131,6 +131,77 @@ function normalizeMealTemplate(raw: unknown): MealTemplate | null {
   };
 }
 
+/**
+ * 把任意已解析的对象规整成 PersistedState 子集。
+ *
+ * 同时被 loadState（从 localStorage 读取）和 store.importRaw（从用户粘贴/上传的
+ * v1 备份文本导入）复用 —— 保证「导入 v1 数据」也走和自动加载完全一致的
+ * 旧格式迁移逻辑，不会漏掉任何归一化。
+ */
+export function normalizeState(
+  raw: unknown,
+  detectMicrons: (name: string) => Ingredient['microns'],
+): Partial<PersistedState> {
+  if (!isRecord(raw)) return {};
+
+  const state: Partial<PersistedState> = {};
+
+  if (Array.isArray(raw.ingredients)) {
+    state.ingredients = raw.ingredients
+      .map((x) => normalizeIngredient(x, detectMicrons))
+      .filter((x): x is Ingredient => x !== null);
+  }
+  if (Array.isArray(raw.recipes)) {
+    state.recipes = raw.recipes.filter(isRecord).map((r) => ({
+      id: Number(r.id),
+      name: typeof r.name === 'string' ? r.name : '',
+      category: (r.category as Recipe['category']) ?? 'meat',
+      ingredientIds: Array.isArray(r.ingredientIds) ? r.ingredientIds.map(Number) : [],
+      method: typeof r.method === 'string' ? r.method : '',
+    }));
+  }
+  if (Array.isArray(raw.pantry)) {
+    state.pantry = raw.pantry.filter(isRecord).map((p) => ({
+      id: Number(p.id),
+      ingredientId: Number(p.ingredientId),
+      quantity: Number(p.quantity) || 0,
+    }));
+  }
+  if (Array.isArray(raw.shopping)) {
+    state.shopping = raw.shopping.filter(isRecord).map((s) => ({
+      id: Number(s.id),
+      ingredientId: Number(s.ingredientId),
+      quantity: Number(s.quantity) || 0,
+      done: !!s.done,
+    }));
+  }
+  if (raw.dailyLogs !== undefined) {
+    state.dailyLogs = normalizeDailyLogs(raw.dailyLogs);
+  }
+  if (isRecord(raw.targets)) {
+    state.targets = { ...DEFAULT_TARGETS };
+    for (const k of ['calories', 'carbs', 'protein', 'fat'] as const) {
+      const v = raw.targets[k];
+      if (typeof v === 'number' && Number.isFinite(v)) state.targets[k] = v;
+    }
+  }
+  if (isRecord(raw.ingLastSelected)) {
+    const m: Record<number, number> = {};
+    for (const [k, v] of Object.entries(raw.ingLastSelected)) {
+      const id = Number(k);
+      if (Number.isFinite(id) && typeof v === 'number') m[id] = v;
+    }
+    state.ingLastSelected = m;
+  }
+  if (Array.isArray(raw.mealTemplates)) {
+    state.mealTemplates = raw.mealTemplates
+      .map(normalizeMealTemplate)
+      .filter((x): x is MealTemplate => x !== null);
+  }
+
+  return state;
+}
+
 /** 读取结果；raw 为 null 表示没有存量数据（首次运行，需要 seed） */
 export interface LoadResult {
   found: boolean;
@@ -162,62 +233,7 @@ export function loadState(
   }
   if (!isRecord(parsed)) return { found: false, state: {}, corruptedRaw: raw };
 
-  const state: Partial<PersistedState> = {};
-
-  if (Array.isArray(parsed.ingredients)) {
-    state.ingredients = parsed.ingredients
-      .map((x) => normalizeIngredient(x, detectMicrons))
-      .filter((x): x is Ingredient => x !== null);
-  }
-  if (Array.isArray(parsed.recipes)) {
-    state.recipes = parsed.recipes.filter(isRecord).map((r) => ({
-      id: Number(r.id),
-      name: typeof r.name === 'string' ? r.name : '',
-      category: (r.category as Recipe['category']) ?? 'meat',
-      ingredientIds: Array.isArray(r.ingredientIds) ? r.ingredientIds.map(Number) : [],
-      method: typeof r.method === 'string' ? r.method : '',
-    }));
-  }
-  if (Array.isArray(parsed.pantry)) {
-    state.pantry = parsed.pantry.filter(isRecord).map((p) => ({
-      id: Number(p.id),
-      ingredientId: Number(p.ingredientId),
-      quantity: Number(p.quantity) || 0,
-    }));
-  }
-  if (Array.isArray(parsed.shopping)) {
-    state.shopping = parsed.shopping.filter(isRecord).map((s) => ({
-      id: Number(s.id),
-      ingredientId: Number(s.ingredientId),
-      quantity: Number(s.quantity) || 0,
-      done: !!s.done,
-    }));
-  }
-  if (parsed.dailyLogs !== undefined) {
-    state.dailyLogs = normalizeDailyLogs(parsed.dailyLogs);
-  }
-  if (isRecord(parsed.targets)) {
-    state.targets = { ...DEFAULT_TARGETS };
-    for (const k of ['calories', 'carbs', 'protein', 'fat'] as const) {
-      const v = parsed.targets[k];
-      if (typeof v === 'number' && Number.isFinite(v)) state.targets[k] = v;
-    }
-  }
-  if (isRecord(parsed.ingLastSelected)) {
-    const m: Record<number, number> = {};
-    for (const [k, v] of Object.entries(parsed.ingLastSelected)) {
-      const id = Number(k);
-      if (Number.isFinite(id) && typeof v === 'number') m[id] = v;
-    }
-    state.ingLastSelected = m;
-  }
-  if (Array.isArray(parsed.mealTemplates)) {
-    state.mealTemplates = parsed.mealTemplates
-      .map(normalizeMealTemplate)
-      .filter((x): x is MealTemplate => x !== null);
-  }
-
-  return { found: true, state };
+  return { found: true, state: normalizeState(parsed, detectMicrons) };
 }
 
 export function saveState(

@@ -33,6 +33,7 @@ import {
 import {
   DEFAULT_TARGETS,
   loadState,
+  normalizeState,
   saveState,
   type PersistedState,
 } from './persistence';
@@ -470,17 +471,8 @@ export const useDietStore = defineStore('diet', () => {
     return JSON.stringify(snapshot(), null, 2);
   }
 
-  function importJson(text: string): { ok: boolean; error?: string } {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      return { ok: false, error: 'JSON 格式错误' };
-    }
-    if (typeof parsed !== 'object' || parsed === null) {
-      return { ok: false, error: '不是有效的数据对象' };
-    }
-    const d = parsed as Partial<PersistedState>;
+  /** 把归一化后的子集写回当前状态（导入 / 恢复共用），并立即持久化 */
+  function applyState(d: Partial<PersistedState>): void {
     if (Array.isArray(d.ingredients)) ingredients.value = d.ingredients;
     if (Array.isArray(d.recipes)) recipes.value = d.recipes;
     if (Array.isArray(d.pantry)) pantry.value = d.pantry;
@@ -490,8 +482,32 @@ export const useDietStore = defineStore('diet', () => {
       Object.assign(dailyLogs, d.dailyLogs);
     }
     if (d.targets) Object.assign(targets, d.targets);
+    if (d.ingLastSelected) Object.assign(ingLastSelected, d.ingLastSelected);
     if (Array.isArray(d.mealTemplates)) mealTemplates.value = d.mealTemplates;
+    persist();
+  }
+
+  /**
+   * 从原始 JSON 文本导入（粘贴或上传的 pdash_v4 / 旧版备份）。
+   * 走 normalizeState，因此旧格式迁移与自动加载完全一致；导入后自动持久化。
+   */
+  function importRaw(text: string): { ok: boolean; error?: string } {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      return { ok: false, error: 'JSON 格式错误' };
+    }
+    const d = normalizeState(parsed, detectMicrons);
+    if (Object.keys(d).length === 0) {
+      return { ok: false, error: '未识别到任何有效数据' };
+    }
+    applyState(d);
     return { ok: true };
+  }
+
+  function importJson(text: string): { ok: boolean; error?: string } {
+    return importRaw(text);
   }
 
   return {
@@ -559,5 +575,6 @@ export const useDietStore = defineStore('diet', () => {
     // io
     exportJson,
     importJson,
+    importRaw,
   };
 });

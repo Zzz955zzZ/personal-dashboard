@@ -267,3 +267,47 @@ describe('持久化闭环', () => {
     expect(reloaded.targets.calories).toBe(1888);
   });
 });
+
+describe('importRaw（v1 数据导入）', () => {
+  it('旧格式数据经归一化后导入，缺失字段被补齐且立即持久化', () => {
+    const store = freshStore();
+    // 一段刻意残缺的“旧版” pdash_v4：缺 unit / 缺 mealType / 缺 nutrients 的食材
+    const legacy = JSON.stringify({
+      ingredients: [
+        { id: 10, name: '苹果', category: 'veg' }, // 无 unit、无 nutrition、无 gramsPerUnit
+        { id: 4, name: '鸡蛋', category: 'protein', unit: '个' },
+      ],
+      dailyLogs: {
+        '2026-07-30': [{ ingredientId: 10, amount: 150 }], // 无 mealType -> 应归早餐
+      },
+      targets: { calories: 1888, carbs: 200, protein: 100, fat: 60 },
+    });
+
+    const r = store.importRaw(legacy);
+    expect(r.ok).toBe(true);
+    expect(store.ingredients).toHaveLength(2);
+
+    const apple = store.findIng(10)!;
+    expect(apple.unit).toBe('g'); // 缺失 unit 补 'g'
+    expect(apple.gramsPerUnit).toBe(50); // 缺失补 50
+    expect(apple.nutrition.calories).toBe(0); // 缺失营养补 0
+
+    const egg = store.findIng(4)!;
+    expect(egg.unit).toBe('个'); // id=4 强制按个
+
+    expect(store.getDayLog('2026-07-30')[0]!.mealType).toBe('breakfast'); // 缺 mealType 归早餐
+
+    // 导入后立即持久化：重载后仍在
+    const reloaded = freshStore();
+    expect(reloaded.findIng(10)).toBeTruthy();
+    expect(reloaded.targets.calories).toBe(1888);
+  });
+
+  it('非 JSON 文本返回错误且不污染状态', () => {
+    const store = freshStore();
+    const before = store.ingredients.length;
+    const r = store.importRaw('这不是 json');
+    expect(r.ok).toBe(false);
+    expect(store.ingredients.length).toBe(before);
+  });
+});

@@ -6,12 +6,14 @@ import { useRoute, useRouter } from 'vue-router';
 import { icon } from '@/shared/icons';
 import { SECTIONS } from '@/shared/sections';
 import { useUndo } from '@/shared/composables/use-undo';
+import DataModal from '@/modules/diet/components/DataModal.vue';
 
 const route = useRoute();
 const router = useRouter();
 const { undoToast, executeUndo, dismissUndo } = useUndo();
 
 const navOpen = ref(false);
+const dataOpen = ref(false);
 
 const breadcrumb = computed(() => {
   const s = SECTIONS.find((x) => x.key === route.name);
@@ -118,6 +120,16 @@ function openSection(key: string): void {
               </span>
             </button>
           </nav>
+
+          <div class="h-px bg-paper-300/60 my-3"></div>
+          <button
+            class="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-coral-100 transition-colors text-left"
+            @click="dataOpen = true; navOpen = false"
+          >
+            <span class="text-lg" v-html="icon('doc')"></span>
+            <span class="text-sm font-medium">数据 · 备份</span>
+          </button>
+
           <div class="mt-auto text-[11px] text-paper-500 leading-relaxed">
             955's workspace v2 · Vite + Vue 3 + TypeScript
           </div>
@@ -146,5 +158,7 @@ function openSection(key: string): void {
         </transition>
       </RouterView>
     </main>
+
+    <DataModal :open="dataOpen" @close="dataOpen = false" />
   </div>
 </template>

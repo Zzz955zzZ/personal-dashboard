@@ -4,8 +4,17 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['"Cormorant Garamond"', 'serif'],
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica Neue',
+          'PingFang SC',
+          'Microsoft YaHei',
+          'sans-serif',
+        ],
+        serif: ['Georgia', '"Times New Roman"', 'Songti SC', 'SimSun', 'serif'],
       },
       colors: {
         coral: {

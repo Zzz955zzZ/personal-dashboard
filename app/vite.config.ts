@@ -17,7 +17,6 @@ export default defineConfig(({ mode }) => {
         : [
             VitePWA({
               registerType: 'autoUpdate',
-              includeAssets: ['icons/icon-192.png', 'icons/icon-512.png'],
               manifest: {
                 name: 'Personal Dashboard · 工作台',
                 short_name: '工作台',
@@ -39,7 +38,20 @@ export default defineConfig(({ mode }) => {
                 ],
               },
               workbox: {
-                globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+                // 不预缓存 PNG 图标（尤其 50KB 的 512 图），首屏不与之争抢带宽
+                globPatterns: ['**/*.{js,css,html,svg,woff2}'],
+                // 图标走运行时缓存：首次随浏览器请求落入缓存，之后离线可用
+                runtimeCaching: [
+                  {
+                    urlPattern: ({ request }) => request.destination === 'image',
+                    handler: 'CacheFirst',
+                    options: {
+                      cacheName: 'pdash-images',
+                      expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                      cacheableResponse: { statuses: [0, 200] },
+                    },
+                  },
+                ],
               },
             }),
           ]),

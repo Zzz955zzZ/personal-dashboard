@@ -2,6 +2,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 
 import { icon } from '@/shared/icons';
+import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import IngredientChipPicker from '../components/IngredientChipPicker.vue';
 import { MEAL_TYPES, mealTypeLabel } from '../constants';
@@ -146,6 +147,7 @@ function removeEntry(realIdx: number): void {
 
 /* ---------------- 模板 ---------------- */
 const showTemplatePicker = ref(false);
+const showTargets = ref(false);
 
 function applyTemplate(tmpl: MealTemplate): void {
   const n = store.applyTemplate(logDate.value, tmpl);
@@ -241,6 +243,13 @@ watch(logDate, checkAutoFill, { immediate: true });
 
       <button
         class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+        @click="showTargets = true"
+      >
+        🎯 目标
+      </button>
+
+      <button
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
         @click="modals.copyDay = true"
       >
         <span v-html="icon('doc')"></span> 复制记录
@@ -262,37 +271,14 @@ watch(logDate, checkAutoFill, { immediate: true });
       </button>
     </div>
 
-    <!-- 日期与目标：手机端堆叠，桌面端并排 -->
-    <div class="mb-6 p-4 sm:p-5 rounded-xl border border-paper-300/60 bg-white/70">
-      <!-- 日期行 -->
-      <div class="flex items-center gap-3 mb-4 sm:mb-0">
-        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 shrink-0">日期</label>
-        <input
-          v-model="logDate"
-          type="date"
-          class="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
-        />
-      </div>
-
-      <!-- 目标网格 -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2.5">
-        <div>
-          <label class="text-[10px] text-paper-500 block mb-0.5">热量 kcal</label>
-          <input v-model.number="store.targets.calories" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-        <div>
-          <label class="text-[10px] text-paper-500 block mb-0.5">碳水 g</label>
-          <input v-model.number="store.targets.carbs" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-        <div>
-          <label class="text-[10px] text-paper-500 block mb-0.5">蛋白 g</label>
-          <input v-model.number="store.targets.protein" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-        <div>
-          <label class="text-[10px] text-paper-500 block mb-0.5">脂肪 g</label>
-          <input v-model.number="store.targets.fat" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-      </div>
+    <!-- 日期 -->
+    <div class="mb-5 flex items-center gap-3 p-4 rounded-xl border border-paper-300/60 bg-white/70">
+      <label class="text-[11px] uppercase tracking-wide2 text-paper-500 shrink-0">日期</label>
+      <input
+        v-model="logDate"
+        type="date"
+        class="flex-1 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+      />
     </div>
 
     <!-- 餐次 -->
@@ -434,5 +420,28 @@ watch(logDate, checkAutoFill, { immediate: true });
       </div>
     </template>
     <div v-if="!currentDayEntries.length" class="text-center text-paper-400 py-12 text-sm font-light">今日暂无记录。</div>
+
+    <!-- 目标摄入编辑弹窗 -->
+    <BaseModal :open="showTargets" title="每日目标摄入" width="sm" @close="showTargets = false">
+      <p class="text-[11px] text-paper-400 mb-4">设定后，汇总条会显示「已摄入 / 目标」进度。点击空白处或 ✕ 即保存。</p>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-[11px] text-paper-500 block mb-1">热量 kcal</label>
+          <input v-model.number="store.targets.calories" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+        </div>
+        <div>
+          <label class="text-[11px] text-paper-500 block mb-1">碳水 g</label>
+          <input v-model.number="store.targets.carbs" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+        </div>
+        <div>
+          <label class="text-[11px] text-paper-500 block mb-1">蛋白质 g</label>
+          <input v-model.number="store.targets.protein" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+        </div>
+        <div>
+          <label class="text-[11px] text-paper-500 block mb-1">脂肪 g</label>
+          <input v-model.number="store.targets.fat" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+        </div>
+      </div>
+    </BaseModal>
   </div>
 </template>

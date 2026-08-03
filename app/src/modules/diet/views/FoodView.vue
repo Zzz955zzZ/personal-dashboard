@@ -64,28 +64,34 @@ function openCopyMeal(m: MealType): void {
 </script>
 
 <template>
-  <section class="max-w-5xl mx-auto px-6 sm:px-8 py-10">
-    <h2 class="font-display text-3xl sm:text-4xl text-center mb-8">饮食</h2>
+  <section class="max-w-5xl mx-auto px-4 sm:px-8 py-4 sm:py-10">
+    <!-- 标题：手机端紧凑，桌面端宽松 -->
+    <div class="flex items-center justify-center gap-3 mb-5 sm:mb-8">
+      <span class="text-xl sm:text-3xl" v-html="icon('broccoli')"></span>
+      <h2 class="font-display text-xl sm:text-4xl">饮食</h2>
+    </div>
 
     <div v-if="store.corruptedRaw" class="mb-6 p-4 rounded-xl border border-amber-300 bg-amber-50 text-sm text-amber-800">
       本地数据解析失败，已改用初始数据展示。原始内容仍保留在内存中，请先导出备份再继续操作。
     </div>
 
-    <!-- 页签 -->
-    <div class="flex flex-wrap gap-2 mb-8 justify-center">
-      <button
-        v-for="t in FOOD_TABS"
-        :key="t.key"
-        class="px-4 py-2 rounded-full text-sm font-medium border transition-all"
-        :class="
-          foodTab === t.key
-            ? 'bg-coral-400 text-white border-coral-400'
-            : 'border-paper-300 text-paper-600 hover:border-coral-300'
-        "
-        @click="foodTab = t.key"
-      >
-        <span class="mr-1.5" v-html="icon(t.icon)"></span>{{ t.label }}
-      </button>
+    <!-- 页签：手机端横向滚动，不换行 -->
+    <div class="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 sm:mb-8">
+      <div class="flex gap-2 min-w-max justify-start sm:justify-center">
+        <button
+          v-for="t in FOOD_TABS"
+          :key="t.key"
+          class="px-4 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap"
+          :class="
+            foodTab === t.key
+              ? 'bg-coral-400 text-white border-coral-400'
+              : 'border-paper-300 text-paper-600 hover:border-coral-300'
+          "
+          @click="foodTab = t.key"
+        >
+          <span class="mr-1.5" v-html="icon(t.icon)"></span>{{ t.label }}
+        </button>
+      </div>
     </div>
 
     <transition name="fade" mode="out-in">
@@ -117,7 +123,7 @@ function openCopyMeal(m: MealType): void {
       :open="modals.template"
       :editing="editingTemplate"
       @close="modals.template = false"
-      @edit="openTemplateModal"
+      :edit="openTemplateModal"
     />
   </section>
 </template>

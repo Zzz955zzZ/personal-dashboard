@@ -134,6 +134,15 @@
     pointer-events: none;
   }
 
+  /* --- Scrollbar hide (for horizontal scroll areas on mobile) ------ */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* --- Undo toast -------------------------------------------------------- */
   .undo-toast {
     position: fixed;

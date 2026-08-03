@@ -196,14 +196,14 @@ watch(logDate, checkAutoFill, { immediate: true });
 <template>
   <div>
     <!-- 工具栏 -->
-    <div class="flex flex-wrap items-center gap-2 mb-5">
-      <div v-if="store.mealTemplates.length" class="relative">
+    <div class="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
+      <div v-if="store.mealTemplates.length" class="relative shrink-0">
         <button
-          class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 whitespace-nowrap"
           @click="showTemplatePicker = !showTemplatePicker"
         >
           <span v-html="icon('copy')"></span> 套餐模板
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M6 9l6 6 6-6" />
           </svg>
         </button>
@@ -240,7 +240,7 @@ watch(logDate, checkAutoFill, { immediate: true });
       </div>
 
       <button
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
         @click="modals.copyDay = true"
       >
         <span v-html="icon('doc')"></span> 复制记录
@@ -248,56 +248,59 @@ watch(logDate, checkAutoFill, { immediate: true });
 
       <button
         v-if="currentDayEntries.length"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
         @click="saveAsDefaultBreakfast()"
       >
         ⭐ 设为默认早餐
       </button>
 
       <button
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all ml-auto"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all shrink-0 whitespace-nowrap ml-auto"
         @click="emit('editTemplate', null)"
       >
         ⚙️ 管理套餐
       </button>
     </div>
 
-    <!-- 日期与目标 -->
-    <div class="flex flex-wrap items-end gap-4 mb-6 p-5 rounded-xl border border-paper-300/60 bg-white/70">
-      <div>
-        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">日期</label>
+    <!-- 日期与目标：手机端堆叠，桌面端并排 -->
+    <div class="mb-6 p-4 sm:p-5 rounded-xl border border-paper-300/60 bg-white/70">
+      <!-- 日期行 -->
+      <div class="flex items-center gap-3 mb-4 sm:mb-0">
+        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 shrink-0">日期</label>
         <input
           v-model="logDate"
           type="date"
-          class="px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+          class="flex-1 sm:flex-none px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
         />
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 flex-1">
+
+      <!-- 目标网格 -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2.5">
         <div>
-          <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">目标热量 kcal</label>
-          <input v-model.number="store.targets.calories" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          <label class="text-[10px] text-paper-500 block mb-0.5">热量 kcal</label>
+          <input v-model.number="store.targets.calories" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
         </div>
         <div>
-          <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">碳水 g</label>
-          <input v-model.number="store.targets.carbs" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          <label class="text-[10px] text-paper-500 block mb-0.5">碳水 g</label>
+          <input v-model.number="store.targets.carbs" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
         </div>
         <div>
-          <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">蛋白质 g</label>
-          <input v-model.number="store.targets.protein" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          <label class="text-[10px] text-paper-500 block mb-0.5">蛋白 g</label>
+          <input v-model.number="store.targets.protein" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
         </div>
         <div>
-          <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">脂肪 g</label>
-          <input v-model.number="store.targets.fat" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          <label class="text-[10px] text-paper-500 block mb-0.5">脂肪 g</label>
+          <input v-model.number="store.targets.fat" type="number" class="w-full px-2.5 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
         </div>
       </div>
     </div>
 
     <!-- 餐次 -->
-    <div class="flex gap-2 mb-5">
+    <div class="flex gap-2 mb-5 overflow-x-auto scrollbar-hide pb-1">
       <button
         v-for="m in MEAL_TYPES"
         :key="m.key"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+        class="px-4 py-1.5 rounded-lg text-xs font-medium border transition-all shrink-0 whitespace-nowrap"
         :class="logMealType === m.key ? 'bg-coral-100 border-coral-300' : 'border-paper-300/60 text-paper-500 hover:border-coral-300'"
         @click="logMealType = m.key"
       >
@@ -317,16 +320,18 @@ watch(logDate, checkAutoFill, { immediate: true });
           show-calories
           @pick="selectLogIngredient"
         />
-        <div v-if="logForm.ingredientId !== ''" class="flex gap-2 flex-wrap items-center pt-3 border-t border-paper-200/60">
-          <div class="flex items-center gap-1.5 min-w-0 flex-1">
-            <span class="shrink-0 text-sm font-medium truncate">
+        <div v-if="logForm.ingredientId !== ''" class="flex flex-col gap-2.5 pt-3 border-t border-paper-200/60">
+          <!-- 食材名 + 清除 -->
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm font-medium truncate">
               {{ selectedIng?.emoji }} {{ selectedIng?.name }}
             </span>
             <button type="button" class="shrink-0 text-paper-400 hover:text-red-500 text-xs" @click="clearLogSelection()">
               &times; 清除
             </button>
           </div>
-          <div class="flex items-center gap-1.5">
+          <!-- 数量 + 单位 + 餐次 + 提交 -->
+          <div class="flex items-center gap-2 flex-wrap">
             <input
               v-model.number="logForm.amount"
               type="number"
@@ -335,12 +340,12 @@ watch(logDate, checkAutoFill, { immediate: true });
               step="0.1"
               class="w-24 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
             />
-            <span class="text-sm text-paper-500 whitespace-nowrap">{{ currentLogUnit }}</span>
+            <span class="text-sm text-paper-500">{{ currentLogUnit }}</span>
+            <select v-model="logMealType" class="px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+              <option v-for="m in MEAL_TYPES" :key="m.key" :value="m.key">{{ m.icon }} {{ m.label }}</option>
+            </select>
+            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">记录</button>
           </div>
-          <select v-model="logMealType" class="px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
-            <option v-for="m in MEAL_TYPES" :key="m.key" :value="m.key">{{ m.icon }} {{ m.label }}</option>
-          </select>
-          <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">记录</button>
         </div>
         <div v-else class="text-xs text-paper-400 pt-2">↑ 搜索或点击上方食材进行选择</div>
       </div>
@@ -357,26 +362,26 @@ watch(logDate, checkAutoFill, { immediate: true });
     </form>
 
     <!-- 汇总条 -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-      <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[11px] uppercase tracking-wide2 text-paper-500">热量</div>
-        <div class="text-lg font-semibold mt-1">{{ dayTotals.calories.toFixed(0) }} <span class="text-xs font-normal text-paper-400">/ {{ store.targets.calories || '—' }} kcal</span></div>
-        <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-coral-400" :style="{ width: pct('calories') + '%' }"></div></div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
+      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
+        <div class="text-[10px] uppercase tracking-wide text-paper-500">热量</div>
+        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.calories.toFixed(0) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.calories || '—' }} kcal</span></div>
+        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-coral-400" :style="{ width: pct('calories') + '%' }"></div></div>
       </div>
-      <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[11px] uppercase tracking-wide2 text-paper-500">碳水</div>
-        <div class="text-lg font-semibold mt-1">{{ dayTotals.carbs.toFixed(1) }} <span class="text-xs font-normal text-paper-400">/ {{ store.targets.carbs || '—' }} g</span></div>
-        <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-yellow-400" :style="{ width: pct('carbs') + '%' }"></div></div>
+      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
+        <div class="text-[10px] uppercase tracking-wide text-paper-500">碳水</div>
+        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.carbs.toFixed(1) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.carbs || '—' }} g</span></div>
+        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-yellow-400" :style="{ width: pct('carbs') + '%' }"></div></div>
       </div>
-      <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[11px] uppercase tracking-wide2 text-paper-500">蛋白质</div>
-        <div class="text-lg font-semibold mt-1">{{ dayTotals.protein.toFixed(1) }} <span class="text-xs font-normal text-paper-400">/ {{ store.targets.protein || '—' }} g</span></div>
-        <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-blue-400" :style="{ width: pct('protein') + '%' }"></div></div>
+      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
+        <div class="text-[10px] uppercase tracking-wide text-paper-500">蛋白质</div>
+        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.protein.toFixed(1) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.protein || '—' }} g</span></div>
+        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-blue-400" :style="{ width: pct('protein') + '%' }"></div></div>
       </div>
-      <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[11px] uppercase tracking-wide2 text-paper-500">脂肪</div>
-        <div class="text-lg font-semibold mt-1">{{ dayTotals.fat.toFixed(1) }} <span class="text-xs font-normal text-paper-400">/ {{ store.targets.fat || '—' }} g</span></div>
-        <div class="macro-bar bg-paper-200 mt-2"><div class="macro-fill bg-purple-400" :style="{ width: pct('fat') + '%' }"></div></div>
+      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
+        <div class="text-[10px] uppercase tracking-wide text-paper-500">脂肪</div>
+        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.fat.toFixed(1) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.fat || '—' }} g</span></div>
+        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-purple-400" :style="{ width: pct('fat') + '%' }"></div></div>
       </div>
     </div>
 

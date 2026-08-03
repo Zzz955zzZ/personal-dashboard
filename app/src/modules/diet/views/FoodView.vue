@@ -3,27 +3,34 @@
  * 饮食板块外壳：五个页签 + 全部弹窗 + 食材详情抽屉。
  *
  * 这是饮食模块唯一的对外入口页，路由只认它；模块内部结构可以随意重排。
+ *
+ * 性能：所有非首屏视图和弹窗均使用 defineAsyncComponent 懒加载，
+ * 首次打开「每日记录」时只加载 DailyLogView（~20KB），其余按需加载。
  */
-import { onMounted, ref } from 'vue';
+import { defineAsyncComponent, onMounted, ref } from 'vue';
 
 import { icon } from '@/shared/icons';
 import { FOOD_TABS } from '../constants';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 
+// 首屏页签 —— 同步导入（用户进来第一眼就看到）
 import DailyLogView from './DailyLogView.vue';
-import IngredientsView from './IngredientsView.vue';
-import RecipesView from './RecipesView.vue';
-import PantryView from './PantryView.vue';
-import ShoppingView from './ShoppingView.vue';
 
-import IngredientDetailDrawer from '../components/IngredientDetailDrawer.vue';
-import IngredientFormModal from '../components/IngredientFormModal.vue';
-import RecipeFormModal from '../components/RecipeFormModal.vue';
-import PantryFormModal from '../components/PantryFormModal.vue';
-import CopyDayModal from '../components/CopyDayModal.vue';
-import CopyMealModal from '../components/CopyMealModal.vue';
-import MealTemplateModal from '../components/MealTemplateModal.vue';
+// 其余页签 —— 切到时才加载
+const IngredientsView = defineAsyncComponent(() => import('./IngredientsView.vue'));
+const RecipesView = defineAsyncComponent(() => import('./RecipesView.vue'));
+const PantryView = defineAsyncComponent(() => import('./PantryView.vue'));
+const ShoppingView = defineAsyncComponent(() => import('./ShoppingView.vue'));
+
+// 抽屉与弹窗 —— 用户交互时才加载
+const IngredientDetailDrawer = defineAsyncComponent(() => import('../components/IngredientDetailDrawer.vue'));
+const IngredientFormModal = defineAsyncComponent(() => import('../components/IngredientFormModal.vue'));
+const RecipeFormModal = defineAsyncComponent(() => import('../components/RecipeFormModal.vue'));
+const PantryFormModal = defineAsyncComponent(() => import('../components/PantryFormModal.vue'));
+const CopyDayModal = defineAsyncComponent(() => import('../components/CopyDayModal.vue'));
+const CopyMealModal = defineAsyncComponent(() => import('../components/CopyMealModal.vue'));
+const MealTemplateModal = defineAsyncComponent(() => import('../components/MealTemplateModal.vue'));
 
 import type { Ingredient, MealTemplate, MealType, Recipe } from '../types';
 
@@ -65,7 +72,7 @@ function openCopyMeal(m: MealType): void {
 
 <template>
   <section class="max-w-5xl mx-auto px-4 sm:px-8 py-4 sm:py-10">
-    <!-- 标题：手机端紧凑，桌面端宽松 -->
+    <!-- 标题：手机端紧凑 -->
     <div class="flex items-center justify-center gap-3 mb-5 sm:mb-8">
       <span class="text-xl sm:text-3xl" v-html="icon('broccoli')"></span>
       <h2 class="font-display text-xl sm:text-4xl">饮食</h2>
@@ -75,7 +82,7 @@ function openCopyMeal(m: MealType): void {
       本地数据解析失败，已改用初始数据展示。原始内容仍保留在内存中，请先导出备份再继续操作。
     </div>
 
-    <!-- 页签：手机端横向滚动，不换行 -->
+    <!-- 页签：手机端横向滚动 -->
     <div class="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 sm:mb-8">
       <div class="flex gap-2 min-w-max justify-start sm:justify-center">
         <button
@@ -107,7 +114,7 @@ function openCopyMeal(m: MealType): void {
       <ShoppingView v-else key="shopping" />
     </transition>
 
-    <!-- 抽屉与弹窗 -->
+    <!-- 抽屉与弹窗（全部懒加载，无需 Suspense —— Vue 内部处理异步组件解析） -->
     <IngredientDetailDrawer />
 
     <IngredientFormModal :open="modals.ingForm" :editing="editingIng" @close="modals.ingForm = false" />

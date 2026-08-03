@@ -88,7 +88,7 @@ function submit(): void {
 }
 
 function removeTemplate(id: number): void {
-  if (!window.confirm('确定删除此套餐模板？')) return;
+  if (!window.confirm('确定删除此套餐？')) return;
   store.deleteTemplate(id);
 }
 
@@ -100,14 +100,14 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
 <template>
   <BaseModal
     :open="open"
-    :title="editing ? '编辑套餐模板' : '新建套餐模板'"
+    :title="editing ? '编辑套餐' : '新建套餐'"
     width="lg"
     scrollable
     @close="emit('close')"
   >
     <form class="flex flex-col gap-4" @submit.prevent="submit">
       <div>
-        <label :class="LABEL_CLS">模板名称 *</label>
+        <label :class="LABEL_CLS">套餐名称 *</label>
         <input
           v-model="form.name"
           required
@@ -162,7 +162,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
             </button>
           </div>
           <div v-if="!form.items.length" class="text-center text-paper-400 py-4 text-xs">
-            从下方选择食材加入模板
+            从下方选择食材加入套餐
           </div>
         </div>
 
@@ -181,7 +181,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
       <div>
         <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-paper-600">
           <input v-model="form.isDefault" type="checkbox" class="accent-coral-400 rounded" />
-          设为默认早餐模板（新日期自动填充）
+          设为默认早餐（新日期自动填充）
         </label>
       </div>
 
@@ -197,13 +197,13 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
           type="submit"
           class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90"
         >
-          保存模板
+          保存套餐
         </button>
       </div>
     </form>
 
     <div v-if="store.mealTemplates.length && !editing" class="mt-6 pt-5 border-t border-paper-300/60">
-      <div class="text-[11px] uppercase tracking-wide2 text-paper-500 mb-3">已保存的模板</div>
+      <div class="text-[11px] uppercase tracking-wide2 text-paper-500 mb-3">已保存的套餐</div>
       <div class="space-y-2">
         <div
           v-for="tmpl in store.mealTemplates"

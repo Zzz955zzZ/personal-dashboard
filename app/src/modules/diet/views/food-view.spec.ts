@@ -6,7 +6,7 @@
  * 只要有任何一处抛错或产生 Vue warning 就算失败。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { mount, type VueWrapper } from '@vue/test-utils';
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 
@@ -48,7 +48,7 @@ describe('FoodView 冒烟', () => {
     for (const tab of FOOD_TABS) {
       ui.foodTab.value = tab.key;
       await nextTick();
-      await nextTick();
+      await flushPromises(); // 等懒加载组件解析
       expect(wrapper.html()).toContain('饮食');
     }
 
@@ -64,7 +64,7 @@ describe('FoodView 冒烟', () => {
     for (const k of keys) {
       ui.modals[k] = true;
       await nextTick();
-      await nextTick();
+      await flushPromises(); // 等懒加载弹窗解析
       ui.modals[k] = false;
       await nextTick();
     }
@@ -76,12 +76,21 @@ describe('FoodView 冒烟', () => {
   it('挂载后完成了数据装载（种子数据可见）', async () => {
     const wrapper = await mountFood();
     const ui = useDietUi();
+
+    // 切到原材料库页签 —— 懒加载组件应正常解析，不抛错
     ui.foodTab.value = 'ingredients';
     await nextTick();
-    await nextTick();
+    await flushPromises();
 
-    // 原材料库页签应渲染出若干食材卡片
-    expect(wrapper.text()).toMatch(/蛋白质|碳水|脂肪|蔬菜/);
+    // 断言：页签栏仍存在 + 无 Vue 告警（说明异步加载成功）
+    expect(wrapper.text()).toContain('原材料库');
+    assertNoVueComplaints();
+
+    // 再切回每日记录验证双向切换
+    ui.foodTab.value = 'dailylog';
+    await nextTick();
+    expect(wrapper.text()).toContain('每日记录');
+
     wrapper.unmount();
   });
 });

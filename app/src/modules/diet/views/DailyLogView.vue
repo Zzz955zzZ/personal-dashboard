@@ -145,7 +145,7 @@ function removeEntry(realIdx: number): void {
   });
 }
 
-/* ---------------- 模板 ---------------- */
+/* ---------------- 模板 / 套餐 ---------------- */
 const showTemplatePicker = ref(false);
 const showTargets = ref(false);
 
@@ -165,7 +165,7 @@ function applyTemplate(tmpl: MealTemplate): void {
 function saveAsDefaultBreakfast(): void {
   const breakfast = store.getDayLog(logDate.value).filter((e) => e.mealType === 'breakfast');
   if (!breakfast.length) {
-    window.alert('当前日期没有早餐记录。请先添加早餐条目，或使用午餐/晚餐记录创建模板。');
+    window.alert('当前日期没有早餐记录。请先添加早餐条目，或使用午餐/晚餐记录创建套餐。');
     return;
   }
   for (const t of store.mealTemplates) t.isDefault = false;
@@ -199,47 +199,13 @@ watch(logDate, checkAutoFill, { immediate: true });
   <div>
     <!-- 工具栏 -->
     <div class="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
-      <div v-if="store.mealTemplates.length" class="relative shrink-0">
-        <button
-          class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 whitespace-nowrap"
-          @click="showTemplatePicker = !showTemplatePicker"
-        >
-          <span v-html="icon('copy')"></span> 套餐模板
-          <svg class="w-3 h-3 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path d="M6 9l6 6 6-6" />
-          </svg>
-        </button>
-        <div
-          v-if="showTemplatePicker"
-          class="absolute top-full left-0 mt-1 w-72 z-30 bg-white border border-paper-300/60 rounded-xl shadow-lg overflow-hidden"
-        >
-          <div class="p-2 max-h-64 overflow-y-auto">
-            <button
-              v-for="tmpl in store.mealTemplates"
-              :key="tmpl.id"
-              class="w-full text-left px-3 py-2.5 rounded-lg hover:bg-coral-50 transition-colors flex items-center gap-2"
-              @click="applyTemplate(tmpl)"
-            >
-              <span class="text-base">{{ tmpl.emoji || '🍽️' }}</span>
-              <div class="flex-1 min-w-0">
-                <div class="text-xs font-medium truncate">{{ tmpl.name }}</div>
-                <div class="text-[10px] text-paper-400">
-                  {{ tmpl.items.length }} 种食材 · {{ mealTypeLabel(tmpl.defaultMealType) }}
-                </div>
-              </div>
-              <span v-if="tmpl.isDefault" class="text-[10px] text-coral-500">默认</span>
-            </button>
-          </div>
-          <div class="border-t border-paper-300/60 p-2">
-            <button
-              class="w-full text-left px-3 py-2 rounded-lg text-xs text-coral-500 hover:bg-coral-50 transition-colors"
-              @click="showTemplatePicker = false; emit('editTemplate', null)"
-            >
-              + 新建模板
-            </button>
-          </div>
-        </div>
-      </div>
+      <button
+        v-if="store.mealTemplates.length"
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
+        @click="showTemplatePicker = true"
+      >
+        <span v-html="icon('copy')"></span> 套餐
+      </button>
 
       <button
         class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
@@ -252,7 +218,7 @@ watch(logDate, checkAutoFill, { immediate: true });
         class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
         @click="modals.copyDay = true"
       >
-        <span v-html="icon('doc')"></span> 复制记录
+        <span v-html="icon('doc')"></span> 复制
       </button>
 
       <button
@@ -260,14 +226,14 @@ watch(logDate, checkAutoFill, { immediate: true });
         class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
         @click="saveAsDefaultBreakfast()"
       >
-        ⭐ 设为默认早餐
+        ⭐ 默认早餐
       </button>
 
       <button
         class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all shrink-0 whitespace-nowrap ml-auto"
         @click="emit('editTemplate', null)"
       >
-        ⚙️ 管理套餐
+        ⚙️ 管理
       </button>
     </div>
 
@@ -441,6 +407,35 @@ watch(logDate, checkAutoFill, { immediate: true });
           <label class="text-[11px] text-paper-500 block mb-1">脂肪 g</label>
           <input v-model.number="store.targets.fat" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
         </div>
+      </div>
+    </BaseModal>
+
+    <!-- 套餐选择弹窗 -->
+    <BaseModal :open="showTemplatePicker" title="选择套餐" width="sm" @close="showTemplatePicker = false">
+      <div class="max-h-72 overflow-y-auto -mx-5 px-5">
+        <button
+          v-for="tmpl in store.mealTemplates"
+          :key="tmpl.id"
+          class="w-full text-left px-4 py-3 rounded-xl hover:bg-coral-50 transition-colors flex items-center gap-3 mb-2"
+          @click="applyTemplate(tmpl)"
+        >
+          <span class="text-xl">{{ tmpl.emoji || '🍽️' }}</span>
+          <div class="flex-1 min-w-0">
+            <div class="text-sm font-medium">{{ tmpl.name }}</div>
+            <div class="text-[11px] text-paper-400">
+              {{ tmpl.items.length }} 种食材 · {{ mealTypeLabel(tmpl.defaultMealType) }}
+            </div>
+          </div>
+          <span v-if="tmpl.isDefault" class="text-[11px] px-2 py-0.5 rounded-full bg-coral-100 text-coral-600">默认</span>
+        </button>
+      </div>
+      <div class="border-t border-paper-200 mt-3 pt-3">
+        <button
+          class="w-full text-center px-3 py-2.5 rounded-xl text-sm font-medium text-coral-500 hover:bg-coral-50 transition-colors"
+          @click="showTemplatePicker = false; emit('editTemplate', null)"
+        >
+          + 新建套餐
+        </button>
       </div>
     </BaseModal>
   </div>

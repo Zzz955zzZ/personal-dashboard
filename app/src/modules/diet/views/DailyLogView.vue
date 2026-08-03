@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref } from 'vue';
 
 import { icon } from '@/shared/icons';
 import BaseModal from '@/shared/components/BaseModal.vue';
@@ -162,37 +162,6 @@ function applyTemplate(tmpl: MealTemplate): void {
   });
 }
 
-function saveAsDefaultBreakfast(): void {
-  const breakfast = store.getDayLog(logDate.value).filter((e) => e.mealType === 'breakfast');
-  if (!breakfast.length) {
-    window.alert('当前日期没有早餐记录。请先添加早餐条目，或使用午餐/晚餐记录创建套餐。');
-    return;
-  }
-  for (const t of store.mealTemplates) t.isDefault = false;
-  store.saveTemplate(
-    {
-      name: `默认早餐 (${logDate.value})`,
-      emoji: '🌅',
-      isDefault: true,
-      defaultMealType: 'breakfast',
-      items: breakfast.map((e) => ({ ingredientId: e.ingredientId, amount: e.amount })),
-    },
-    null,
-  );
-  const added = store.mealTemplates[store.mealTemplates.length - 1];
-  pushUndo('设为默认早餐', () => {
-    if (added) store.deleteTemplate(added.id);
-  });
-}
-
-/** 切到新的空白日期时自动套用默认模板（与 v1.0 一致，只在日期真正变化时触发一次） */
-let lastAutoFillDate = '';
-function checkAutoFill(): void {
-  if (logDate.value === lastAutoFillDate) return;
-  lastAutoFillDate = logDate.value;
-  store.autoFillIfEmpty(logDate.value);
-}
-watch(logDate, checkAutoFill, { immediate: true });
 </script>
 
 <template>
@@ -219,14 +188,6 @@ watch(logDate, checkAutoFill, { immediate: true });
         @click="modals.copyDay = true"
       >
         <span v-html="icon('doc')"></span> 复制
-      </button>
-
-      <button
-        v-if="currentDayEntries.length"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
-        @click="saveAsDefaultBreakfast()"
-      >
-        ⭐ 默认早餐
       </button>
 
       <button

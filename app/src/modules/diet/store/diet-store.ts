@@ -406,6 +406,10 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   function saveTemplate(data: Omit<MealTemplate, 'id'>, editingId: number | null): void {
+    if (data.isDefault) {
+      // 单选默认：设新的默认套餐时，自动取消其它默认标记
+      for (const t of mealTemplates.value) t.isDefault = false;
+    }
     if (editingId !== null) {
       const t = mealTemplates.value.find((x) => x.id === editingId);
       if (t) Object.assign(t, data);

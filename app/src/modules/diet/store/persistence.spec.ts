@@ -344,6 +344,9 @@ describe('useDietStore — 套餐模板', () => {
   it('空白日自动套用默认模板', () => {
     const store = useDietStore();
     store.hydrate();
+    // 显式标记一个默认套餐（默认功能为「可选」，不再由种子数据预设）
+    for (const t of store.mealTemplates) t.isDefault = false;
+    store.mealTemplates[0]!.isDefault = true;
 
     expect(store.autoFillIfEmpty('2026-07-30')).toBe(true);
     expect(store.getDayLog('2026-07-30')).toHaveLength(4);

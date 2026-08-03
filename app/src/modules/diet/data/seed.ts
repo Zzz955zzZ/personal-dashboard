@@ -67,7 +67,7 @@ export const SEED_MEAL_TEMPLATES: MealTemplate[] = [
     id: 1,
     name: '经典早餐',
     emoji: '🌅',
-    isDefault: true,
+    isDefault: false,
     defaultMealType: 'breakfast',
     items: [
       { ingredientId: 4, amount: 50 },

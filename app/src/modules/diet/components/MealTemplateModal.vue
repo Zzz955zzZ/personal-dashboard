@@ -181,7 +181,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
       <div>
         <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-paper-600">
           <input v-model="form.isDefault" type="checkbox" class="accent-coral-400 rounded" />
-          设为默认早餐（新日期自动填充）
+          设为默认套餐（可在「套餐」列表一键选用，对应餐次见上方选择）
         </label>
       </div>
 

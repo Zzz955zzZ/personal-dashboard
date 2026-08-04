@@ -7,6 +7,7 @@ import { icon } from '@/shared/icons';
 import { SECTIONS } from '@/shared/sections';
 import { useUndo } from '@/shared/composables/use-undo';
 import DataModal from '@/modules/diet/components/DataModal.vue';
+import PwaUpdatePrompt from '@/shared/components/PwaUpdatePrompt.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -159,6 +160,7 @@ function openSection(key: string): void {
       </RouterView>
     </main>
 
+    <PwaUpdatePrompt />
     <DataModal :open="dataOpen" @close="dataOpen = false" />
   </div>
 </template>

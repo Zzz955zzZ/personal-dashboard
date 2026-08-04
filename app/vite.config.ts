@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         ? [viteSingleFile()]
         : [
             VitePWA({
-              registerType: 'autoUpdate',
+              registerType: 'prompt',
               manifest: {
                 name: 'Personal Dashboard · 工作台',
                 short_name: '工作台',

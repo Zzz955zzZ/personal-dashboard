@@ -296,17 +296,38 @@ function applyTemplate(tmpl: MealTemplate): void {
                 :source="store.ingredients"
                 :last-selected="store.ingLastSelected"
                 :selected-id="addIngredientId === '' ? null : Number(addIngredientId)"
-                show-calories
                 @pick="selectAddIngredient"
               />
             </div>
 
-            <!-- 已选食材 + 数量 + 提交 -->
+            <!-- 已选食材 + 营养信息 + 数量 + 提交 -->
             <div v-if="addIngredientId !== ''" class="px-4 pb-3 border-t border-paper-100 pt-3">
               <div class="flex items-center gap-2 mb-2">
                 <span class="text-sm font-medium">{{ selectedIng?.emoji }} {{ selectedIng?.name }}</span>
+                <span v-if="selectedIng?.brand" class="text-[11px] text-paper-400">·{{ selectedIng.brand }}</span>
                 <button class="text-paper-400 hover:text-red-500 text-xs" @click="addIngredientId = ''; addAmount = ''">清除</button>
               </div>
+
+              <!-- 每 100g 营养信息 -->
+              <div v-if="selectedIng?.nutrition" class="grid grid-cols-4 gap-1.5 mb-3 p-2.5 rounded-xl bg-paper-50/80 border border-paper-200/60">
+                <div class="text-center">
+                  <div class="text-[9px] text-paper-400">热量</div>
+                  <div class="text-xs font-bold text-coral-500">{{ fmt1(selectedIng.nutrition.calories) }}<span class="text-[9px] font-normal">kcal</span></div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-paper-400">碳水</div>
+                  <div class="text-xs font-bold text-yellow-500">{{ fmt1(selectedIng.nutrition.carbs) }}<span class="text-[9px] font-normal">g</span></div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-paper-400">蛋白</div>
+                  <div class="text-xs font-bold text-blue-500">{{ fmt1(selectedIng.nutrition.protein) }}<span class="text-[9px] font-normal">g</span></div>
+                </div>
+                <div class="text-center">
+                  <div class="text-[9px] text-paper-400">脂肪</div>
+                  <div class="text-xs font-bold text-purple-500">{{ fmt1(selectedIng.nutrition.fat) }}<span class="text-[9px] font-normal">g</span></div>
+                </div>
+              </div>
+
               <div class="flex items-center gap-2">
                 <input
                   v-model.number="addAmount"

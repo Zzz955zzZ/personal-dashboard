@@ -55,7 +55,7 @@ const list = computed(() => {
 });
 
 const visible = computed(
-  () => props.alwaysOpen || open.value || search.value.trim().length > 0,
+  () => props.alwaysOpen || open.value || search.value.trim().length > 0 || catFilter.value !== 'all',
 );
 
 function isActive(id: number): boolean {

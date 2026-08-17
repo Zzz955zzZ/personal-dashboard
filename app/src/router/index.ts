@@ -1,6 +1,9 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router';
 
 import { dietRoutes } from '@/modules/diet';
+import { todoRoutes } from '@/modules/todo';
+import { financeRoutes } from '@/modules/finance';
+import { knowledgeRoutes } from '@/modules/knowledge';
 
 /**
  * 使用 hash 模式：保证 file:// 双击打开、静态托管、Capacitor 封装三种场景下
@@ -16,6 +19,9 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/views/HomeView.vue'),
   },
   ...dietRoutes,
+  ...todoRoutes,
+  ...financeRoutes,
+  ...knowledgeRoutes,
   { path: '/:pathMatch(.*)*', redirect: '/' },
 ];
 

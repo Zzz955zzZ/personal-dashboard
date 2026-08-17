@@ -16,13 +16,16 @@ const { pushUndo } = useUndo();
 
 const emit = defineEmits<{ edit: [ing: Ingredient | null] }>();
 
-const ingCat = ref<IngredientCategory>('protein');
+const ingCat = ref<IngredientCategory | 'all'>('all');
 const ingSearch = ref('');
 
 const catKeys = Object.keys(CAT_DEFS) as IngredientCategory[];
 
 const searchedIngList = computed(() => {
-  let list = store.ingByCat(ingCat.value);
+  let list =
+    ingCat.value === 'all'
+      ? store.ingredients
+      : store.ingByCat(ingCat.value);
   const q = ingSearch.value.trim().toLowerCase();
   if (q) list = list.filter((i) => i.name.toLowerCase().includes(q));
   return sortByRecency(list, store.ingLastSelected);
@@ -40,6 +43,14 @@ function deleteIng(it: Ingredient): void {
 <template>
   <div>
     <div class="flex flex-wrap items-center gap-2 mb-4">
+      <button
+        class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-all"
+        :class="ingCat === 'all' ? 'bg-coral-100 border-coral-300' : 'border-paper-300/60 text-paper-500 hover:border-coral-300'"
+        @click="ingCat = 'all'"
+      >
+        全部
+        <span class="ml-1 opacity-50">({{ store.ingredients.length }})</span>
+      </button>
       <button
         v-for="key in catKeys"
         :key="key"
@@ -74,6 +85,7 @@ function deleteIng(it: Ingredient): void {
           <span v-else>{{ it.emoji || CAT_DEFS[it.category].emoji }}</span>
         </div>
         <div class="text-sm font-medium text-center truncate">{{ it.name }}</div>
+        <div v-if="it.brand" class="text-[11px] text-coral-500 text-center truncate -mt-0.5">{{ it.brand }}</div>
         <div class="mt-1 text-[10px] text-paper-400 text-center truncate">
           碳{{ fmt1(it.nutrition?.carbs) }}g · 蛋白{{ fmt1(it.nutrition?.protein) }}g · 脂肪{{ fmt1(it.nutrition?.fat) }}g /100g
         </div>

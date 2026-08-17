@@ -10,6 +10,7 @@ import { createPinia, setActivePinia } from 'pinia';
 
 import { DB_KEY, loadState, saveState, type PersistedState } from './persistence';
 import { useDietStore } from './diet-store';
+import { SEED_INGREDIENTS } from '../data/seed';
 import { detectMicrons } from '../engine';
 
 /** 模拟一份 v1.0 老用户数据：故意缺字段、带脏值 */
@@ -196,22 +197,27 @@ describe('useDietStore — 装载行为', () => {
     localStorage.clear();
   });
 
-  it('首次运行注入种子数据', () => {
+  it('首次运行注入（合并后的）全部种子数据', () => {
     const store = useDietStore();
     store.hydrate();
 
-    expect(store.ingredients).toHaveLength(22);
+    expect(store.ingredients).toHaveLength(SEED_INGREDIENTS.length);
     expect(store.recipes).toHaveLength(6);
     expect(store.mealTemplates).toHaveLength(1);
   });
 
-  it('有存量数据时使用存量，不被种子覆盖', () => {
+  it('有存量数据时保留用户数据，并自动补齐缺失的种子食材', () => {
     localStorage.setItem(DB_KEY, LEGACY_RAW);
     const store = useDietStore();
     store.hydrate();
 
-    expect(store.ingredients).toHaveLength(3);
+    // 用户的自定义食材不被覆盖
     expect(store.ingredients.find((i) => i.id === 99)?.name).toBe('自定义腌菜');
+    // 缺失的种子食材被自动并入（老用户无需重装即可用上新库）
+    expect(store.ingredients.length).toBeGreaterThanOrEqual(SEED_INGREDIENTS.length);
+    for (const s of SEED_INGREDIENTS) {
+      expect(store.ingredients.find((i) => i.id === s.id)).toBeTruthy();
+    }
     expect(store.targets.calories).toBe(1800);
   });
 });
@@ -286,12 +292,12 @@ describe('useDietStore — 营养汇总', () => {
   it('按每 100g 折算当日总量', () => {
     const store = useDietStore();
     store.hydrate();
-    // 鸡胸肉 165kcal / 31g 蛋白 每 100g
+    // 鸡胸肉 120kcal / 23g 蛋白 每 100g（生重去皮去骨）
     store.addLogEntry('2026-07-30', { ingredientId: 1, amount: 200, mealType: 'lunch' });
 
     const t = store.dayTotals('2026-07-30');
-    expect(t.calories).toBeCloseTo(330, 5);
-    expect(t.protein).toBeCloseTo(62, 5);
+    expect(t.calories).toBeCloseTo(240, 5);
+    expect(t.protein).toBeCloseTo(46, 5);
   });
 
   it('按餐次分别汇总', () => {
@@ -300,8 +306,8 @@ describe('useDietStore — 营养汇总', () => {
     store.addLogEntry('2026-07-30', { ingredientId: 1, amount: 100, mealType: 'breakfast' });
     store.addLogEntry('2026-07-30', { ingredientId: 1, amount: 300, mealType: 'dinner' });
 
-    expect(store.mealMacroSum('2026-07-30', 'breakfast').calories).toBeCloseTo(165, 5);
-    expect(store.mealMacroSum('2026-07-30', 'dinner').calories).toBeCloseTo(495, 5);
+    expect(store.mealMacroSum('2026-07-30', 'breakfast').calories).toBeCloseTo(120, 5);
+    expect(store.mealMacroSum('2026-07-30', 'dinner').calories).toBeCloseTo(360, 5);
   });
 
   it('食材被删除后旧记录不会让汇总崩掉', () => {

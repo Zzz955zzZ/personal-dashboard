@@ -30,13 +30,15 @@ export interface Micro {
 /** 计量单位：默认按克，鸡蛋一类按「个」并附 gramsPerUnit 换算 */
 export type IngredientUnit = 'g' | '个';
 
-/** 食材四大类 */
-export type IngredientCategory = 'protein' | 'carbs' | 'fat' | 'veg';
+/** 食材六大类（在四大类基础上补齐水果/饮品，便于精确归类与筛选） */
+export type IngredientCategory = 'protein' | 'carbs' | 'fat' | 'veg' | 'fruit' | 'drink';
 
 /** 食材 */
 export interface Ingredient {
   id: number;
   name: string;
+  /** 品牌：用于区分同一品类的不同产品（如不同牌子的牛奶），缺省为空 */
+  brand?: string;
   category: IngredientCategory;
   emoji: string;
   image: string;

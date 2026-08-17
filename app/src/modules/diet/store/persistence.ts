@@ -63,6 +63,7 @@ function normalizeIngredient(
   const ing: Ingredient = {
     id: raw.id,
     name: raw.name,
+    brand: typeof raw.brand === 'string' ? raw.brand : '',
     category: (raw.category as Ingredient['category']) ?? 'protein',
     emoji: typeof raw.emoji === 'string' ? raw.emoji : '',
     image: typeof raw.image === 'string' ? raw.image : '',

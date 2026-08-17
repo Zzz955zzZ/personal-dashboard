@@ -71,9 +71,9 @@ function openCopyMeal(m: MealType): void {
 </script>
 
 <template>
-  <section class="max-w-5xl mx-auto px-4 sm:px-8 py-4 sm:py-10">
-    <!-- 标题：手机端紧凑 -->
-    <div class="flex items-center justify-center gap-3 mb-5 sm:mb-8">
+  <section class="max-w-5xl mx-auto px-3 sm:px-8 py-2 sm:py-10">
+    <!-- 标题：仅桌面端显示，手机省空间 -->
+    <div class="hidden sm:flex items-center justify-center gap-3 mb-5 sm:mb-8">
       <span class="text-xl sm:text-3xl" v-html="icon('broccoli')"></span>
       <h2 class="font-display text-xl sm:text-4xl">饮食</h2>
     </div>
@@ -82,13 +82,13 @@ function openCopyMeal(m: MealType): void {
       本地数据解析失败，已改用初始数据展示。原始内容仍保留在内存中，请先导出备份再继续操作。
     </div>
 
-    <!-- 页签：手机端横向滚动 -->
-    <div class="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 mb-6 sm:mb-8">
-      <div class="flex gap-2 min-w-max justify-start sm:justify-center">
+    <!-- 页签：手机端紧凑 -->
+    <div class="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 mb-3 sm:mb-8">
+      <div class="flex gap-1.5 min-w-max justify-start sm:justify-center">
         <button
           v-for="t in FOOD_TABS"
           :key="t.key"
-          class="px-4 py-2 rounded-full text-sm font-medium border transition-all whitespace-nowrap"
+          class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium border transition-all whitespace-nowrap"
           :class="
             foodTab === t.key
               ? 'bg-coral-400 text-white border-coral-400'
@@ -96,7 +96,7 @@ function openCopyMeal(m: MealType): void {
           "
           @click="foodTab = t.key"
         >
-          <span class="mr-1.5" v-html="icon(t.icon)"></span>{{ t.label }}
+          <span class="mr-1" v-html="icon(t.icon)"></span>{{ t.label }}
         </button>
       </div>
     </div>

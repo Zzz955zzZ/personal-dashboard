@@ -12,6 +12,8 @@
     "build:vercel": "vite build",
     "build:single": "vite build --mode single",
     "build:all": "npm run build && npm run build:single",
+    "deploy:build": "vite build",
+    "deploy": "vite build && netlify deploy --prod --dir=dist",
     "preview": "vite preview",
     "typecheck": "vue-tsc --noEmit",
     "test": "vitest run",

@@ -32,6 +32,9 @@ function perUnit(v: number | undefined, grams: number): string {
           <div class="text-[11px] tracking-wide2 uppercase text-paper-500 text-center mt-1">
             {{ CAT_DEFS[selectedIng.category]?.label }}
           </div>
+          <div v-if="selectedIng.brand" class="text-sm text-coral-500 text-center mt-0.5">
+            {{ selectedIng.brand }}
+          </div>
           <div class="h-px bg-paper-300/60 my-6"></div>
 
           <div class="mb-6">

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 
-import { icon } from '@/shared/icons';
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import IngredientChipPicker from '../components/IngredientChipPicker.vue';
@@ -13,40 +12,14 @@ import { useUndo } from '@/shared/composables/use-undo';
 import type { LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
-const { logDate, logMealType, modals } = useDietUi();
+const { logDate, modals } = useDietUi();
 const { pushUndo } = useUndo();
 
 const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null]; copyMeal: [m: MealType] }>();
 
-/* ---------------- 新增记录表单 ---------------- */
-const logForm = reactive<{ ingredientId: number | ''; amount: number | '' }>({
-  ingredientId: '',
-  amount: '',
-});
-const logSearch = ref('');
-const logPickerOpen = ref(false);
+/* ==================== 页面状态 ==================== */
 
-const selectedIng = computed(() =>
-  logForm.ingredientId === '' ? undefined : store.findIng(Number(logForm.ingredientId)),
-);
-const currentLogUnit = computed(() => unitLabel(selectedIng.value));
-const logUnitPlaceholder = computed(() => (currentLogUnit.value === '个' ? '1' : '100'));
-
-function selectLogIngredient(id: number): void {
-  logForm.ingredientId = id;
-  store.touchIngredient(id);
-  logSearch.value = '';
-  logPickerOpen.value = false;
-  const ing = store.findIng(id);
-  if (!logForm.amount) logForm.amount = ing?.unit === '个' ? 1 : 100;
-}
-
-function clearLogSelection(): void {
-  logForm.ingredientId = '';
-  logSearch.value = '';
-}
-
-/* ---------------- 汇总与预览 ---------------- */
+/* ---------------- 汇总 ---------------- */
 const dayTotals = computed(() => store.dayTotals(logDate.value));
 const currentDayEntries = computed(() => store.getDayLog(logDate.value));
 
@@ -56,47 +29,10 @@ function pct(key: keyof Nutrition): number {
   return Math.min(100, (dayTotals.value[key] / t) * 100);
 }
 
-const logPreview = computed<{ ingredientId: number | null; totals: Nutrition }>(() => {
-  const empty: Nutrition = { calories: 0, carbs: 0, protein: 0, fat: 0 };
-  if (logForm.ingredientId === '' || !logForm.amount) {
-    return { ingredientId: null, totals: empty };
-  }
-  const ing = store.findIng(Number(logForm.ingredientId));
-  const base = dayTotals.value;
-  if (!ing?.nutrition) return { ingredientId: Number(logForm.ingredientId), totals: { ...base } };
-  const f = toGrams(ing, Number(logForm.amount)) / 100;
-  return {
-    ingredientId: ing.id,
-    totals: {
-      calories: base.calories + (ing.nutrition.calories || 0) * f,
-      carbs: base.carbs + (ing.nutrition.carbs || 0) * f,
-      protein: base.protein + (ing.nutrition.protein || 0) * f,
-      fat: base.fat + (ing.nutrition.fat || 0) * f,
-    },
-  };
-});
-
-function logPreviewPct(key: keyof Nutrition): number {
-  const t = store.targets[key];
-  if (!t || t <= 0) return 0;
-  return Math.min(100, Math.round((logPreview.value.totals[key] / t) * 100));
-}
-
 function entryNutri(entry: LogEntry): number {
   const ing = store.findIng(entry.ingredientId);
   if (!ing?.nutrition) return 0;
   return (ing.nutrition.calories || 0) * (entry.amount / 100);
-}
-
-/* ---------------- 提交 ---------------- */
-function submitLogEntry(): void {
-  if (logForm.ingredientId === '' || !logForm.amount) return;
-  const id = Number(logForm.ingredientId);
-  const grams = toGrams(store.findIng(id), Number(logForm.amount));
-  if (grams <= 0) return;
-  store.addLogEntry(logDate.value, { ingredientId: id, amount: grams, mealType: logMealType.value });
-  logForm.amount = '';
-  clearLogSelection();
 }
 
 /* ---------------- 行内编辑 ---------------- */
@@ -145,13 +81,59 @@ function removeEntry(realIdx: number): void {
   });
 }
 
-/* ---------------- 模板 / 套餐 ---------------- */
-const showTemplatePicker = ref(false);
-const showTargets = ref(false);
+/* ==================== 添加弹窗（底部Sheet） ==================== */
+const showAddSheet = ref(false);
+const addMealType = ref<MealType>('breakfast');
+const addIngredientId = ref<number | ''>('');
+const addAmount = ref<number | ''>('');
+const addSearch = ref('');
+const addPickerOpen = ref(false);
+
+const selectedIng = computed(() =>
+  addIngredientId.value === '' ? undefined : store.findIng(Number(addIngredientId.value)),
+);
+const addUnitLabel = computed(() => unitLabel(selectedIng.value));
+const addPlaceholder = computed(() => (addUnitLabel.value === '个' ? '1' : '100'));
+
+function openAddSheet(meal?: MealType): void {
+  if (meal) addMealType.value = meal;
+  showAddSheet.value = true;
+  resetAddForm();
+}
+
+function resetAddForm(): void {
+  addIngredientId.value = '';
+  addAmount.value = '';
+  addSearch.value = '';
+  addPickerOpen.value = false;
+}
+
+function selectAddIngredient(id: number): void {
+  addIngredientId.value = id;
+  store.touchIngredient(id);
+  addSearch.value = '';
+  addPickerOpen.value = false;
+  const ing = store.findIng(id);
+  if (!addAmount.value) addAmount.value = ing?.unit === '个' ? 1 : 100;
+}
+
+function submitAdd(): void {
+  if (addIngredientId.value === '' || !addAmount.value) return;
+  const id = Number(addIngredientId.value);
+  const grams = toGrams(store.findIng(id), Number(addAmount.value));
+  if (grams <= 0) return;
+  store.addLogEntry(logDate.value, { ingredientId: id, amount: grams, mealType: addMealType.value });
+  showAddSheet.value = false;
+}
+
+/* ==================== 管理弹窗（目标/套餐/复制） ==================== */
+const showManage = ref(false);
+const manageTab = ref<'targets' | 'templates' | 'copy'>('targets');
+const showTemplatePickerForApply = ref(false);
 
 function applyTemplate(tmpl: MealTemplate): void {
   const n = store.applyTemplate(logDate.value, tmpl);
-  showTemplatePicker.value = false;
+  showTemplatePickerForApply.value = false;
   const date = logDate.value;
   pushUndo(`已套用「${tmpl.name}」${n} 项`, () => {
     const list = store.getDayLog(date);
@@ -161,243 +143,294 @@ function applyTemplate(tmpl: MealTemplate): void {
     }
   });
 }
-
 </script>
 
 <template>
   <div>
-    <!-- 工具栏 -->
-    <div class="flex items-center gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
-      <button
-        v-if="store.mealTemplates.length"
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
-        @click="showTemplatePicker = true"
-      >
-        <span v-html="icon('copy')"></span> 套餐
-      </button>
-
-      <button
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
-        @click="showTargets = true"
-      >
-        🎯 目标
-      </button>
-
-      <button
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all flex items-center gap-1 shrink-0 whitespace-nowrap"
-        @click="modals.copyDay = true"
-      >
-        <span v-html="icon('doc')"></span> 复制
-      </button>
-
-      <button
-        class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300/60 text-paper-600 hover:border-coral-300 transition-all shrink-0 whitespace-nowrap ml-auto"
-        @click="emit('editTemplate', null)"
-      >
-        ⚙️ 管理
-      </button>
-    </div>
-
-    <!-- 日期 -->
-    <div class="mb-5 flex items-center gap-3 p-4 rounded-xl border border-paper-300/60 bg-white/70">
-      <label class="text-[11px] uppercase tracking-wide2 text-paper-500 shrink-0">日期</label>
-      <input
-        v-model="logDate"
-        type="date"
-        class="flex-1 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
-      />
-    </div>
-
-    <!-- 餐次 -->
-    <div class="flex gap-2 mb-5 overflow-x-auto scrollbar-hide pb-1">
-      <button
-        v-for="m in MEAL_TYPES"
-        :key="m.key"
-        class="px-4 py-1.5 rounded-lg text-xs font-medium border transition-all shrink-0 whitespace-nowrap"
-        :class="logMealType === m.key ? 'bg-coral-100 border-coral-300' : 'border-paper-300/60 text-paper-500 hover:border-coral-300'"
-        @click="logMealType = m.key"
-      >
-        {{ m.icon }} {{ m.label }}
-      </button>
-    </div>
-
-    <!-- 添加表单 -->
-    <form class="mb-5" @submit.prevent="submitLogEntry">
-      <div class="p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <IngredientChipPicker
-          v-model:search="logSearch"
-          v-model:open="logPickerOpen"
-          :source="store.ingredients"
-          :last-selected="store.ingLastSelected"
-          :selected-id="logForm.ingredientId === '' ? null : Number(logForm.ingredientId)"
-          show-calories
-          @pick="selectLogIngredient"
+    <!-- ====== 顶部：日期 + 汇总 ====== -->
+    <div class="mb-3">
+      <!-- 日期行：极简 -->
+      <div class="flex items-center justify-between px-1 mb-2">
+        <input
+          v-model="logDate"
+          type="date"
+          class="text-xs sm:text-sm font-medium text-ink bg-transparent border-none outline-none cursor-pointer"
         />
-        <div v-if="logForm.ingredientId !== ''" class="flex flex-col gap-2.5 pt-3 border-t border-paper-200/60">
-          <!-- 食材名 + 清除 -->
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm font-medium truncate">
-              {{ selectedIng?.emoji }} {{ selectedIng?.name }}
-            </span>
-            <button type="button" class="shrink-0 text-paper-400 hover:text-red-500 text-xs" @click="clearLogSelection()">
-              &times; 清除
-            </button>
-          </div>
-          <!-- 数量 + 单位 + 餐次 + 提交 -->
-          <div class="flex items-center gap-2 flex-wrap">
-            <input
-              v-model.number="logForm.amount"
-              type="number"
-              :placeholder="logUnitPlaceholder"
-              min="0.1"
-              step="0.1"
-              class="w-24 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
-            />
-            <span class="text-sm text-paper-500">{{ currentLogUnit }}</span>
-            <select v-model="logMealType" class="px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
-              <option v-for="m in MEAL_TYPES" :key="m.key" :value="m.key">{{ m.icon }} {{ m.label }}</option>
-            </select>
-            <button type="submit" class="px-4 py-2 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90">记录</button>
-          </div>
-        </div>
-        <div v-else class="text-xs text-paper-400 pt-2">↑ 搜索或点击上方食材进行选择</div>
+        <button
+          class="text-[11px] text-coral-500 hover:text-coral-600 font-medium flex items-center gap-1"
+          @click="showManage = true"
+        >
+          ⚙ 管理
+        </button>
       </div>
 
-      <div v-if="logPreview.ingredientId && Number(logForm.amount) > 0" class="mt-3 p-3 rounded-xl border border-coral-200 bg-coral-50/70 text-xs">
-        <div class="text-paper-500 mb-1.5 font-medium">添加后预计摄入量</div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <div><span class="text-paper-400">热量:</span> <strong>{{ logPreview.totals.calories.toFixed(0) }}</strong> / {{ store.targets.calories || '—' }} kcal <span class="text-paper-400">({{ logPreviewPct('calories') }}%)</span></div>
-          <div><span class="text-paper-400">碳水:</span> <strong>{{ logPreview.totals.carbs.toFixed(1) }}</strong> / {{ store.targets.carbs || '—' }}g <span class="text-paper-400">({{ logPreviewPct('carbs') }}%)</span></div>
-          <div><span class="text-paper-400">蛋白:</span> <strong>{{ logPreview.totals.protein.toFixed(1) }}</strong> / {{ store.targets.protein || '—' }}g <span class="text-paper-400">({{ logPreviewPct('protein') }}%)</span></div>
-          <div><span class="text-paper-400">脂肪:</span> <strong>{{ logPreview.totals.fat.toFixed(1) }}</strong> / {{ store.targets.fat || '—' }}g <span class="text-paper-400">({{ logPreviewPct('fat') }}%)</span></div>
+      <!-- 今日汇总：紧凑横条 -->
+      <div class="grid grid-cols-4 gap-1.5">
+        <div class="p-2 rounded-lg border border-paper-200/60 bg-white/80 text-center">
+          <div class="text-[9px] text-paper-400">热量</div>
+          <div class="text-sm font-bold text-ink">{{ dayTotals.calories.toFixed(0) }}</div>
+          <div class="h-1 bg-paper-100 rounded-full mt-1"><div class="h-full bg-coral-400 rounded-full" :style="{ width: pct('calories') + '%' }"></div></div>
         </div>
-      </div>
-    </form>
-
-    <!-- 汇总条 -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-6">
-      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[10px] uppercase tracking-wide text-paper-500">热量</div>
-        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.calories.toFixed(0) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.calories || '—' }} kcal</span></div>
-        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-coral-400" :style="{ width: pct('calories') + '%' }"></div></div>
-      </div>
-      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[10px] uppercase tracking-wide text-paper-500">碳水</div>
-        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.carbs.toFixed(1) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.carbs || '—' }} g</span></div>
-        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-yellow-400" :style="{ width: pct('carbs') + '%' }"></div></div>
-      </div>
-      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[10px] uppercase tracking-wide text-paper-500">蛋白质</div>
-        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.protein.toFixed(1) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.protein || '—' }} g</span></div>
-        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-blue-400" :style="{ width: pct('protein') + '%' }"></div></div>
-      </div>
-      <div class="p-3 sm:p-4 rounded-xl border border-paper-300/60 bg-white/70">
-        <div class="text-[10px] uppercase tracking-wide text-paper-500">脂肪</div>
-        <div class="text-base sm:text-lg font-semibold mt-0.5">{{ dayTotals.fat.toFixed(1) }} <span class="text-[10px] sm:text-xs font-normal text-paper-400">/ {{ store.targets.fat || '—' }} g</span></div>
-        <div class="macro-bar bg-paper-200 mt-1.5"><div class="macro-fill bg-purple-400" :style="{ width: pct('fat') + '%' }"></div></div>
+        <div class="p-2 rounded-lg border border-paper-200/60 bg-white/80 text-center">
+          <div class="text-[9px] text-paper-400">碳水</div>
+          <div class="text-sm font-bold text-ink">{{ dayTotals.carbs.toFixed(0) }}g</div>
+          <div class="h-1 bg-paper-100 rounded-full mt-1"><div class="h-full bg-yellow-400 rounded-full" :style="{ width: pct('carbs') + '%' }"></div></div>
+        </div>
+        <div class="p-2 rounded-lg border border-paper-200/60 bg-white/80 text-center">
+          <div class="text-[9px] text-paper-400">蛋白</div>
+          <div class="text-sm font-bold text-ink">{{ dayTotals.protein.toFixed(0) }}g</div>
+          <div class="h-1 bg-paper-100 rounded-full mt-1"><div class="h-full bg-blue-400 rounded-full" :style="{ width: pct('protein') + '%' }"></div></div>
+        </div>
+        <div class="p-2 rounded-lg border border-paper-200/60 bg-white/80 text-center">
+          <div class="text-[9px] text-paper-400">脂肪</div>
+          <div class="text-sm font-bold text-ink">{{ dayTotals.fat.toFixed(0) }}g</div>
+          <div class="h-1 bg-paper-100 rounded-full mt-1"><div class="h-full bg-purple-400 rounded-full" :style="{ width: pct('fat') + '%' }"></div></div>
+        </div>
       </div>
     </div>
 
-    <!-- 按餐次分组的条目 -->
+    <!-- ====== 按餐次分组的条目 ====== -->
     <template v-for="m in MEAL_TYPES" :key="m.key">
-      <div v-if="store.mealEntries(logDate, m.key).length" class="mb-5">
-        <div class="text-xs uppercase tracking-wide2 text-paper-500 mb-2 flex items-center gap-2">
-          <span>{{ m.icon }} {{ m.label }}</span>
-          <span class="text-paper-300">· {{ fmt1(store.mealMacroSum(logDate, m.key).calories) }}kcal</span>
-          <button class="ml-auto text-coral-500 hover:text-coral-600 text-[11px] font-medium" @click="emit('copyMeal', m.key)">
-            📋 复制此餐
-          </button>
+      <div v-if="store.mealEntries(logDate, m.key).length" class="mb-4">
+        <!-- 餐次标题行 -->
+        <div class="flex items-center justify-between px-1 mb-1.5">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-ink">{{ m.icon }} {{ m.label }}</span>
+            <span class="text-[11px] text-paper-400">{{ fmt1(store.mealMacroSum(logDate, m.key).calories) }} kcal</span>
+          </div>
+          <button class="text-[11px] text-coral-500" @click="emit('copyMeal', m.key)">复制</button>
         </div>
-        <div class="flex flex-col gap-2">
+
+        <!-- 食物列表 -->
+        <div class="flex flex-col gap-1.5">
           <div
             v-for="(entry, idx) in store.mealEntries(logDate, m.key)"
             :key="entry._idx"
-            class="flex items-center gap-3 p-4 rounded-xl border border-paper-300/60 bg-white/70 group"
+            class="flex items-center gap-2 p-2.5 rounded-xl border border-paper-200/60 bg-white/80 group"
             :class="isEditing(entry, m.key) ? 'ring-2 ring-coral-300' : ''"
           >
-            <IngredientAvatar :ing="store.findIng(entry.ingredientId)" :size="36" />
+            <IngredientAvatar :ing="store.findIng(entry.ingredientId)" :size="32" />
             <template v-if="!isEditing(entry, m.key)">
-              <div class="flex-1">
-                <div class="text-sm font-medium">{{ store.findIng(entry.ingredientId)?.name || entry.ingredientId }}</div>
-                <div class="text-[11px] text-paper-400">
+              <div class="flex-1 min-w-0">
+                <div class="text-xs sm:text-sm font-medium text-ink truncate">{{ store.findIng(entry.ingredientId)?.name }}</div>
+                <div class="text-[10px] text-paper-400">
                   {{ round1(fromGrams(store.findIng(entry.ingredientId), entry.amount)) }}{{ unitLabel(store.findIng(entry.ingredientId)) }}
-                  · ≈ {{ fmt1(entryNutri(entry)) }}kcal
+                  · {{ fmt1(entryNutri(entry)) }}kcal
                 </div>
               </div>
-              <div class="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <button class="text-paper-400 hover:text-coral-500 transition-all text-sm px-2" @click="startEdit(entry, m.key)">编辑</button>
-                <button class="text-paper-400 hover:text-red-500 transition-all text-sm px-2" @click="removeEntry(store.resolveRealIndex(logDate, m.key, idx))">删除</button>
+              <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button class="text-paper-400 hover:text-coral-500 text-xs px-1.5" @click="startEdit(entry, m.key)">改</button>
+                <button class="text-paper-400 hover:text-red-500 text-xs px-1.5" @click="removeEntry(store.resolveRealIndex(logDate, m.key, idx))">删</button>
               </div>
             </template>
             <template v-else>
-              <div class="flex-1 flex gap-2 items-center flex-wrap">
-                <select v-model="editLogForm.ingredientId" class="flex-1 min-w-[140px] px-2 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+              <div class="flex-1 flex gap-1.5 items-center flex-wrap">
+                <select v-model="editLogForm.ingredientId" class="flex-1 min-w-[120px] px-2 py-1 rounded-lg border border-paper-300/60 bg-white text-xs focus:outline-none focus:border-coral-300">
                   <option v-for="it in store.ingredients" :key="it.id" :value="it.id">{{ it.emoji }} {{ it.name }}</option>
                 </select>
-                <input v-model.number="editLogForm.amount" type="number" min="1" class="w-20 px-2 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-                <select v-model="editLogForm.mealType" class="px-2 py-1.5 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
+                <input v-model.number="editLogForm.amount" type="number" min="1" class="w-16 px-2 py-1 rounded-lg border border-paper-300/60 bg-white text-xs focus:outline-none focus:border-coral-300" />
+                <select v-model="editLogForm.mealType" class="px-2 py-1 rounded-lg border border-paper-300/60 bg-white text-xs focus:outline-none focus:border-coral-300">
                   <option v-for="mt in MEAL_TYPES" :key="mt.key" :value="mt.key">{{ mt.icon }} {{ mt.label }}</option>
                 </select>
-                <button class="px-3 py-1.5 rounded-lg text-xs font-medium bg-coral-400 text-white hover:opacity-90" @click="saveEdit(store.resolveRealIndex(logDate, m.key, idx))">保存</button>
-                <button class="px-3 py-1.5 rounded-lg text-xs font-medium border border-paper-300 hover:bg-coral-50" @click="cancelEdit()">取消</button>
+                <button class="px-2 py-1 rounded-lg text-[11px] font-medium bg-coral-400 text-white" @click="saveEdit(store.resolveRealIndex(logDate, m.key, idx))">保存</button>
+                <button class="px-2 py-1 rounded-lg text-[11px] border border-paper-300" @click="cancelEdit()">取消</button>
               </div>
             </template>
           </div>
         </div>
       </div>
     </template>
-    <div v-if="!currentDayEntries.length" class="text-center text-paper-400 py-12 text-sm font-light">今日暂无记录。</div>
 
-    <!-- 目标摄入编辑弹窗 -->
-    <BaseModal :open="showTargets" title="每日目标摄入" width="sm" @close="showTargets = false">
-      <p class="text-[11px] text-paper-400 mb-4">设定后，汇总条会显示「已摄入 / 目标」进度。点击空白处或 ✕ 即保存。</p>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-[11px] text-paper-500 block mb-1">热量 kcal</label>
-          <input v-model.number="store.targets.calories" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-        <div>
-          <label class="text-[11px] text-paper-500 block mb-1">碳水 g</label>
-          <input v-model.number="store.targets.carbs" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-        <div>
-          <label class="text-[11px] text-paper-500 block mb-1">蛋白质 g</label>
-          <input v-model.number="store.targets.protein" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-        <div>
-          <label class="text-[11px] text-paper-500 block mb-1">脂肪 g</label>
-          <input v-model.number="store.targets.fat" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
-        </div>
-      </div>
-    </BaseModal>
+    <!-- 空状态 -->
+    <div v-if="!currentDayEntries.length" class="text-center py-10">
+      <div class="text-3xl mb-2">🍽️</div>
+      <p class="text-xs text-paper-400">今天还没有记录</p>
+      <button class="mt-2 px-4 py-2 rounded-xl bg-coral-400 text-white text-xs font-medium" @click="openAddSheet()">
+        添加第一餐
+      </button>
+    </div>
 
-    <!-- 套餐选择弹窗 -->
-    <BaseModal :open="showTemplatePicker" title="选择套餐" width="sm" @close="showTemplatePicker = false">
-      <div class="max-h-72 overflow-y-auto -mx-5 px-5">
-        <button
-          v-for="tmpl in store.mealTemplates"
-          :key="tmpl.id"
-          class="w-full text-left px-4 py-3 rounded-xl hover:bg-coral-50 transition-colors flex items-center gap-3 mb-2"
-          @click="applyTemplate(tmpl)"
-        >
-          <span class="text-xl">{{ tmpl.emoji || '🍽️' }}</span>
-          <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium">{{ tmpl.name }}</div>
-            <div class="text-[11px] text-paper-400">
-              {{ tmpl.items.length }} 种食材 · {{ mealTypeLabel(tmpl.defaultMealType) }}
+    <!-- ====== 底部浮动添加按钮 ====== -->
+    <div class="fixed bottom-4 right-4 z-30">
+      <button
+        class="w-12 h-12 rounded-full bg-coral-500 text-white shadow-lg hover:bg-coral-400 active:scale-95 transition-all flex items-center justify-center text-2xl"
+        title="添加食物"
+        @click="openAddSheet()"
+      >
+        +
+      </button>
+    </div>
+
+    <!-- ====== 添加食物底部弹窗 ====== -->
+    <Teleport to="body">
+      <transition name="slide-up">
+        <div v-if="showAddSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showAddSheet = false">
+          <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showAddSheet = false" />
+          <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[85vh] overflow-y-auto">
+            <!-- 标题栏 -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-paper-100">
+              <h3 class="text-sm font-semibold text-ink">添加食物</h3>
+              <button class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-paper-100 text-paper-400 text-sm" @click="showAddSheet = false">✕</button>
             </div>
+
+            <!-- 餐次选择 -->
+            <div class="px-4 pt-3 pb-2">
+              <div class="flex gap-2">
+                <button
+                  v-for="m in MEAL_TYPES"
+                  :key="m.key"
+                  class="flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all"
+                  :class="addMealType === m.key ? 'bg-coral-50 border-coral-300 text-coral-600' : 'border-paper-200 text-paper-500'"
+                  @click="addMealType = m.key"
+                >
+                  {{ m.icon }} {{ m.label }}
+                </button>
+              </div>
+            </div>
+
+            <!-- 食材搜索/选择 -->
+            <div class="px-4 pb-3">
+              <IngredientChipPicker
+                v-model:search="addSearch"
+                v-model:open="addPickerOpen"
+                :source="store.ingredients"
+                :last-selected="store.ingLastSelected"
+                :selected-id="addIngredientId === '' ? null : Number(addIngredientId)"
+                show-calories
+                @pick="selectAddIngredient"
+              />
+            </div>
+
+            <!-- 已选食材 + 数量 + 提交 -->
+            <div v-if="addIngredientId !== ''" class="px-4 pb-3 border-t border-paper-100 pt-3">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-sm font-medium">{{ selectedIng?.emoji }} {{ selectedIng?.name }}</span>
+                <button class="text-paper-400 hover:text-red-500 text-xs" @click="addIngredientId = ''; addAmount = ''">清除</button>
+              </div>
+              <div class="flex items-center gap-2">
+                <input
+                  v-model.number="addAmount"
+                  type="number"
+                  :placeholder="addPlaceholder"
+                  min="0.1"
+                  step="0.1"
+                  class="flex-1 px-3 py-2 rounded-lg border border-paper-300 bg-white text-sm focus:outline-none focus:border-coral-400"
+                />
+                <span class="text-sm text-paper-500 w-6 text-center">{{ addUnitLabel }}</span>
+                <button
+                  class="px-4 py-2 rounded-xl bg-coral-400 text-white text-sm font-medium hover:bg-coral-500 active:scale-[0.98] transition-all"
+                  @click="submitAdd"
+                >
+                  记录
+                </button>
+              </div>
+            </div>
+            <div v-else class="px-4 pb-4 text-[11px] text-paper-400">↑ 搜索或点击食材进行选择</div>
           </div>
-          <span v-if="tmpl.isDefault" class="text-[11px] px-2 py-0.5 rounded-full bg-coral-100 text-coral-600">默认</span>
+        </div>
+      </transition>
+    </Teleport>
+
+    <!-- ====== 管理弹窗（目标 / 套餐 / 复制） ====== -->
+    <BaseModal :open="showManage" title="管理" width="sm" @close="showManage = false">
+      <!-- Tab 切换 -->
+      <div class="flex gap-1 mb-4 border-b border-paper-100">
+        <button
+          class="px-3 py-2 text-xs font-medium transition-colors"
+          :class="manageTab === 'targets' ? 'text-coral-500 border-b-2 border-coral-500' : 'text-paper-400'"
+          @click="manageTab = 'targets'"
+        >
+          🎯 目标
+        </button>
+        <button
+          class="px-3 py-2 text-xs font-medium transition-colors"
+          :class="manageTab === 'templates' ? 'text-coral-500 border-b-2 border-coral-500' : 'text-paper-400'"
+          @click="manageTab = 'templates'"
+        >
+          🍽️ 套餐
+        </button>
+        <button
+          class="px-3 py-2 text-xs font-medium transition-colors"
+          :class="manageTab === 'copy' ? 'text-coral-500 border-b-2 border-coral-500' : 'text-paper-400'"
+          @click="manageTab = 'copy'"
+        >
+          📋 复制
         </button>
       </div>
-      <div class="border-t border-paper-200 mt-3 pt-3">
+
+      <!-- 目标面板 -->
+      <div v-if="manageTab === 'targets'">
+        <p class="text-[11px] text-paper-400 mb-3">设定后汇总条显示进度</p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] text-paper-500 block mb-1">热量 kcal</label>
+            <input v-model.number="store.targets.calories" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          </div>
+          <div>
+            <label class="text-[11px] text-paper-500 block mb-1">碳水 g</label>
+            <input v-model.number="store.targets.carbs" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          </div>
+          <div>
+            <label class="text-[11px] text-paper-500 block mb-1">蛋白质 g</label>
+            <input v-model.number="store.targets.protein" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          </div>
+          <div>
+            <label class="text-[11px] text-paper-500 block mb-1">脂肪 g</label>
+            <input v-model.number="store.targets.fat" type="number" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300" />
+          </div>
+        </div>
+      </div>
+
+      <!-- 套餐面板 -->
+      <div v-if="manageTab === 'templates'">
+        <div class="max-h-64 overflow-y-auto space-y-2 mb-3">
+          <button
+            v-for="tmpl in store.mealTemplates"
+            :key="tmpl.id"
+            class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-coral-50 transition-colors flex items-center gap-3"
+            @click="applyTemplate(tmpl)"
+          >
+            <span class="text-lg">{{ tmpl.emoji || '🍽️' }}</span>
+            <div class="flex-1 min-w-0">
+              <div class="text-sm font-medium">{{ tmpl.name }}</div>
+              <div class="text-[11px] text-paper-400">{{ tmpl.items.length }} 种 · {{ mealTypeLabel(tmpl.defaultMealType) }}</div>
+            </div>
+            <span v-if="tmpl.isDefault" class="text-[10px] px-1.5 py-0.5 rounded-full bg-coral-100 text-coral-600">默认</span>
+          </button>
+          <div v-if="!store.mealTemplates.length" class="text-center text-paper-400 py-6 text-sm">暂无套餐</div>
+        </div>
+        <div class="border-t border-paper-100 pt-3">
+          <button
+            class="w-full text-center px-3 py-2.5 rounded-xl text-sm font-medium text-coral-500 hover:bg-coral-50 transition-colors"
+            @click="showManage = false; emit('editTemplate', null)"
+          >
+            + 新建 / 编辑套餐
+          </button>
+        </div>
+      </div>
+
+      <!-- 复制面板 -->
+      <div v-if="manageTab === 'copy'">
+        <p class="text-[11px] text-paper-400 mb-3">将某天的全部记录复制到当前日期</p>
         <button
-          class="w-full text-center px-3 py-2.5 rounded-xl text-sm font-medium text-coral-500 hover:bg-coral-50 transition-colors"
-          @click="showTemplatePicker = false; emit('editTemplate', null)"
+          class="w-full px-3 py-2.5 rounded-xl text-sm font-medium border border-paper-300 text-paper-600 hover:bg-paper-50 transition-colors text-left"
+          @click="showManage = false; modals.copyDay = true"
         >
-          + 新建套餐
+          📋 复制一整天的记录
         </button>
       </div>
     </BaseModal>
   </div>
 </template>
+
+<style scoped>
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+</style>

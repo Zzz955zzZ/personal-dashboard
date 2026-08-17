@@ -5,6 +5,7 @@ import { computed, reactive, ref, watch } from 'vue';
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientChipPicker from './IngredientChipPicker.vue';
 import { MEAL_TYPES, mealTypeLabel } from '../constants';
+import { unitLabel, toGrams, fromGrams } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import type { IngredientCategory, MealTemplate, MealType } from '../types';
 
@@ -55,18 +56,26 @@ const pickerSource = computed(() => {
   return store.ingredients.filter((i) => !added.includes(i.id));
 });
 
-/** 按类别给个合理默认克重，省得每条都手填 */
+/** 按类别给合理默认量（展示单位：个/g），省得每条都手填 */
 const DEFAULT_AMOUNT: Record<IngredientCategory, number> = {
   protein: 100,
   carbs: 150,
   fat: 20,
   veg: 100,
+  fruit: 100,
+  drink: 200,
+};
+
+/** 添加食材时，个-type 默认给 1 */
+function defaultAmountFor(ing: { category: IngredientCategory; unit?: string }): number {
+  return ing.unit === '个' ? 1 : DEFAULT_AMOUNT[ing.category] ?? 100;
 };
 
 function addItem(id: number): void {
   const ing = store.findIng(id);
   if (!ing) return;
-  form.items.push({ ingredientId: id, amount: DEFAULT_AMOUNT[ing.category] ?? 100 });
+  const displayAmt = defaultAmountFor(ing);
+  form.items.push({ ingredientId: id, amount: toGrams(ing, displayAmt) });
 }
 
 function removeItem(idx: number): void {
@@ -151,12 +160,14 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
               {{ store.findIng(item.ingredientId)?.name || item.ingredientId }}
             </span>
             <input
-              v-model.number="item.amount"
+              :value="fromGrams(store.findIng(item.ingredientId), item.amount)"
               type="number"
-              min="1"
+              min="0.1"
+              step="0.1"
               class="w-20 px-2 py-1 rounded border border-paper-300/60 bg-white text-xs text-right"
+              @input="(e: Event) => { item.amount = toGrams(store.findIng(item.ingredientId), Number((e.target as HTMLInputElement).value)); }"
             />
-            <span class="text-[11px] text-paper-400">g</span>
+            <span class="text-[11px] text-paper-400 w-4 text-center">{{ unitLabel(store.findIng(item.ingredientId)) }}</span>
             <button type="button" class="text-red-400 text-xs hover:font-bold" @click="removeItem(idx)">
               ×
             </button>

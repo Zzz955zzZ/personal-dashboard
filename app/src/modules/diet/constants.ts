@@ -12,6 +12,8 @@ export const CAT_DEFS: Record<IngredientCategory, CatDef> = {
   carbs: { label: '碳水', emoji: '🌾' },
   fat: { label: '脂肪', emoji: '🥑' },
   veg: { label: '蔬菜', emoji: '🥬' },
+  fruit: { label: '水果', emoji: '🍎' },
+  drink: { label: '饮品', emoji: '🥤' },
 };
 
 export const RECIPE_CATS: Record<RecipeCategory, CatDef> = {

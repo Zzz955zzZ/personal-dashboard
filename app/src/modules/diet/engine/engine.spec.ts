@@ -36,11 +36,11 @@ describe('aiRecognize — 知识库精确命中', () => {
     expect(r.micros.some((m) => m.name === '锌')).toBe(true);
   });
 
-  it('鸡胸肉 protein=31', () => {
+  it('鸡胸肉 protein=23（生重去皮去骨）', () => {
     const r = aiRecognize('鸡胸肉');
     expect(r.match).toBe(true);
     expect(r.estimated).toBe(false);
-    expect(r.macros?.protein).toBe(31);
+    expect(r.macros?.protein).toBe(23);
   });
 
   it('鸡蛋带出「个」单位与 50g 换算', () => {
@@ -121,7 +121,7 @@ describe('单位换算', () => {
 
 describe('健康标签', () => {
   it('鸡胸肉 = 高蛋白 + 低脂 + 低碳水', () => {
-    const tags = healthTags({ nutrition: { calories: 165, carbs: 0, protein: 31, fat: 3.6 } }).map((t) => t.text);
+    const tags = healthTags({ nutrition: { calories: 120, carbs: 0, protein: 23, fat: 2.6 } }).map((t) => t.text);
     expect(tags).toContain('高蛋白');
     expect(tags).toContain('低碳水');
     expect(tags).not.toContain('高热量');

@@ -40,6 +40,9 @@ import {
 
 const EMPTY_NUTRITION: Nutrition = { calories: 0, carbs: 0, protein: 0, fat: 0 };
 
+/** 种子食材按 id 索引，用于把最新版营养/解析同步到已装载的库里 */
+const SEED_BY_ID = new Map(SEED_INGREDIENTS.map((it) => [it.id, it]));
+
 export const useDietStore = defineStore('diet', () => {
   /* ---------------- state ---------------- */
   const ingredients = ref<Ingredient[]>([]);
@@ -55,19 +58,46 @@ export const useDietStore = defineStore('diet', () => {
   const corruptedRaw = ref<string | null>(null);
 
   /* ---------------- 装载 ---------------- */
+  /**
+   * 将种子库的最新三大营养素与 note 解析同步到当前已装载的「同名标准食材」上，
+   * 使老用户无需重装也能用到修正后的数据。幂等，不新增持久化字段（v1 兼容）。
+   */
+  function syncSeedNutrition(): void {
+    for (const ing of ingredients.value) {
+      const s = SEED_BY_ID.get(ing.id);
+      if (s && s.name === ing.name) {
+        ing.nutrition = { ...s.nutrition };
+        ing.note = s.note;
+      }
+    }
+  }
+
   function seed(): void {
-    if (ingredients.value.length > 0) return;
-    ingredients.value = SEED_INGREDIENTS.map((it) => ({
-      ...it,
-      microns: detectMicrons(it.name),
-    }));
-    recipes.value = SEED_RECIPES.map((r) => ({ ...r }));
-    pantry.value = SEED_PANTRY.map((p) => ({ ...p }));
-    shopping.value = SEED_SHOPPING.map((s) => ({ ...s }));
-    mealTemplates.value = SEED_MEAL_TEMPLATES.map((t) => ({
-      ...t,
-      items: t.items.map((i) => ({ ...i })),
-    }));
+    // 食材：合并式装载 —— 保留已有条目（含用户自定义），补齐缺失的种子食材，
+    // 使老用户无需重装即可获得新增的全部库。
+    const existingById = new Map(ingredients.value.map((i) => [i.id, i]));
+    const merged: Ingredient[] = [];
+    const seen = new Set<number>();
+    for (const s of SEED_INGREDIENTS) {
+      seen.add(s.id);
+      const ex = existingById.get(s.id);
+      if (ex) merged.push(ex);
+      else merged.push({ ...s, microns: detectMicrons(s.name) });
+    }
+    for (const ex of ingredients.value) {
+      if (!seen.has(ex.id)) merged.push(ex);
+    }
+    ingredients.value = merged;
+
+    // 其余数据仅首次运行填充，避免覆盖用户已有内容
+    if (recipes.value.length === 0) recipes.value = SEED_RECIPES.map((r) => ({ ...r }));
+    if (pantry.value.length === 0) pantry.value = SEED_PANTRY.map((p) => ({ ...p }));
+    if (shopping.value.length === 0) shopping.value = SEED_SHOPPING.map((s) => ({ ...s }));
+    if (mealTemplates.value.length === 0)
+      mealTemplates.value = SEED_MEAL_TEMPLATES.map((t) => ({
+        ...t,
+        items: t.items.map((i) => ({ ...i })),
+      }));
   }
 
   function hydrate(): void {
@@ -84,6 +114,9 @@ export const useDietStore = defineStore('diet', () => {
       if (state.mealTemplates) mealTemplates.value = state.mealTemplates;
     }
     seed();
+    // 把种子库最新的营养/解析同步到老用户的同名标准食材上
+    syncSeedNutrition();
+    if (found) persist();
   }
 
   function snapshot(): PersistedState {
@@ -103,6 +136,29 @@ export const useDietStore = defineStore('diet', () => {
     saveState(JSON.parse(JSON.stringify(snapshot())) as PersistedState);
   }
 
+  /**
+   * 防抖落盘：每次变更不再同步全量序列化整份快照（85 条食材含图片 base64，
+   * 深监听下高频触发 JSON.stringify 很费）。改为 300ms 合并写入；
+   * 页面隐藏/卸载前强制 flush，避免防抖窗口内数据丢失。
+   */
+  let persistTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function schedulePersist(): void {
+    if (persistTimer !== null) clearTimeout(persistTimer);
+    persistTimer = setTimeout(() => {
+      persistTimer = null;
+      persist();
+    }, 300);
+  }
+
+  function flushPersist(): void {
+    if (persistTimer !== null) {
+      clearTimeout(persistTimer);
+      persistTimer = null;
+    }
+    persist();
+  }
+
   let persistEnabled = false;
   function startAutoPersist(): void {
     if (persistEnabled) return;
@@ -118,9 +174,19 @@ export const useDietStore = defineStore('diet', () => {
         ingLastSelected,
         mealTemplates.value,
       ],
-      () => persist(),
+      () => schedulePersist(),
       { deep: true },
     );
+    if (typeof window !== 'undefined') {
+      const flush = (): void => flushPersist();
+      window.addEventListener('pagehide', flush);
+      window.addEventListener('beforeunload', flush);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') flushPersist();
+      });
+    }
   }
 
   /**

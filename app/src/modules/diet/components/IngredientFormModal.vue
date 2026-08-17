@@ -7,7 +7,7 @@
  * - 自动填充过程用 _aiFillLocked 防止 watch 自触发
  * - 保存时把 detectMicrons 的结果与用户手填标签去重
  */
-import { nextTick, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 
 import BaseModal from '@/shared/components/BaseModal.vue';
 import { aiRecognize, catClass, detectMicrons, fmt1 } from '../engine';
@@ -23,6 +23,7 @@ const store = useDietStore();
 interface IngFormState {
   name: string;
   category: IngredientCategory;
+  brand: string;
   emoji: string;
   imageData: string;
   imagePreview: string;
@@ -41,6 +42,7 @@ function blankForm(): IngFormState {
   return {
     name: '',
     category: 'protein',
+    brand: '',
     emoji: '🍗',
     imageData: '',
     imagePreview: '',
@@ -58,6 +60,15 @@ function blankForm(): IngFormState {
 
 const form = reactive<IngFormState>(blankForm());
 const aiResult = ref(aiRecognize(''));
+
+/** 已有品牌去重，作为品牌输入的联想选项 */
+const brandOptions = computed<string[]>(() => {
+  const set = new Set<string>();
+  for (const i of store.ingredients) {
+    if (i.brand && i.brand !== form.brand) set.add(i.brand);
+  }
+  return [...set].sort();
+});
 
 /* --- AI 自动填充 ------------------------------------------------------- */
 let aiFillLocked = false;
@@ -100,6 +111,7 @@ watch(
       Object.assign(form, {
         name: editing.name,
         category: editing.category,
+        brand: editing.brand || '',
         emoji: editing.emoji || '',
         imageData: editing.image || '',
         imagePreview: editing.image || '',
@@ -162,6 +174,7 @@ function submit(): void {
     {
       name: form.name.trim(),
       category: form.category,
+      brand: form.brand.trim(),
       emoji: form.emoji,
       image: form.imageData,
       unit: form.unit === '个' ? '个' : 'g',
@@ -198,6 +211,20 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
       <div>
         <label :class="LABEL_CLS">名称 *</label>
         <input v-model="form.name" required type="text" placeholder="例如：鸡胸肉" :class="['mt-1.5', INPUT_CLS]" />
+      </div>
+
+      <div>
+        <label :class="LABEL_CLS">品牌（可选，区分同类产品）</label>
+        <input
+          v-model="form.brand"
+          type="text"
+          list="brand-options"
+          placeholder="例如：特福、光明…"
+          :class="['mt-1.5', INPUT_CLS]"
+        />
+        <datalist id="brand-options">
+          <option v-for="b in brandOptions" :key="b" :value="b" />
+        </datalist>
       </div>
 
       <div>
@@ -318,29 +345,21 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
           :class="['mt-1.5', INPUT_CLS]"
         />
         <div class="mt-2 flex items-start gap-2">
-          <span class="text-[10px] text-paper-400 mt-1 shrink-0">🧬 AI 识别</span>
+          <span class="text-[10px] text-paper-400 mt-1 shrink-0">🧬</span>
           <div class="flex-1">
             <template v-if="aiResult.match">
-              <div
-                v-if="aiResult.macros && form.nCalories"
-                class="mb-1.5 px-2.5 py-1.5 rounded-lg border"
-                :class="aiResult.estimated ? 'bg-amber-50 border-amber-200/60' : 'bg-green-50 border-green-200/60'"
-              >
+              <div class="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-paper-500">
                 <span
-                  class="text-[11px] font-medium"
-                  :class="aiResult.estimated ? 'text-amber-700' : 'text-green-700'"
+                  v-if="aiResult.estimated"
+                  class="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-amber-700"
+                  >参考值</span
                 >
-                  {{ aiResult.estimated ? '⚡ 已智能估算营养（参考值）' : '✓ 营养数据已自动填充' }}
-                </span>
-                <span
-                  class="text-[10px] ml-1.5"
-                  :class="aiResult.estimated ? 'text-amber-600' : 'text-green-600'"
-                >
-                  {{ fmt1(aiResult.macros.calories) }}kcal · 蛋白{{ fmt1(aiResult.macros.protein) }}g · 碳水{{
+                <span v-if="aiResult.macros"
+                  >{{ fmt1(aiResult.macros.calories) }}kcal · 蛋白{{ fmt1(aiResult.macros.protein) }}g · 碳水{{
                     fmt1(aiResult.macros.carbs)
-                  }}g · 脂肪{{ fmt1(aiResult.macros.fat) }}g /100g
-                  <template v-if="aiResult.estimated"> · 类别：{{ aiResult.category }}</template>
-                </span>
+                  }}g · 脂肪{{ fmt1(aiResult.macros.fat) }}g /100g</span
+                >
+                <span v-if="aiResult.estimated && aiResult.category">· {{ aiResult.category }}</span>
               </div>
               <div class="flex flex-wrap gap-1.5">
                 <span

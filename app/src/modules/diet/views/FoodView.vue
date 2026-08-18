@@ -96,7 +96,7 @@ function openCopyMeal(m: MealType): void {
           "
           @click="foodTab = t.key"
         >
-          <span class="mr-1" v-html="icon(t.icon)"></span>{{ t.label }}
+          {{ t.label }}
         </button>
       </div>
     </div>

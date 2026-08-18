@@ -140,11 +140,11 @@ function moveToRight(taskId: number, currentQ: string): void {
     </div>
 
     <!-- 四象限矩阵 -->
-    <div class="grid grid-cols-2 gap-1.5 sm:gap-2 p-1.5 sm:p-2">
+    <div class="grid grid-cols-2 gap-2 sm:gap-2 p-2 sm:p-2">
       <div
         v-for="q in QUADRANT_LIST"
         :key="q"
-        class="rounded-xl border overflow-hidden flex flex-col min-h-[220px] sm:min-h-[280px]"
+        class="rounded-xl border overflow-hidden flex flex-col min-h-[280px] sm:min-h-[340px]"
         :class="[QUADRANTS[q].bgClass, QUADRANTS[q].borderClass]"
       >
         <!-- 象限标题栏 -->
@@ -206,7 +206,7 @@ function moveToRight(taskId: number, currentQ: string): void {
                 <!-- 内容：强制不折行，截断 -->
                 <div class="flex-1 min-w-0" @click="openEdit(task.id)">
                   <div
-                    class="text-xs sm:text-sm font-medium leading-snug truncate"
+                    class="text-xs sm:text-sm font-medium leading-snug line-clamp-3 break-words"
                     :class="task.status === 'completed' ? 'line-through text-paper-400' : 'text-ink'"
                   >
                     {{ task.title }}

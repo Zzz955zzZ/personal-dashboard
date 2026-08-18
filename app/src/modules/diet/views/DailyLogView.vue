@@ -253,7 +253,7 @@ function applyTemplate(tmpl: MealTemplate): void {
     <!-- ====== 底部浮动添加按钮 ====== -->
     <div class="fixed bottom-4 right-4 z-30">
       <button
-        class="w-12 h-12 rounded-full bg-coral-500 text-white shadow-lg hover:bg-coral-400 active:scale-95 transition-all flex items-center justify-center text-2xl"
+        class="w-14 h-14 rounded-full bg-coral-500 text-white shadow-lg hover:bg-coral-400 transition-all flex items-center justify-center text-3xl"
         title="添加食物"
         @click="openAddSheet()"
       >
@@ -265,8 +265,8 @@ function applyTemplate(tmpl: MealTemplate): void {
     <Teleport to="body">
       <transition name="slide-up">
         <div v-if="showAddSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showAddSheet = false">
-          <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showAddSheet = false" />
-          <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[85vh] overflow-y-auto">
+          <div class="absolute inset-0 bg-black/70" @click="showAddSheet = false" />
+          <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[85vh] overflow-y-auto">
             <!-- 标题栏 -->
             <div class="flex items-center justify-between px-4 py-3 border-b border-paper-100">
               <h3 class="text-sm font-semibold text-ink">添加食物</h3>
@@ -296,6 +296,7 @@ function applyTemplate(tmpl: MealTemplate): void {
                 :source="store.ingredients"
                 :last-selected="store.ingLastSelected"
                 :selected-id="addIngredientId === '' ? null : Number(addIngredientId)"
+                :always-open="true"
                 @pick="selectAddIngredient"
               />
             </div>
@@ -335,7 +336,7 @@ function applyTemplate(tmpl: MealTemplate): void {
                   :placeholder="addPlaceholder"
                   min="0.1"
                   step="0.1"
-                  class="flex-1 px-3 py-2 rounded-lg border border-paper-300 bg-white text-sm focus:outline-none focus:border-coral-400"
+                  class="flex-1 px-3 py-2 rounded-lg border border-paper-300 bg-white text-base sm:text-sm focus:outline-none focus:border-coral-400"
                 />
                 <span class="text-sm text-paper-500 w-6 text-center">{{ addUnitLabel }}</span>
                 <button

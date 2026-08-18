@@ -80,12 +80,12 @@ function save(): void {
 <template>
   <Teleport to="body">
     <transition name="slide-up">
-      <div v-if="open" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="emit('close')">
+      <div v-if="open" class="fixed inset-0 z-50 flex items-end justify-center" @click.self="emit('close')">
         <!-- 遮罩 -->
-        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="emit('close')" />
+        <div class="absolute inset-0 bg-black/60" @click="emit('close')" />
 
         <!-- 弹窗 -->
-        <div class="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-xl max-h-[90vh] overflow-y-auto">
+        <div class="relative w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[92vh] overflow-y-auto">
           <!-- 标题栏 + 类型切换 -->
           <div class="flex items-center justify-between px-5 pt-5 pb-3">
             <h3 class="text-lg font-bold text-ink">记一笔</h3>
@@ -132,13 +132,13 @@ function save(): void {
               >
                 {{ type === 'expense' ? '-' : '+' }}
               </span>
-              <input
+            <input
                 v-model="amount"
-                type="number"
+                type="text"
                 inputmode="decimal"
+                pattern="[0-9.]*"
+                enterkeyhint="done"
                 placeholder="0.00"
-                step="0.01"
-                min="0"
                 class="flex-1 text-4xl font-bold tabular-nums outline-none bg-transparent"
                 :class="type === 'expense' ? 'text-red-500' : 'text-green-600'"
               />
@@ -174,7 +174,7 @@ function save(): void {
               v-model="description"
               type="text"
               placeholder="添加备注..."
-              class="w-full px-4 py-2.5 rounded-xl border border-paper-200 text-sm text-ink outline-none focus:border-amber-400 transition-colors placeholder:text-paper-400"
+              class="w-full px-4 py-2.5 rounded-xl border border-paper-200 text-base sm:text-sm text-ink outline-none focus:border-amber-400 transition-colors placeholder:text-paper-400"
               maxlength="100"
             />
           </div>
@@ -184,7 +184,7 @@ function save(): void {
             <input
               v-model="date"
               type="date"
-              class="w-full px-4 py-2.5 rounded-xl border border-paper-200 text-sm text-ink outline-none cursor-pointer"
+              class="w-full px-4 py-2.5 rounded-xl border border-paper-200 text-base sm:text-sm text-ink outline-none cursor-pointer"
             />
           </div>
 

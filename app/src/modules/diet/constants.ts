@@ -49,11 +49,11 @@ export interface FoodTab {
 }
 
 export const FOOD_TABS: FoodTab[] = [
-  { key: 'dailylog', label: '每日记录', icon: 'pencil' },
-  { key: 'ingredients', label: '原材料库', icon: 'broccoli' },
-  { key: 'recipes', label: '菜谱库', icon: 'utensils' },
-  { key: 'pantry', label: '动态库存', icon: 'box' },
-  { key: 'shopping', label: '采购清单', icon: 'cart' },
+  { key: 'dailylog', label: '记录', icon: 'pencil' },
+  { key: 'ingredients', label: '食材', icon: 'broccoli' },
+  { key: 'recipes', label: '菜谱', icon: 'utensils' },
+  { key: 'pantry', label: '库存', icon: 'box' },
+  { key: 'shopping', label: '采购', icon: 'cart' },
 ];
 
 export const EMOJI_OPTIONS: string[] = [

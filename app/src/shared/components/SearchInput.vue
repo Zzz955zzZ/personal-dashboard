@@ -13,7 +13,7 @@ const model = defineModel<string>({ default: '' });
       v-model="model"
       type="text"
       :placeholder="placeholder"
-      class="w-full pl-8 bg-white text-sm border border-paper-300/60 focus:outline-none focus:border-coral-300"
+      class="w-full pl-8 bg-white text-base sm:text-sm border border-paper-300/60 focus:outline-none focus:border-coral-300"
       :class="size === 'sm' ? 'px-3 py-2 rounded-lg' : 'px-3 py-2.5 rounded-xl'"
       v-bind="$attrs"
     />

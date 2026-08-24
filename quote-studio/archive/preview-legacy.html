@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>报价工作室 · Quote Studio — 预览原型</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+  [v-cloak]{display:none}
+  .thumb{width:56px;height:56px;object-fit:cover;border-radius:6px}
+  .dragging{outline:2px dashed #f97316;outline-offset:2px}
+  /* 打印：只保留客户视图 */
+  @media print{
+    .no-print{display:none !important}
+    .print-header{display:block !important}
+    body{background:#fff}
+    .print-card{box-shadow:none !important;border:1px solid #e5e7eb !important}
+  }
+  .print-header{display:none}
+</style>
+</head>
+<body class="bg-stone-100 text-stone-800">
+<div id="app" v-cloak>
+
+  <!-- 顶栏 -->
+  <header class="no-print bg-white border-b border-stone-200 px-4 py-2 flex items-center gap-3 flex-wrap">
+    <div class="font-bold text-lg text-terracotta-700">报价工作室 <span class="text-stone-400 text-sm font-normal">Quote Studio · 预览</span></div>
+    <div class="ml-auto flex items-center gap-2 flex-wrap">
+      <div class="inline-flex rounded-lg overflow-hidden border border-stone-300 text-sm">
+        <button @click="viewMode='admin'" :class="viewMode==='admin'?'bg-terracotta-600 text-white':'bg-white text-stone-600'" class="px-3 py-1">admin 管理</button>
+        <button @click="viewMode='customer'" :class="viewMode==='customer'?'bg-emerald-600 text-white':'bg-white text-stone-600'" class="px-3 py-1">customer 客户视图</button>
+      </div>
+      <button @click="newProject" class="px-3 py-1 rounded-lg bg-stone-800 text-white text-sm">+ 新建项目</button>
+      <button @click="showCompany=true" class="px-3 py-1 rounded-lg bg-white border border-stone-300 text-sm">公司资料</button>
+      <button @click="exportPDF" class="px-3 py-1 rounded-lg bg-blue-600 text-white text-sm">导出 PDF</button>
+      <button @click="exportJSON" class="px-3 py-1 rounded-lg bg-white border border-stone-300 text-sm">备份JSON</button>
+      <label class="px-3 py-1 rounded-lg bg-white border border-stone-300 text-sm cursor-pointer">
+        导入JSON<input type="file" accept="application/json" class="hidden" @change="importJSON" />
+      </label>
+    </div>
+  </header>
+
+  <div class="flex" style="min-height:calc(100vh - 49px)">
+    <!-- 侧边栏：项目列表 -->
+    <aside class="no-print w-60 shrink-0 bg-white border-r border-stone-200 p-3">
+      <div class="text-xs uppercase tracking-wide text-stone-400 mb-2">项目 / Proyectos</div>
+      <div v-for="p in projects" :key="p.id" @click="activeId=p.id"
+           :class="activeId===p.id?'bg-terracotta-50 border-terracotta-300':'hover:bg-stone-50 border-transparent'"
+           class="cursor-pointer border rounded-lg px-3 py-2 mb-2">
+        <div class="font-medium truncate">{{ p.name }}</div>
+        <div class="text-xs text-stone-400 truncate">{{ p.client || '—' }} · {{ p.items.length }} 项</div>
+      </div>
+      <div v-if="!projects.length" class="text-sm text-stone-400">暂无项目，点右上「新建项目」</div>
+    </aside>
+
+    <!-- 主区 -->
+    <main class="flex-1 p-4 overflow-auto">
+      <template v-if="activeProject">
+
+        <!-- 客户视图品牌页眉（仅客户视图/打印显示） -->
+        <div class="print-header print-card bg-white rounded-xl p-5 mb-4 border">
+          <div class="flex items-center gap-3">
+            <img v-if="company.logoUrl" :src="company.logoUrl" class="h-12 object-contain" />
+            <div>
+              <div class="font-bold text-lg">{{ company.name || '公司名称' }}</div>
+              <div class="text-xs text-stone-500">{{ [company.address,company.taxId].filter(Boolean).join(' · ') }}</div>
+              <div class="text-xs text-stone-500">{{ [company.phone,company.email,company.website].filter(Boolean).join(' · ') }}</div>
+            </div>
+          </div>
+          <div class="mt-3 text-stone-700">项目：<b>{{ activeProject.name }}</b>　客户：{{ activeProject.client || '—' }}</div>
+        </div>
+
+        <!-- 项目头部 -->
+        <div class="no-print flex items-center gap-3 mb-3 flex-wrap">
+          <input v-model="activeProject.name" class="text-xl font-semibold bg-transparent border-b border-dashed border-stone-300 focus:outline-none" placeholder="项目名称" />
+          <input v-model="activeProject.client" class="text-sm bg-transparent border-b border-dashed border-stone-300 focus:outline-none" placeholder="客户 / Cliente" />
+          <span class="text-sm text-stone-400">货币 {{ activeProject.currency }}</span>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="no-print flex items-center gap-2 mb-3 flex-wrap">
+          <button @click="openAdd" class="px-3 py-1.5 rounded-lg bg-terracotta-600 text-white text-sm">+ 手动添加产品</button>
+          <button disabled title="预览版：正式版接入本地代理 server/proxy.mjs 后可用" class="px-3 py-1.5 rounded-lg bg-stone-200 text-stone-400 text-sm cursor-not-allowed">AI 识别链接（占位）</button>
+          <button @click="showCats=true" class="px-3 py-1.5 rounded-lg bg-white border border-stone-300 text-sm">管理大类/小类</button>
+        </div>
+
+        <!-- 大类/小类 概览（admin） -->
+        <div class="no-print flex flex-wrap gap-2 mb-4">
+          <span v-for="g in activeProject.categoryGroups" :key="g.id" class="text-xs bg-white border border-stone-200 rounded-full px-3 py-1">
+            <b>{{ g.name }}</b><span class="text-stone-400">：{{ g.subs.map(s=>s.name).join('、') || '—' }}</span>
+          </span>
+        </div>
+
+        <!-- 报价表（按大类→小类分组） -->
+        <div class="print-card bg-white rounded-xl border border-stone-200 overflow-hidden">
+          <table class="w-full text-sm">
+            <thead class="bg-stone-50 text-stone-500">
+              <tr>
+                <th class="text-left p-2">照片</th>
+                <th class="text-left p-2">大类/小类</th>
+                <th class="text-left p-2">产品 / 品牌·型号</th>
+                <th class="text-left p-2">客户备注</th>
+                <th v-if="viewMode==='admin'" class="text-left p-2">内部备注</th>
+                <th v-if="viewMode==='admin'" class="text-right p-2">成本</th>
+                <th v-if="viewMode==='admin'" class="text-right p-2">利润</th>
+                <th class="text-right p-2">售价</th>
+                <th class="text-right p-2">数量</th>
+                <th class="text-right p-2">小计</th>
+                <th v-if="viewMode==='admin'" class="text-center p-2 no-print">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template v-for="grp in groups" :key="grp.cat">
+                <tr class="bg-stone-100/70">
+                  <td colspan="99" class="p-2 font-semibold text-terracotta-700">▣ {{ grp.cat }}</td>
+                </tr>
+                <template v-for="sub in grp.subs" :key="sub.sub">
+                  <tr class="bg-stone-50/60">
+                    <td colspan="99" class="px-4 py-1 text-xs text-stone-500">— {{ sub.sub }}</td>
+                  </tr>
+                  <tr v-for="it in sub.items" :key="it.id" class="border-t border-stone-100 align-top">
+                    <td class="p-2"><img v-if="it.imageUrl" :src="it.imageUrl" class="thumb" /><span v-else class="text-stone-300 text-xs">无图</span></td>
+                    <td class="p-2 text-stone-400 text-xs">{{ it.category }}<br>{{ it.subcategory }}</td>
+                    <td class="p-2">
+                      <div class="font-medium">{{ it.name }}</div>
+                      <div class="text-xs text-stone-400" v-if="it.brand||it.model">{{ [it.brand,it.model].filter(Boolean).join(' · ') }}</div>
+                    </td>
+                    <td class="p-2 text-xs text-stone-600 max-w-[180px]">{{ it.noteCustomer || '—' }}</td>
+                    <td v-if="viewMode==='admin'" class="p-2 text-xs text-rose-500 max-w-[160px]">{{ it.noteAdmin || '—' }}</td>
+                    <td v-if="viewMode==='admin'" class="p-2 text-right">{{ fmt(it.cost) }}</td>
+                    <td v-if="viewMode==='admin'" class="p-2 text-right text-emerald-600">{{ fmt(it.margin) }}</td>
+                    <td class="p-2 text-right font-medium">{{ fmt(it.price) }}</td>
+                    <td class="p-2 text-right">{{ it.quantity }}</td>
+                    <td class="p-2 text-right font-semibold">{{ fmt(it.price*it.quantity) }}</td>
+                    <td v-if="viewMode==='admin'" class="p-2 text-center no-print">
+                      <button @click="editItem(it)" class="text-blue-600 text-xs mr-2">编辑</button>
+                      <button @click="delItem(it.id)" class="text-rose-500 text-xs">删除</button>
+                    </td>
+                  </tr>
+                </template>
+              </template>
+              <tr v-if="!activeProject.items.length"><td colspan="99" class="p-6 text-center text-stone-400">还没有产品，点「手动添加产品」开始。</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 汇总条 -->
+        <div class="mt-3 flex flex-wrap gap-3">
+          <div class="print-card bg-white border border-stone-200 rounded-xl px-4 py-2 text-sm">
+            合计售价 <b class="text-terracotta-700 text-lg">{{ fmt(grandTotal) }}</b>
+          </div>
+          <div v-if="viewMode==='admin'" class="print-card bg-white border border-stone-200 rounded-xl px-4 py-2 text-sm">
+            总成本 <b>{{ fmt(totalCost) }}</b>
+          </div>
+          <div v-if="viewMode==='admin'" class="print-card bg-white border border-stone-200 rounded-xl px-4 py-2 text-sm">
+            总利润 <b class="text-emerald-600">{{ fmt(totalMargin) }}</b>
+          </div>
+        </div>
+        <p v-if="viewMode==='customer'" class="text-xs text-stone-400 mt-2 no-print">客户视图：已隐藏成本/利润/内部备注，可直接「导出 PDF」交付。</p>
+      </template>
+      <div v-else class="text-stone-400 p-10 text-center">请选择或新建一个项目。</div>
+    </main>
+  </div>
+
+  <!-- 添加/编辑产品 弹窗 -->
+  <div v-if="showForm" class="no-print fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-20">
+    <div class="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-auto p-5" @paste="onPaste">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold text-lg">{{ editingId?'编辑产品':'添加产品' }}</h3>
+        <button @click="showForm=false" class="text-stone-400">✕</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs text-stone-500">大类</label>
+          <select v-model="form.category" class="w-full border rounded-lg px-2 py-1.5 text-sm">
+            <option v-for="g in activeProject.categoryGroups" :key="g.id" :value="g.name">{{ g.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-stone-500">小类</label>
+          <select v-model="form.subcategory" class="w-full border rounded-lg px-2 py-1.5 text-sm">
+            <option v-for="s in currentSubs" :key="s.id" :value="s.name">{{ s.name }}</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs text-stone-500">产品名称 *</label>
+          <input v-model="form.name" class="w-full border rounded-lg px-2 py-1.5 text-sm" placeholder="如：瓷砖 60x60 哑光" />
+        </div>
+        <div><label class="text-xs text-stone-500">品牌</label><input v-model="form.brand" class="w-full border rounded-lg px-2 py-1.5 text-sm" /></div>
+        <div><label class="text-xs text-stone-500">型号</label><input v-model="form.model" class="w-full border rounded-lg px-2 py-1.5 text-sm" /></div>
+        <div><label class="text-xs text-stone-500">成本 (€)</label><input v-model.number="form.cost" type="number" class="w-full border rounded-lg px-2 py-1.5 text-sm" @input="recalc" /></div>
+        <div><label class="text-xs text-stone-500">利润 (€) 手动</label><input v-model.number="form.margin" type="number" class="w-full border rounded-lg px-2 py-1.5 text-sm" @input="recalc" /></div>
+        <div><label class="text-xs text-stone-500">售价 (€) = 成本+利润</label><input :value="form.price" disabled class="w-full border rounded-lg px-2 py-1.5 text-sm bg-stone-50" /></div>
+        <div><label class="text-xs text-stone-500">数量</label><input v-model.number="form.quantity" type="number" class="w-full border rounded-lg px-2 py-1.5 text-sm" /></div>
+        <div class="col-span-2">
+          <label class="text-xs text-stone-500">照片（可粘贴截图 / 上传 / 填URL）</label>
+          <div class="flex items-center gap-2">
+            <div :class="drag?'dragging':''" @dragover.prevent="drag=true" @dragleave.prevent="drag=false" @drop.prevent="onDrop" class="flex-1 border rounded-lg px-2 py-3 text-center text-xs text-stone-400">
+              在此粘贴截图 / 拖入图片，或
+              <label class="text-blue-600 cursor-pointer">上传<input type="file" accept="image/*" class="hidden" @change="onFile" /></label>
+            </div>
+            <img v-if="form.imageUrl" :src="form.imageUrl" class="thumb" />
+            <button v-if="form.imageUrl" @click="form.imageUrl=''" class="text-rose-500 text-xs">清除</button>
+          </div>
+          <input v-model="form.imageUrl" class="w-full border rounded-lg px-2 py-1 text-xs mt-1" placeholder="或粘贴图片 URL" />
+        </div>
+        <div class="col-span-2"><label class="text-xs text-stone-500">客户备注（可见，可放产品链接）</label><textarea v-model="form.noteCustomer" class="w-full border rounded-lg px-2 py-1.5 text-sm" rows="2"></textarea></div>
+        <div class="col-span-2"><label class="text-xs text-stone-500 text-rose-500">内部备注（仅 admin，客户/PDF 隐藏）</label><textarea v-model="form.noteAdmin" class="w-full border rounded-lg px-2 py-1.5 text-sm" rows="2"></textarea></div>
+      </div>
+      <div class="flex justify-end gap-2 mt-4">
+        <button @click="showForm=false" class="px-4 py-1.5 rounded-lg border border-stone-300 text-sm">取消</button>
+        <button @click="saveItem" class="px-4 py-1.5 rounded-lg bg-terracotta-600 text-white text-sm">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 管理大类/小类 -->
+  <div v-if="showCats" class="no-print fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-20">
+    <div class="bg-white rounded-2xl w-full max-w-lg p-5">
+      <div class="flex items-center justify-between mb-3"><h3 class="font-semibold">管理大类 / 小类</h3><button @click="showCats=false" class="text-stone-400">✕</button></div>
+      <div v-for="(g,gi) in activeProject.categoryGroups" :key="g.id" class="border rounded-lg p-3 mb-2">
+        <div class="flex items-center gap-2 mb-2">
+          <input v-model="g.name" class="border rounded px-2 py-1 text-sm flex-1" />
+          <button @click="activeProject.categoryGroups.splice(gi,1)" class="text-rose-500 text-xs">删大类</button>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center">
+          <span v-for="(s,si) in g.subs" :key="s.id" class="inline-flex items-center bg-stone-100 rounded-full px-2 py-0.5 text-xs">
+            {{ s.name }}<button @click="g.subs.splice(si,1)" class="ml-1 text-rose-400">✕</button>
+          </span>
+          <input v-model="g._new" @keyup.enter="addSub(g)" placeholder="加小类" class="border rounded px-2 py-0.5 text-xs w-24" />
+        </div>
+      </div>
+      <div class="flex gap-2 mt-2">
+        <input v-model="newCat" placeholder="新大类名称" class="border rounded px-2 py-1 text-sm flex-1" />
+        <button @click="addCat" class="px-3 py-1 rounded-lg bg-stone-800 text-white text-sm">加大类</button>
+      </div>
+      <p class="text-xs text-stone-400 mt-3">新项目可一键套用默认模板（瓷砖/卫浴/灯具/家具/软装/涂料/地板/厨房/其他），此处可在项目内自由增删。</p>
+    </div>
+  </div>
+
+  <!-- 公司资料 -->
+  <div v-if="showCompany" class="no-print fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-20">
+    <div class="bg-white rounded-2xl w-full max-w-md p-5">
+      <div class="flex items-center justify-between mb-3"><h3 class="font-semibold">公司资料（PDF 页眉）</h3><button @click="showCompany=false" class="text-stone-400">✕</button></div>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <input v-model="company.name" placeholder="公司名称" class="border rounded px-2 py-1" />
+        <input v-model="company.logoUrl" placeholder="Logo URL" class="border rounded px-2 py-1" />
+        <input v-model="company.address" placeholder="地址" class="border rounded px-2 py-1" />
+        <input v-model="company.taxId" placeholder="税号 NIF" class="border rounded px-2 py-1" />
+        <input v-model="company.phone" placeholder="电话" class="border rounded px-2 py-1" />
+        <input v-model="company.email" placeholder="邮箱" class="border rounded px-2 py-1" />
+        <input v-model="company.website" placeholder="网站" class="col-span-2 border rounded px-2 py-1" />
+        <input v-model="company.footer" placeholder="页脚文字" class="col-span-2 border rounded px-2 py-1" />
+      </div>
+      <p class="text-xs text-stone-400 mt-3">Logo 支持 URL；正式版将支持本地上传并存入 IndexedDB。此资料用于「导出 PDF」页眉。</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const { createApp } = Vue;
+const DB_KEY = 'quote_studio_preview_v1';
+const SET_KEY = 'quote_studio_preview_settings_v1';
+const uid = () => Math.random().toString(36).slice(2, 10);
+const DEFAULT_CATS = [
+  { name:'瓷砖 Azulejos', subs:['地砖','墙砖','马赛克'] },
+  { name:'卫浴 Grifería', subs:['马桶','面盆','花洒','龙头'] },
+  { name:'灯具 Iluminación', subs:['吊灯','筒灯','壁灯'] },
+  { name:'家具 Muebles', subs:['沙发','柜体','桌椅'] },
+  { name:'软装 Textiles', subs:['窗帘','地毯','抱枕'] },
+  { name:'涂料 Pintura', subs:['内墙','外墙'] },
+  { name:'地板 Suelos', subs:['木地板','复合'] },
+  { name:'厨房 Cocina', subs:['橱柜','台面'] },
+  { name:'其他 Otros', subs:['杂项'] },
+];
+function seedCats(){ return DEFAULT_CATS.map(c=>({ id:uid(), name:c.name, subs:c.subs.map(n=>({id:uid(),name:n})), _new:'' })); }
+
+createApp({
+  data(){
+    let projects = [], settings = {};
+    try { projects = JSON.parse(localStorage.getItem(DB_KEY) || '[]'); } catch(e){}
+    try { settings = JSON.parse(localStorage.getItem(SET_KEY) || '{}'); } catch(e){}
+    if(!projects.length){
+      projects = [{
+        id:uid(), name:'示范项目 · 客户A', client:'Cliente A', currency:'EUR',
+        categoryGroups: seedCats(),
+        items:[
+          { id:uid(), category:'瓷砖 Azulejos', subcategory:'地砖', name:'哑光地砖 60x60', brand:'Porcelanosa', model:'X1', imageUrl:'', noteCustomer:'客厅地面，参考 https://ejemplo.com/p', noteAdmin:'供应商给的底价，勿外泄', cost:8, margin:6, price:14, quantity:40, sourceLink:'', aiFilled:false, createdAt:'', updatedAt:'' },
+          { id:uid(), category:'卫浴 Grifería', subcategory:'龙头', name:'单孔面盆龙头', brand:'GROHE', model:'BauEdge', imageUrl:'', noteCustomer:'', noteAdmin:'', cost:45, margin:30, price:75, quantity:2, sourceLink:'', aiFilled:false, createdAt:'', updatedAt:'' },
+        ],
+        createdAt:'', updatedAt:''
+      }];
+    }
+    return {
+      projects,
+      activeId: projects[0]?.id || '',
+      viewMode: 'admin',
+      showForm:false, editingId:null, drag:false,
+      form: this.blankForm(),
+      showCats:false, newCat:'',
+      showCompany:false,
+      company: Object.assign({ name:'', logoUrl:'', address:'', taxId:'', phone:'', email:'', website:'', footer:'' }, settings.company||{}),
+    };
+  },
+  computed:{
+    activeProject(){ return this.projects.find(p=>p.id===this.activeId) || null; },
+    currentSubs(){ const g=this.activeProject?.categoryGroups.find(g=>g.name===this.form.category); return g? g.subs:[]; },
+    groups(){
+      const p=this.activeProject; if(!p) return [];
+      const res=[];
+      for(const g of p.categoryGroups){
+        const subs=[];
+        for(const s of g.subs){
+          const items=p.items.filter(i=>i.category===g.name && i.subcategory===s.name);
+          if(items.length) subs.push({sub:s.name, items});
+        }
+        const orphan={};
+        p.items.filter(i=>i.category===g.name && !g.subs.some(s=>s.name===i.subcategory)).forEach(i=>{(orphan[i.subcategory]=orphan[i.subcategory]||[]).push(i);});
+        Object.keys(orphan).forEach(sub=>subs.push({sub, items:orphan[sub]}));
+        if(subs.length) res.push({cat:g.name, subs});
+      }
+      const cats=p.categoryGroups.map(g=>g.name);
+      const oc={};
+      p.items.filter(i=>!cats.includes(i.category)).forEach(i=>{(oc[i.category]=oc[i.category]||{});(oc[i.category][i.subcategory]=oc[i.category][i.subcategory]||[]).push(i);});
+      Object.keys(oc).forEach(cat=>res.push({cat, subs:Object.keys(oc[cat]).map(sub=>({sub, items:oc[cat][sub]}))}));
+      return res;
+    },
+    grandTotal(){ return this.activeProject? this.round(this.activeProject.items.reduce((s,i)=>s+(+i.price||0)*(+i.quantity||0),0)):0; },
+    totalCost(){ return this.activeProject? this.round(this.activeProject.items.reduce((s,i)=>s+(+i.cost||0)*(+i.quantity||0),0)):0; },
+    totalMargin(){ return this.activeProject? this.round(this.activeProject.items.reduce((s,i)=>s+(+i.margin||0)*(+i.quantity||0),0)):0; },
+  },
+  watch:{
+    projects:{ deep:true, handler(v){ localStorage.setItem(DB_KEY, JSON.stringify(v)); } },
+    company:{ deep:true, handler(v){ const s=JSON.parse(localStorage.getItem(SET_KEY)||'{}'); s.company=v; localStorage.setItem(SET_KEY, JSON.stringify(s)); } },
+  },
+  methods:{
+    blankForm(){ return { category:'', subcategory:'', name:'', brand:'', model:'', cost:0, margin:0, price:0, quantity:1, imageUrl:'', noteCustomer:'', noteAdmin:'' }; },
+    round(n){ return Math.round((+n||0)*100)/100; },
+    fmt(n){ const v=this.round(n); return this.activeProject? v.toLocaleString('es-ES',{style:'currency',currency:this.activeProject.currency}) : (v+' €'); },
+    recalc(){ this.form.price = this.round((+this.form.cost||0)+(+this.form.margin||0)); },
+    newProject(){
+      const p={ id:uid(), name:'新项目 '+ (this.projects.length+1), client:'', currency:'EUR', categoryGroups:seedCats(), items:[], createdAt:'', updatedAt:'' };
+      this.projects.push(p); this.activeId=p.id;
+    },
+    addCat(){ if(!this.newCat.trim()) return; this.activeProject.categoryGroups.push({id:uid(),name:this.newCat.trim(),subs:[],_new:''}); this.newCat=''; },
+    addSub(g){ if(!g._new||!g._new.trim()) return; g.subs.push({id:uid(),name:g._new.trim()}); g._new=''; },
+    openAdd(){ const g=this.activeProject.categoryGroups[0]; this.form=this.blankForm(); this.form.category=g?g.name:''; this.form.subcategory=g&&g.subs[0]?g.subs[0].name:''; this.editingId=null; this.recalc(); this.showForm=true; },
+    editItem(it){ this.form={ ...it }; this.editingId=it.id; this.showForm=true; },
+    saveItem(){
+      if(!this.form.name.trim()){ alert('请填写产品名称'); return; }
+      this.recalc();
+      const data={ ...this.form, name:this.form.name.trim(), price:this.form.price, updatedAt:new Date().toISOString() };
+      if(this.editingId){ const i=this.activeProject.items.find(x=>x.id===this.editingId); Object.assign(i,data); }
+      else { this.activeProject.items.push({ id:uid(), aiFilled:false, createdAt:new Date().toISOString(), ...data }); }
+      this.showForm=false;
+    },
+    delItem(id){ this.activeProject.items=this.activeProject.items.filter(i=>i.id!==id); },
+    // 照片：粘贴/拖入/上传 → 压缩为 base64
+    fileToData(f){ const r=new FileReader(); r.onload=e=>this.resize(e.target.result); r.readAsDataURL(f); },
+    resize(url){ const img=new Image(); img.onload=()=>{ let w=img.width,h=img.height,max=900; if(w>max){h=h*max/w;w=max;} const c=document.createElement('canvas'); c.width=w;c.height=h; c.getContext('2d').drawImage(img,0,0,w,h); this.form.imageUrl=c.toDataURL('image/jpeg',0.8); }; img.src=url; },
+    onPaste(e){ for(const it of (e.clipboardData?.items||[])){ if(it.type.startsWith('image/')){ this.fileToData(it.getAsFile()); e.preventDefault(); } } },
+    onDrop(e){ const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('image/')) this.fileToData(f); this.drag=false; },
+    onFile(e){ const f=e.target.files[0]; if(f) this.fileToData(f); },
+    exportPDF(){ window.print(); },
+    exportJSON(){ const blob=new Blob([JSON.stringify({projects:this.projects,company:this.company},null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='quote-studio-backup.json'; a.click(); },
+    importJSON(e){ const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=ev=>{ try{ const d=JSON.parse(ev.target.result); if(d.projects) this.projects=d.projects; if(d.company) this.company=d.company; alert('导入成功'); }catch(err){ alert('JSON 解析失败'); } }; r.readAsText(f); e.target.value=''; },
+  },
+}).mount('#app');
+</script>
+</body>
+</html>

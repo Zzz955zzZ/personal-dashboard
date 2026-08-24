@@ -1,0 +1,221 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+@layer base {
+  html,
+  body {
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply font-sans text-ink antialiased;
+    text-rendering: optimizeLegibility;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    /* 高级暖色环境底：双色径向光晕 + 纵向微渐变，营造层次与空间感 */
+    background-color: #faf8f5;
+    background-image:
+      radial-gradient(1200px 620px at 100% -12%, rgba(201, 163, 107, 0.10), transparent 60%),
+      radial-gradient(1000px 560px at -12% 112%, rgba(124, 152, 133, 0.08), transparent 55%),
+      linear-gradient(180deg, #fbf9f6 0%, #f4f0e9 100%);
+    background-attachment: fixed;
+  }
+
+  #app {
+    overflow-x: hidden;
+  }
+
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(180, 160, 140, 0.3);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* ==========================================================================
+   Components — 复用工作台风格 + Lyd9 Studio 表单/按钮基元
+   ========================================================================== */
+@layer components {
+  .font-display {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  /* 表单基元 —— 商务克制：小圆角、无渐变、焦点用沉稳棕 */
+  .qs-label {
+    @apply text-[11px] uppercase tracking-wide2 text-paper-500;
+  }
+  .qs-input {
+    @apply w-full px-3 py-2 rounded-md border border-paper-300/80 bg-white text-sm text-ink
+      focus:outline-none focus:border-[#8c7b6b] transition-colors;
+  }
+  .qs-textarea {
+    @apply w-full px-3 py-2 rounded-md border border-paper-300/80 bg-white text-sm text-ink
+      focus:outline-none focus:border-[#8c7b6b] transition-colors resize-y;
+  }
+
+  /* 按钮 —— 扁平、中圆角、深棕主色 */
+  .qs-btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+      border border-paper-300/80 bg-white hover:bg-paper-50 active:bg-paper-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .qs-btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+      bg-[#3d342b] text-white shadow-[0_6px_16px_-8px_rgba(61,52,43,0.6)] hover:bg-[#2e2720] active:bg-[#231e19] transition-colors disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .qs-btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium
+      text-paper-600 hover:bg-paper-100 active:bg-paper-200 transition-colors;
+  }
+  .qs-btn-danger {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium
+      text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors;
+  }
+
+  /* 卡片 —— 柔和分层阴影、中圆角、纯白 */
+  .qs-card {
+    @apply rounded-2xl border border-paper-200/70 bg-white shadow-[0_1px_3px_rgba(61,52,43,0.04),0_14px_30px_-18px_rgba(61,52,43,0.22)];
+  }
+
+  /* 撤销条 */
+  .undo-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    border-radius: 14px;
+    background: #2a2520;
+    color: #faf8f5;
+    font-size: 13px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    animation: undoIn 0.3s ease forwards;
+  }
+  .undo-toast button {
+    padding: 6px 14px;
+    border-radius: 8px;
+    background: #5c4f42;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .undo-toast button:hover {
+    opacity: 0.9;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* ==========================================================================
+   Transitions（Vue <Transition> class hooks）
+   ========================================================================== */
+.fade-enter-active,
+.fade-leave-active {
+  transition:
+    opacity 0.32s ease,
+    transform 0.32s ease;
+}
+.fade-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.fade-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.42s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(100%);
+}
+
+.pop-enter-active,
+.pop-leave-active {
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+.pop-enter-from,
+.pop-leave-to {
+  opacity: 0;
+  transform: scale(0.96) translateY(8px);
+}
+
+/* ==========================================================================
+   打印 / PDF（客户视图导出用，强约束 #5）
+   ========================================================================== */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  /* 隐藏应用外壳（顶栏、抽屉、按钮、toast） */
+  body * {
+    visibility: hidden;
+  }
+  .print-area,
+  .print-area * {
+    visibility: visible;
+  }
+  .print-area {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    width: 100%;
+    min-height: 100%;
+    padding: 12mm;
+    color: #1c1916 !important;
+    background: #fff !important;
+    overflow: auto;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .qs-card,
+  .print-area .qs-card {
+    box-shadow: none !important;
+    border-color: #e2dbd0 !important;
+  }
+  a[href]::after {
+    content: '';
+  }
+}

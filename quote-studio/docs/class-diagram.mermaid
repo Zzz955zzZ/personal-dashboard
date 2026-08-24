@@ -1,0 +1,38 @@
+classDiagram
+  class Settings {
+    +string defaultUnit
+    +string[] unitOptions
+    +string salePriceUnitOptions
+    +string defaultSalePriceUnit
+  }
+  class QuoteItem {
+    +string unit
+    +string salePriceUnit
+  }
+  class useSettingsStore {
+    +addSalePriceUnitOption(name)
+    +removeSalePriceUnitOption(name)
+    +setDefaultSalePriceUnit(name)
+  }
+  class useQuotationStore {
+    +addItemsFromTemplates()
+    +addItem()
+    +removeItem()
+  }
+  class vFocusNext {
+    +mounted(el)
+  }
+  class QuoteItemRow {
+    +salePriceUnitModel
+    +isRowHovered
+    +onRemove()
+  }
+  class CategorySection {
+    +remove 操作 th
+    +colspan 13
+  }
+  Settings "1" --> "1" useSettingsStore : settings
+  QuoteItem "1" --> "1" useQuotationStore : items
+  useSettingsStore ..> QuoteItemRow : salePriceUnitOptions
+  vFocusNext ..> QuoteItemRow : 指令
+  QuoteItemRow ..> CategorySection : 行渲染

@@ -1,0 +1,38 @@
+sequenceDiagram
+  participant Main as main.ts
+  participant App as App.vue(setup)
+  participant Hyd as hydrateAll()
+  participant SS as useSettingsStore
+  participant QS as useQuotationStore
+  participant View as 路由视图(CategoryManager/QuoteItemRow)
+  Main->>App: createApp + mount
+  App->>Hyd: 同步调用 hydrateAll()
+  Hyd->>SS: hydrate()（同步读 localStorage）
+  Hyd->>QS: hydrate()（同步读 localStorage）
+  App->>View: 渲染子视图（store 已注水）
+  View-->>View: 首帧即显示名称（无空白帧）
+
+  Note over Main,View: ---- #2 Enter 聚焦 ----
+
+  participant U as 用户
+  participant In as 内联 input(v-focus-next)
+  participant Dir as vFocusNext keydown
+  participant Tbl as table DOM
+  participant Next as 下一输入框
+  U->>In: 按 Enter
+  In->>Dir: keydown(Enter) 冒泡到指令监听
+  Dir->>Dir: 跳过 TEXTAREA / [data-enter-stop] / Select
+  Dir->>Tbl: querySelectorAll(text/number input)
+  Dir->>Next: focus() 下一个（DOM 顺序；末格无下一则停留）
+  Note over Dir,Next: 不触发添加产品；不拦截多行换行
+
+  Note over U,Next: ---- #6 悬停删除 ----
+
+  participant Row as tr(isRowHovered)
+  participant Btn as 绝对定位删除按钮
+  participant Store as useQuotationStore
+  U->>Row: mouseenter → isRowHovered=true
+  Row->>Btn: v-if 显示（右上角）
+  U->>Btn: 点击
+  Btn->>U: window.confirm("删除产品?")
+  U->>Store: 确认 → removeItem(qid, id)

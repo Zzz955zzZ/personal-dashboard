@@ -34,10 +34,11 @@ function patch(field: keyof typeof store.companyProfile, value: string): void {
       <div class="flex-1 space-y-1.5">
         <Label>Logo 链接</Label>
         <Input
-          :value="store.companyProfile.logoUrl"
+          v-focus-next
+          :model-value="store.companyProfile.logoUrl"
           type="text"
           placeholder="https://.../logo.png"
-          @input="patch('logoUrl', ($event.target as HTMLInputElement).value)"
+          @update:model-value="patch('logoUrl', String($event))"
         />
       </div>
     </div>
@@ -45,43 +46,48 @@ function patch(field: keyof typeof store.companyProfile, value: string): void {
     <div class="space-y-1.5">
       <Label>公司名称</Label>
       <Input
-        :value="store.companyProfile.name"
+        v-focus-next
+        :model-value="store.companyProfile.name"
         type="text"
-        @input="patch('name', ($event.target as HTMLInputElement).value)"
+        @update:model-value="patch('name', String($event))"
       />
     </div>
     <div class="space-y-1.5">
       <Label>业务描述 / 副标题</Label>
       <Input
-        :value="store.companyProfile.slogan"
+        v-focus-next
+        :model-value="store.companyProfile.slogan"
         type="text"
         placeholder="例如：Arquitectura de interiores · Reformas integrales"
-        @input="patch('slogan', ($event.target as HTMLInputElement).value)"
+        @update:model-value="patch('slogan', String($event))"
       />
     </div>
     <div class="space-y-1.5">
       <Label>地址</Label>
       <Input
-        :value="store.companyProfile.address"
+        v-focus-next
+        :model-value="store.companyProfile.address"
         type="text"
-        @input="patch('address', ($event.target as HTMLInputElement).value)"
+        @update:model-value="patch('address', String($event))"
       />
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div class="space-y-1.5">
         <Label>电话</Label>
         <Input
-          :value="store.companyProfile.phone"
+          v-focus-next
+          :model-value="store.companyProfile.phone"
           type="text"
-          @input="patch('phone', ($event.target as HTMLInputElement).value)"
+          @update:model-value="patch('phone', String($event))"
         />
       </div>
       <div class="space-y-1.5">
         <Label>邮箱</Label>
         <Input
-          :value="store.companyProfile.email"
+          v-focus-next
+          :model-value="store.companyProfile.email"
           type="text"
-          @input="patch('email', ($event.target as HTMLInputElement).value)"
+          @update:model-value="patch('email', String($event))"
         />
       </div>
     </div>
@@ -89,27 +95,29 @@ function patch(field: keyof typeof store.companyProfile, value: string): void {
       <div class="space-y-1.5">
         <Label>网站</Label>
         <Input
-          :value="store.companyProfile.website"
+          v-focus-next
+          :model-value="store.companyProfile.website"
           type="text"
           placeholder="www.ejemplo.com"
-          @input="patch('website', ($event.target as HTMLInputElement).value)"
+          @update:model-value="patch('website', String($event))"
         />
       </div>
       <div class="space-y-1.5">
         <Label>税号 (Tax ID)</Label>
         <Input
-          :value="store.companyProfile.taxId"
+          v-focus-next
+          :model-value="store.companyProfile.taxId"
           type="text"
-          @input="patch('taxId', ($event.target as HTMLInputElement).value)"
+          @update:model-value="patch('taxId', String($event))"
         />
       </div>
     </div>
     <div class="space-y-1.5">
       <Label>页脚备注</Label>
       <Textarea
-        :value="store.companyProfile.footerNote"
+        :model-value="store.companyProfile.footerNote"
         rows="2"
-        @input="patch('footerNote', ($event.target as HTMLTextAreaElement).value)"
+        @update:model-value="patch('footerNote', String($event))"
       ></Textarea>
     </div>
   </div>

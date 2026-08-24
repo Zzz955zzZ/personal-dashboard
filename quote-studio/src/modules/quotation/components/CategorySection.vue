@@ -134,14 +134,14 @@ function toggleProductSelect(): void {
               <th class="px-4 py-2.5 text-left font-medium min-w-[140px]">产品</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[120px]">型号</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[160px]">备注</th>
-              <th class="px-4 py-2.5 text-right font-medium w-36">售价</th>
-              <th class="px-4 py-2.5 text-right font-medium w-28">数量</th>
-              <th class="px-4 py-2.5 text-right font-medium w-24">小计</th>
+              <th class="px-4 py-2.5 text-left font-medium w-36">售价</th>
+              <th class="px-4 py-2.5 text-left font-medium w-28">数量</th>
+              <th class="px-4 py-2.5 text-left font-medium w-24">小计</th>
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium min-w-[140px] border-l border-paper-200 bg-paper-50/60">内部备注</th>
-              <th v-if="!isCustomer" class="px-4 py-2.5 text-right font-medium w-20 border-l border-paper-200 bg-paper-50/60">进价</th>
-              <th v-if="!isCustomer" class="px-4 py-2.5 text-right font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">DTO%</th>
-              <th v-if="!isCustomer" class="px-4 py-2.5 text-right font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">IVA%</th>
-              <th v-if="!isCustomer" class="px-4 py-2.5 text-right font-medium w-20 border-l border-paper-200 bg-paper-50/60">利润</th>
+              <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60">进价</th>
+              <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">DTO%</th>
+              <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">IVA%</th>
+              <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60">利润</th>
             </tr>
           </thead>
           <tbody>

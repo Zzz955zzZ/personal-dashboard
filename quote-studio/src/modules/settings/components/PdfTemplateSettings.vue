@@ -64,11 +64,11 @@ function update(patch: Partial<PdfTemplate>): void {
     <div>
       <Label class="">PDF 页脚备注（覆盖公司资料页脚）</Label>
       <Textarea
-        :value="store.settings.pdfTemplate.footerNote"
+        :model-value="store.settings.pdfTemplate.footerNote"
         rows="2"
         class=""
         placeholder="留空则使用公司资料里的页脚备注"
-        @input="update({ footerNote: ($event.target as HTMLTextAreaElement).value })"
+        @update:model-value="update({ footerNote: String($event) })"
       ></Textarea>
     </div>
 

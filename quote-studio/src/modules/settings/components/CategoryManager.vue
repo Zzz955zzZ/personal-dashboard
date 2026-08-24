@@ -198,16 +198,18 @@ function unitOptionsFor(t: ProductTemplate): string[] {
           ></span>
         </button>
         <Input
-          :value="g.name"
+          v-focus-next
+          :model-value="g.name"
           class=" flex-1"
           placeholder="大类名称"
-          @input="store.updateCategoryGroup(g.id, { name: ($event.target as HTMLInputElement).value })"
+          @update:model-value="store.updateCategoryGroup(g.id, { name: String($event) })"
          />
         <Input
-          :value="g.nameEs"
+          v-focus-next
+          :model-value="g.nameEs"
           class=" w-56"
           placeholder="西语"
-          @input="store.updateCategoryGroup(g.id, { nameEs: ($event.target as HTMLInputElement).value })"
+          @update:model-value="store.updateCategoryGroup(g.id, { nameEs: String($event) })"
          />
         <span class="shrink-0 text-[11px] text-paper-400 whitespace-nowrap">{{ g.products.length }} 个产品</span>
         <Button variant="default" class="-danger shrink-0" title="删除大类" @click="store.removeCategoryGroup(g.id)">
@@ -240,42 +242,47 @@ function unitOptionsFor(t: ProductTemplate): string[] {
               @dragstart="onTemplateDragStart($event, g.id, t.id)"
             ></span>
             <Input
-              :value="t.name"
+              v-focus-next
+              :model-value="t.name"
               class=" flex-1 min-w-[7rem] text-sm py-1"
               placeholder="产品名称"
-              @input="patchTemplate(g.id, t, { name: ($event.target as HTMLInputElement).value })"
+              @update:model-value="patchTemplate(g.id, t, { name: String($event) })"
              />
             <Input
-              :value="t.model"
+              v-focus-next
+              :model-value="t.model"
               class=" w-24 text-sm py-1"
               placeholder="型号"
-              @input="patchTemplate(g.id, t, { model: ($event.target as HTMLInputElement).value })"
+              @update:model-value="patchTemplate(g.id, t, { model: String($event) })"
              />
             <Input
-              :value="t.note"
+              v-focus-next
+              :model-value="t.note"
               class=" w-28 text-sm py-1"
               placeholder="备注"
-              @input="patchTemplate(g.id, t, { note: ($event.target as HTMLInputElement).value })"
+              @update:model-value="patchTemplate(g.id, t, { note: String($event) })"
              />
             <Input
+              v-focus-next
               type="number"
               step="0.01"
               min="0"
-              :value="t.defaultCost"
+              :model-value="t.defaultCost"
               class=" w-20 text-sm py-1"
               placeholder="成本"
               title="默认成本"
-              @input="patchTemplate(g.id, t, { defaultCost: Number(($event.target as HTMLInputElement).value) })"
+              @update:model-value="patchTemplate(g.id, t, { defaultCost: Number($event) })"
              />
             <Input
+              v-focus-next
               type="number"
               step="0.01"
               min="0"
-              :value="t.defaultSalePrice"
+              :model-value="t.defaultSalePrice"
               class=" w-20 text-sm py-1"
               placeholder="售价"
               title="默认售价"
-              @input="patchTemplate(g.id, t, { defaultSalePrice: Number(($event.target as HTMLInputElement).value) })"
+              @update:model-value="patchTemplate(g.id, t, { defaultSalePrice: Number($event) })"
              />
             <Select
               :model-value="t.defaultUnit"

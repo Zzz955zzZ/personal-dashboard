@@ -160,7 +160,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const g = getGroup(groupId);
     const t: ProductTemplate = {
       id: genId('pt'),
-      name: (payload?.name ?? '').trim() || '新产品模板',
+      name: (payload?.name ?? '').trim(),
       nameEs: (payload?.nameEs ?? '').trim(),
       model: (payload?.model ?? '').trim(),
       note: (payload?.note ?? '').trim(),

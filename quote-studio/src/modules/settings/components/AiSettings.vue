@@ -52,16 +52,16 @@ function clear(): void {
     </div>
 
     <div>
-      <Label class="">Base URL（OpenAI 兼容）</Label>
-      <Input v-model="baseUrl" type="text" class="" placeholder="https://api.openai.com/v1"  />
+      <Label>Base URL（OpenAI 兼容）</Label>
+      <Input v-model="baseUrl" type="text" placeholder="https://api.openai.com/v1"  />
     </div>
     <div>
-      <Label class="">API Key</Label>
-      <Input v-model="apiKey" type="password" class="" placeholder="sk-..."  />
+      <Label>API Key</Label>
+      <Input v-model="apiKey" type="password" placeholder="sk-..."  />
     </div>
     <div>
-      <Label class="">模型</Label>
-      <Input v-model="model" type="text" class="" placeholder="gpt-4o-mini"  />
+      <Label>模型</Label>
+      <Input v-model="model" type="text" placeholder="gpt-4o-mini"  />
     </div>
 
     <div class="text-xs text-paper-400">
@@ -70,7 +70,7 @@ function clear(): void {
     </div>
 
     <div class="flex gap-2">
-      <Button variant="default" class="" @click="save">
+      <Button variant="default" @click="save">
         <span v-html="icon('check')"></span> 保存 AI 配置
       </Button>
       <Button variant="default" v-if="configured" class="-danger" @click="clear">清除配置</Button>

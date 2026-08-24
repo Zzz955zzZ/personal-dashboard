@@ -1,7 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 /**
  * 大类集中管理（全局唯一）：增删改 + 拖拽排序。
  * 每个大类可展开/折叠，展开后直接维护一组产品模板（名称/型号/备注/默认成本/默认售价/默认单位/照片），
@@ -9,6 +6,9 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
  */
 import { ref } from 'vue';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { useSettingsStore } from '@/modules/settings';
 import type { CategoryGroup, ProductTemplate } from '@/modules/settings';
 import { icon } from '@/shared/icons';

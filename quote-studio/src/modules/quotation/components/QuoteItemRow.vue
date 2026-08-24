@@ -266,11 +266,11 @@ const rowTint = computed<string>(() =>
     <!-- 产品 -->
     <td class="px-4 py-3 min-w-[140px]">
       <template v-if="!isCustomer">
-        <input
+        <Input
           v-focus-next
           v-model="nameModel"
           placeholder="产品名称"
-          class="w-full bg-transparent text-sm font-medium text-ink placeholder:text-paper-300 focus:outline-none border-b border-transparent focus:border-paper-300 py-0.5"
+          class="h-7 px-1 py-0 text-sm font-medium border-paper-200 bg-white"
         />
       </template>
       <span v-else class="text-sm font-medium text-ink">{{ item.name }}</span>
@@ -279,11 +279,11 @@ const rowTint = computed<string>(() =>
     <!-- 型号 -->
     <td class="px-4 py-3 min-w-[120px]">
       <template v-if="!isCustomer">
-        <input
+        <Input
           v-focus-next
           v-model="modelModel"
           placeholder="型号"
-          class="w-full bg-transparent text-sm text-paper-600 placeholder:text-paper-300 focus:outline-none border-b border-transparent focus:border-paper-300 py-0.5"
+          class="h-7 px-1 py-0 text-sm border-paper-200 bg-white"
         />
       </template>
       <span v-else class="text-sm text-paper-600">{{ item.model || '—' }}</span>
@@ -292,11 +292,11 @@ const rowTint = computed<string>(() =>
     <!-- 备注 -->
     <td class="px-4 py-3 min-w-[160px]">
       <template v-if="!isCustomer">
-        <input
+        <Input
           v-focus-next
           v-model="customerNoteModel"
           placeholder="备注"
-          class="w-full bg-transparent text-sm text-paper-600 placeholder:text-paper-300 focus:outline-none border-b border-transparent focus:border-paper-300 py-0.5"
+          class="h-7 px-1 py-0 text-sm border-paper-200 bg-white"
         />
       </template>
       <span v-else class="text-sm text-paper-600">{{ item.customerNote || '—' }}</span>
@@ -306,13 +306,13 @@ const rowTint = computed<string>(() =>
     <td class="px-4 py-3 w-36 text-left">
       <template v-if="!isCustomer">
         <div class="flex items-center gap-1">
-          <input
+          <Input
             v-focus-next
             v-model="salePriceModel"
             type="number"
             step="0.01"
             min="0"
-            class="w-20 text-left bg-transparent text-sm tabular-nums border-b border-transparent focus:border-paper-300 focus:outline-none py-0.5"
+            class="w-20 h-7 px-1 py-0 text-sm tabular-nums text-left border-paper-200 bg-white"
           />
           <Select v-model="salePriceUnitModel">
             <SelectTrigger
@@ -350,13 +350,13 @@ const rowTint = computed<string>(() =>
               title="减少数量"
               @click="stepQty(-1)"
             >−</button>
-            <input
+            <Input
               v-focus-next
               v-model="quantityModel"
               type="number"
               step="1"
               min="1"
-              class="w-10 text-left bg-transparent text-sm tabular-nums border-0 focus:outline-none py-0.5"
+              class="w-10 h-7 px-1 py-0 text-sm tabular-nums text-left border-0 bg-transparent shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <button
               type="button"
@@ -395,30 +395,30 @@ const rowTint = computed<string>(() =>
 
     <!-- admin-only：内部备注 -->
     <td v-if="!isCustomer" class="px-4 py-3 min-w-[140px] border-l border-paper-200 bg-paper-50/30">
-      <input
+      <Input
         v-focus-next
         v-model="internalNoteModel"
         placeholder="内部备注"
-        class="w-full pr-2 bg-transparent text-xs text-paper-600 placeholder:text-paper-300 focus:outline-none border-b border-transparent focus:border-paper-300 py-0.5"
+        class="h-7 px-1 py-0 text-xs border-paper-200 bg-white"
       />
     </td>
 
     <!-- admin-only：进价 -->
     <td v-if="!isCustomer" class="px-4 py-3 w-20 text-left border-l border-paper-200 bg-paper-50/30">
-      <input
+      <Input
         v-focus-next
         v-model="costModel"
         type="number"
         step="0.01"
         min="0"
         title="进价"
-        class="w-full px-1 text-left bg-transparent text-xs tabular-nums border-b border-transparent focus:border-paper-300 focus:outline-none py-0.5"
+        class="w-full h-7 px-1 py-0 text-xs tabular-nums text-left border-paper-200 bg-white"
       />
     </td>
 
     <!-- admin-only：折扣 % -->
     <td v-if="!isCustomer" class="px-4 py-3 w-20 text-left whitespace-nowrap border-l border-paper-200 bg-paper-50/30">
-      <input
+      <Input
         v-focus-next
         v-model="dtoPctModel"
         type="number"
@@ -426,13 +426,13 @@ const rowTint = computed<string>(() =>
         min="0"
         max="100"
         title="折扣 %"
-        class="w-full px-1 text-left bg-transparent text-xs tabular-nums border-b border-transparent focus:border-paper-300 focus:outline-none py-0.5"
+        class="w-full h-7 px-1 py-0 text-xs tabular-nums text-left border-paper-200 bg-white"
       />
     </td>
 
     <!-- admin-only：税率 % -->
     <td v-if="!isCustomer" class="px-4 py-3 w-20 text-left whitespace-nowrap border-l border-paper-200 bg-paper-50/30">
-      <input
+      <Input
         v-focus-next
         v-model="ivaPctModel"
         type="number"
@@ -440,7 +440,7 @@ const rowTint = computed<string>(() =>
         min="0"
         max="100"
         title="税率 %（默认 21）"
-        class="w-full px-1 text-left bg-transparent text-xs tabular-nums border-b border-transparent focus:border-paper-300 focus:outline-none py-0.5"
+        class="w-full h-7 px-1 py-0 text-xs tabular-nums text-left border-paper-200 bg-white"
       />
     </td>
 

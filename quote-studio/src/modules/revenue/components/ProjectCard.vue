@@ -80,7 +80,7 @@ function statusClass(s: Project['status']): string {
       <Button variant="default" class=" flex-1" @click="emit('open', project.id)">
         <span v-html="icon('wallet')"></span> 收益详情
       </Button>
-      <Button variant="ghost" class="" title="删除项目" @click="emit('remove', project.id)">
+      <Button variant="ghost" title="删除项目" @click="emit('remove', project.id)">
         <span v-html="icon('trash')"></span>
       </Button>
     </div>

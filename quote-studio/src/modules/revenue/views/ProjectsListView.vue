@@ -99,7 +99,7 @@ function submit(): void {
           <div class="text-[10px] tracking-wide uppercase text-paper-500">Lyd9 Studio</div>
           <h1 class="text-2xl font-medium text-ink mt-0.5">项目收益</h1>
         </div>
-        <Button variant="default" class="" @click="showForm = true">
+        <Button variant="default" @click="showForm = true">
           <span v-html="icon('plus')"></span> 新建项目
         </Button>
       </div>
@@ -145,19 +145,19 @@ function submit(): void {
     <BaseModal :open="showForm" title="新建项目" width="md" @close="showForm = false">
       <form class="flex flex-col gap-4" @submit.prevent="submit">
         <div>
-          <Label class="">项目编号 *</Label>
+          <Label>项目编号 *</Label>
           <Input v-model="form.projectNo" required type="text" placeholder="例如：PRJ-2026-018 / 马德里公寓软装" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">客户名称</Label>
+          <Label>客户名称</Label>
           <Input v-model="form.clientName" type="text" placeholder="例如：张女士" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">地址</Label>
+          <Label>地址</Label>
           <Input v-model="form.address" type="text" placeholder="施工地址 / Dirección" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">状态</Label>
+          <Label>状态</Label>
           <Select v-model="form.status">
             <SelectTrigger class="mt-1.5"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>
@@ -168,7 +168,7 @@ function submit(): void {
           </Select>
         </div>
         <div>
-          <Label class="">档案夹</Label>
+          <Label>档案夹</Label>
           <Select v-model="form.carpetaId">
             <SelectTrigger class="mt-1.5"><SelectValue placeholder="档案夹" /></SelectTrigger>
             <SelectContent>

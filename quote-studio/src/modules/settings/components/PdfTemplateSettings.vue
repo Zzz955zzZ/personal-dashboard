@@ -28,12 +28,11 @@ function update(patch: Partial<PdfTemplate>): void {
     </div>
 
     <div>
-      <Label class="">抬头布局</Label>
+      <Label>抬头布局</Label>
       <div class="flex gap-2 flex-wrap">
         <Button variant="ghost"
           v-for="opt in layouts"
           :key="opt.value"
-          class=""
           :class="store.settings.pdfTemplate.headerLayout === opt.value ? 'qs-btn-primary' : 'qs-btn-ghost'"
           @click="update({ headerLayout: opt.value })">
           {{ opt.label }}
@@ -44,7 +43,6 @@ function update(patch: Partial<PdfTemplate>): void {
     <div class="flex items-center gap-3">
       <Label class=" mb-0">显示 Logo</Label>
       <Button variant="ghost"
-        class=""
         :class="store.settings.pdfTemplate.showLogo ? 'qs-btn-primary' : 'qs-btn-ghost'"
         @click="update({ showLogo: !store.settings.pdfTemplate.showLogo })">
         {{ store.settings.pdfTemplate.showLogo ? '已开启' : '已关闭' }}
@@ -54,7 +52,6 @@ function update(patch: Partial<PdfTemplate>): void {
     <div class="flex items-center gap-3">
       <Label class=" mb-0">显示页脚</Label>
       <Button variant="ghost"
-        class=""
         :class="store.settings.pdfTemplate.showFooter ? 'qs-btn-primary' : 'qs-btn-ghost'"
         @click="update({ showFooter: !store.settings.pdfTemplate.showFooter })">
         {{ store.settings.pdfTemplate.showFooter ? '已开启' : '已关闭' }}
@@ -62,27 +59,24 @@ function update(patch: Partial<PdfTemplate>): void {
     </div>
 
     <div>
-      <Label class="">PDF 页脚备注（覆盖公司资料页脚）</Label>
+      <Label>PDF 页脚备注（覆盖公司资料页脚）</Label>
       <Textarea
         :model-value="store.settings.pdfTemplate.footerNote"
         rows="2"
-        class=""
         placeholder="留空则使用公司资料里的页脚备注"
         @update:model-value="update({ footerNote: String($event) })"
       ></Textarea>
     </div>
 
     <div>
-      <Label class="">强调色</Label>
+      <Label>强调色</Label>
       <div class="flex gap-2 flex-wrap">
         <Button variant="ghost"
-          class=""
           :class="store.settings.pdfTemplate.accentColor === 'dark' ? 'qs-btn-primary' : 'qs-btn-ghost'"
           @click="update({ accentColor: 'dark' })">
           深黑
         </Button>
         <Button variant="ghost"
-          class=""
           :class="store.settings.pdfTemplate.accentColor === 'brown' ? 'qs-btn-primary' : 'qs-btn-ghost'"
           @click="update({ accentColor: 'brown' })">
           暖棕

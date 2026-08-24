@@ -187,13 +187,12 @@ async function onImportExcel(e: Event): Promise<void> {
         <div class="flex items-center gap-2">
           <Button
             :variant="selecting ? 'secondary' : 'default'"
-            class=""
             @click="toggleSelecting"
           >
             <span v-html="icon(selecting ? 'x' : 'check')"></span>
             {{ selecting ? '取消选择' : '批量选择' }}
           </Button>
-          <Button variant="default" class="" @click="importInput?.click()">
+          <Button variant="default" @click="importInput?.click()">
             <span v-html="icon('upload')"></span> 导入 Excel
           </Button>
           <input
@@ -203,7 +202,7 @@ async function onImportExcel(e: Event): Promise<void> {
             class="hidden"
             @change="onImportExcel"
           />
-          <Button variant="default" class="" @click="showForm = true">
+          <Button variant="default" @click="showForm = true">
             <span v-html="icon('plus')"></span> 新建项目
           </Button>
         </div>
@@ -272,19 +271,19 @@ async function onImportExcel(e: Event): Promise<void> {
     <BaseModal :open="showForm" title="新建项目" width="md" @close="showForm = false">
       <form class="flex flex-col gap-4" @submit.prevent="createProject">
         <div>
-          <Label class="">项目编号 *</Label>
+          <Label>项目编号 *</Label>
           <Input v-model="form.projectNo" required type="text" placeholder="例如：PRJ-2026-018 / 马德里公寓软装" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">客户名称</Label>
+          <Label>客户名称</Label>
           <Input v-model="form.clientName" type="text" placeholder="例如：张女士" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">地址</Label>
+          <Label>地址</Label>
           <Input v-model="form.address" type="text" placeholder="施工地址 / Dirección" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">档案夹</Label>
+          <Label>档案夹</Label>
           <Select v-model="form.carpetaId">
             <SelectTrigger class="mt-1.5"><SelectValue placeholder="档案夹" /></SelectTrigger>
             <SelectContent>

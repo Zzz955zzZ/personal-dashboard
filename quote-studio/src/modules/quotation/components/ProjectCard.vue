@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -63,12 +64,11 @@ function openRevenue(): void {
   <div class="qs-card p-3 flex flex-col h-full bg-white">
     <div class="flex items-start justify-between gap-2">
       <div class="min-w-0 flex items-start gap-2">
-        <input
+        <Checkbox
           v-if="selectable"
-          type="checkbox"
-          :checked="selected"
-          class="mt-0.5 shrink-0 accent-[#3d342b]"
-          @change="emit('toggle-select', project.id)"
+          :model-value="selected"
+          class="mt-0.5 shrink-0"
+          @update:model-value="emit('toggle-select', project.id)"
         />
         <div class="min-w-0">
           <h3 class="font-medium text-sm truncate text-ink">{{ project.projectNo || project.name }}</h3>

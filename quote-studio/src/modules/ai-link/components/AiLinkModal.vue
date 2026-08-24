@@ -63,7 +63,6 @@ function apply(): void {
           v-model="url"
           type="url"
           placeholder="https://example.com/product/..."
-          class=""
           @keyup.enter="run"
          />
         <Button variant="default"

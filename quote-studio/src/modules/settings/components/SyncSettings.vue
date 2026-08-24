@@ -48,16 +48,16 @@ function disable(): void {
     </div>
 
     <div>
-      <Label class="">Supabase URL</Label>
-      <Input v-model="url" type="text" class="" placeholder="https://xxxx.supabase.co"  />
+      <Label>Supabase URL</Label>
+      <Input v-model="url" type="text" placeholder="https://xxxx.supabase.co"  />
     </div>
     <div>
-      <Label class="">Anon Key</Label>
-      <Input v-model="anonKey" type="password" class="" placeholder="public anon key"  />
+      <Label>Anon Key</Label>
+      <Input v-model="anonKey" type="password" placeholder="public anon key"  />
     </div>
 
     <div class="flex gap-2">
-      <Button variant="default" class="" @click="save">
+      <Button variant="default" @click="save">
         <span v-html="icon('check')"></span> 保存同步配置
       </Button>
       <Button variant="default" v-if="active" class="-danger" @click="disable">关闭云同步</Button>

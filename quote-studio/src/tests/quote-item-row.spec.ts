@@ -59,6 +59,7 @@ function makeRow(over: Partial<QuoteItem> = {}): QuoteItem {
 const globalMount = {
   plugins: [createPinia()],
   directives: { 'focus-next': vFocusNext },
+  stubs: { Input: { template: '<input />' } },
 };
 
 describe('#6 悬停删除按钮渲染', () => {

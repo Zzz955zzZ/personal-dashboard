@@ -66,7 +66,7 @@ function removeStatus(id: string, name: string): void {
 
       <div class="qs-card p-4 mt-4 space-y-4">
         <div>
-          <Label class="">默认单位</Label>
+          <Label>默认单位</Label>
           <Select
             :model-value="settings.settings.defaultUnit"
             @update:model-value="settings.setDefaultUnit"
@@ -80,7 +80,7 @@ function removeStatus(id: string, name: string): void {
         </div>
 
         <div>
-          <Label class="">可选单位</Label>
+          <Label>可选单位</Label>
           <div class="flex flex-wrap gap-2 mt-2">
             <span
               v-for="u in settings.settings.unitOptions"
@@ -101,7 +101,7 @@ function removeStatus(id: string, name: string): void {
               class=" flex-1"
               @keyup.enter="addUnit"
              />
-            <Button variant="default" class="" @click="addUnit">
+            <Button variant="default" @click="addUnit">
               <span v-html="icon('plus')"></span> 添加
             </Button>
           </div>
@@ -116,7 +116,7 @@ function removeStatus(id: string, name: string): void {
 
       <div class="qs-card p-4 mt-4 space-y-4">
         <div>
-          <Label class="">默认售价单位</Label>
+          <Label>默认售价单位</Label>
           <Select
             :model-value="settings.settings.defaultSalePriceUnit"
             @update:model-value="settings.setDefaultSalePriceUnit"
@@ -130,7 +130,7 @@ function removeStatus(id: string, name: string): void {
         </div>
 
         <div>
-          <Label class="">可选售价单位</Label>
+          <Label>可选售价单位</Label>
           <div class="flex flex-wrap gap-2 mt-2">
             <span
               v-for="u in settings.settings.salePriceUnitOptions"
@@ -151,7 +151,7 @@ function removeStatus(id: string, name: string): void {
               class=" flex-1"
               @keyup.enter="addSalePriceUnit"
              />
-            <Button variant="default" class="" @click="addSalePriceUnit">
+            <Button variant="default" @click="addSalePriceUnit">
               <span v-html="icon('plus')"></span> 添加
             </Button>
           </div>
@@ -167,7 +167,7 @@ function removeStatus(id: string, name: string): void {
       <div class="qs-card p-4 mt-4 space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <Label class="">状态名称</Label>
+            <Label>状态名称</Label>
             <Input
               v-model="newStatusName"
               type="text"
@@ -177,10 +177,10 @@ function removeStatus(id: string, name: string): void {
              />
           </div>
           <div>
-            <Label class="">颜色</Label>
+            <Label>颜色</Label>
             <div class="flex items-center gap-2 mt-1.5">
               <input v-model="newStatusColor" type="color" class="w-10 h-10 rounded border border-paper-200 p-0.5" />
-              <Button variant="default" class="" @click="addStatus">
+              <Button variant="default" @click="addStatus">
                 <span v-html="icon('plus')"></span> 添加状态
               </Button>
             </div>
@@ -200,10 +200,10 @@ function removeStatus(id: string, name: string): void {
                 class="w-8 h-8 rounded border border-paper-200 p-0.5"
                 @input="settings.updateProductStatusOption(s.id, { color: ($event.target as HTMLInputElement).value })"
               />
-              <input
-                :value="s.name"
-                class="bg-transparent text-sm text-ink outline-none border-b border-transparent focus:border-paper-300 py-0.5"
-                @input="settings.updateProductStatusOption(s.id, { name: ($event.target as HTMLInputElement).value })"
+              <Input
+                :model-value="s.name"
+                class="bg-transparent border-0 shadow-none px-0 py-0.5"
+                @update:model-value="settings.updateProductStatusOption(s.id, { name: String($event) })"
               />
             </div>
             <button class="text-paper-400 hover:text-red-600" @click="removeStatus(s.id, s.name)">

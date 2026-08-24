@@ -106,10 +106,10 @@ function goQuotation(): void {
           </span>
         </div>
         <div class="flex flex-wrap gap-2 mt-4">
-          <Button variant="default" class="" @click="goQuotation">
+          <Button variant="default" @click="goQuotation">
             <span v-html="icon('briefcase')"></span> 查看 / 编辑报价
           </Button>
-          <Button variant="default" class="" @click="openEdit">
+          <Button variant="default" @click="openEdit">
             <span v-html="icon('pencil')"></span> 编辑
           </Button>
           <Button variant="default" class="-danger" @click="remove">
@@ -155,19 +155,19 @@ function goQuotation(): void {
     <BaseModal :open="showEdit" title="编辑项目" width="md" @close="showEdit = false">
       <form class="flex flex-col gap-4" @submit.prevent="saveEdit">
         <div>
-          <Label class="">项目编号 *</Label>
+          <Label>项目编号 *</Label>
           <Input v-model="form.projectNo" required type="text" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">客户名称</Label>
+          <Label>客户名称</Label>
           <Input v-model="form.clientName" type="text" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">地址</Label>
+          <Label>地址</Label>
           <Input v-model="form.address" type="text" class=" mt-1.5"  />
         </div>
         <div>
-          <Label class="">状态</Label>
+          <Label>状态</Label>
           <Select v-model="form.status">
             <SelectTrigger class="mt-1.5"><SelectValue placeholder="状态" /></SelectTrigger>
             <SelectContent>

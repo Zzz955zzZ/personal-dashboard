@@ -110,7 +110,7 @@ function doImportJson(): void {
           下载一份完整快照（项目 / 报价 / 收益 / 设置 / 分类 / 公司资料）；换设备或做保险备份时再粘贴或上传恢复。
         </p>
         <div class="flex flex-wrap gap-3">
-          <Button variant="default" class="" @click="doExportJson">导出 JSON</Button>
+          <Button variant="default" @click="doExportJson">导出 JSON</Button>
         </div>
         <Textarea
           v-model="raw"
@@ -123,7 +123,7 @@ function doImportJson(): void {
             选择文件
             <input type="file" accept="application/json,.json" class="hidden" @change="onJsonFile" />
           </label>
-          <Button variant="default" class="" :disabled="!raw.trim()" @click="doImportJson">导入</Button>
+          <Button variant="default" :disabled="!raw.trim()" @click="doImportJson">导入</Button>
         </div>
       </section>
 

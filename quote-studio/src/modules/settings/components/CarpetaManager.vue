@@ -77,7 +77,7 @@ function resetDefaults(): void {
         class=" flex-1"
         @keyup.enter="add"
        />
-      <Button variant="default" class="" @click="add">
+      <Button variant="default" @click="add">
         <span v-html="icon('plus')"></span> 添加
       </Button>
     </div>
@@ -103,10 +103,10 @@ function resetDefaults(): void {
           class="w-6 h-6 rounded border border-paper-200 bg-white p-0.5 cursor-pointer shrink-0"
           @input="settings.updateCarpeta(c.id, { color: ($event.target as HTMLInputElement).value })"
         />
-        <input
-          :value="c.name"
-          class="flex-1 bg-transparent text-sm text-ink outline-none border-b border-transparent focus:border-paper-300 py-1"
-          @input="settings.updateCarpeta(c.id, { name: ($event.target as HTMLInputElement).value })"
+        <Input
+          :model-value="c.name"
+          class="flex-1"
+          @update:model-value="settings.updateCarpeta(c.id, { name: String($event) })"
         />
         <button
           class="text-paper-400 hover:text-red-600 transition-colors p-1"

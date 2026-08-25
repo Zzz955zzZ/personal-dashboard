@@ -145,11 +145,11 @@ function toggleProductSelect(): void {
           <thead>
             <tr class="bg-paper-50/80 text-paper-500 text-[11px] uppercase tracking-wide border-b border-paper-200">
               <th class="px-3 py-2.5 text-left font-medium w-24">状态</th>
-              <th class="px-4 py-2.5 text-left font-medium w-[6.5rem]">照片</th>
+              <th class="px-4 py-2.5 text-left font-medium w-14">照片</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[140px]">产品</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[120px]">型号</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[160px]">备注</th>
-              <th v-if="isCustomer" class="px-4 py-2.5 text-left font-medium min-w-[160px]">链接</th>
+              <th v-if="isCustomer" class="px-4 py-2.5 text-center font-medium w-20">链接</th>
               <th class="px-4 py-2.5 text-left font-medium w-36">售价</th>
               <th class="px-4 py-2.5 text-left font-medium w-28">数量</th>
               <th class="px-4 py-2.5 text-left font-medium w-24">小计</th>

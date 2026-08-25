@@ -6,7 +6,7 @@
  * 照片框：空态仅保留图标，无文字水印；支持悬停/聚焦行后 Ctrl+V 粘贴截图。
  * admin 字段（内部备注、成本、利润）作为同列表格列，确保水平线严格对齐。
  */
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 import { useQuotationStore, type QuoteItem } from '@/modules/quotation';
 import { useSettingsStore } from '@/modules/settings';
@@ -48,6 +48,43 @@ const rowRef = ref<HTMLTableRowElement | null>(null);
 const isRowHovered = ref(false);
 const linksOpen = ref(false);
 const draftLinks = ref<string[]>([]);
+
+/* 第二行照片拖拽缩放尺寸（默认 96×96，范围 64–320） */
+const DEFAULT_PHOTO_SIZE = 96;
+const MIN_PHOTO_SIZE = 64;
+const MAX_PHOTO_SIZE = 320;
+const photoSizes = ref<{ width: number; height: number }[]>([]);
+
+function initPhotoSizes(): void {
+  photoSizes.value = props.item.photoUrls.map(() => ({ width: DEFAULT_PHOTO_SIZE, height: DEFAULT_PHOTO_SIZE }));
+}
+watch(() => props.item.photoUrls.length, initPhotoSizes, { immediate: true });
+
+function startResize(e: PointerEvent, idx: number): void {
+  e.preventDefault();
+  e.stopPropagation();
+  const startX = e.clientX;
+  const startY = e.clientY;
+  const startW = photoSizes.value[idx].width;
+  const startH = photoSizes.value[idx].height;
+
+  function onMove(ev: PointerEvent): void {
+    const dx = ev.clientX - startX;
+    const dy = ev.clientY - startY;
+    photoSizes.value[idx] = {
+      width: Math.min(MAX_PHOTO_SIZE, Math.max(MIN_PHOTO_SIZE, startW + dx)),
+      height: Math.min(MAX_PHOTO_SIZE, Math.max(MIN_PHOTO_SIZE, startH + dy)),
+    };
+  }
+
+  function onUp(): void {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+  }
+
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp);
+}
 
 function update(field: keyof QuoteItem, value: string | number | string[]): void {
   store.updateItem(props.qid, props.item.id, { [field]: value } as Partial<QuoteItem>);
@@ -276,8 +313,8 @@ const rowTint = computed<string>(() =>
     </td>
 
     <!-- 照片：主区域预览/粘贴，右下角小按钮触发文件上传 -->
-    <td class="px-4 py-3 w-[6.5rem]">
-      <div class="relative w-[5.5rem] h-[5.5rem]">
+    <td class="px-4 py-3 w-14">
+      <div class="relative w-11 h-11">
         <div
           class="relative w-full h-full rounded bg-paper-100 overflow-hidden flex items-center justify-center shrink-0 hover:bg-paper-200 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8c7b6b]"
           :class="item.photoUrls[0] ? '' : 'cursor-default'"
@@ -287,15 +324,15 @@ const rowTint = computed<string>(() =>
           <img v-if="item.photoUrls[0]" :src="item.photoUrls[0]" :alt="item.name" class="w-full h-full object-cover" />
           <span
             v-if="item.photoUrls.length > 1"
-            class="absolute bottom-0 right-0 bg-[#3d342b] text-white text-[9px] px-1.5 py-0.5 rounded-tl"
+            class="absolute bottom-0 right-0 bg-[#3d342b] text-white text-[9px] px-1 rounded-tl"
           >
             {{ item.photoUrls.length }}
           </span>
-          <span v-else class="text-paper-300 scale-110" v-html="icon('catalog')"></span>
+          <span v-else class="text-paper-300 scale-90" v-html="icon('catalog')"></span>
         </div>
         <button
           type="button"
-          class="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full border border-paper-200 shadow-sm flex items-center justify-center text-paper-500 hover:text-ink hover:border-paper-300"
+          class="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full border border-paper-200 shadow-sm flex items-center justify-center text-paper-500 hover:text-ink hover:border-paper-300"
           title="上传照片"
           @click.stop="fileInput?.click()"
         >
@@ -344,26 +381,50 @@ const rowTint = computed<string>(() =>
       <span v-else class="text-sm text-paper-600">{{ item.customerNote || '—' }}</span>
     </td>
 
-    <!-- 客户链接（仅客户视角可见/可点击） -->
-    <td v-if="isCustomer" class="px-4 py-3 w-28 align-middle">
-      <div class="flex items-center gap-1.5">
-        <template v-if="item.links.length === 0">
-          <span class="text-xs text-paper-300">—</span>
-        </template>
-        <template v-else>
-          <a
-            v-for="(url, idx) in item.links.slice(0, 2)"
-            :key="idx"
-            :href="url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-paper-100 text-coral-700 hover:bg-coral-50 hover:text-coral-800 transition-colors"
-            :title="url"
-          >
-            <span class="scale-90" v-html="icon('link')"></span>
-          </a>
-          <span v-if="item.links.length > 2" class="text-[10px] text-paper-500">+{{ item.links.length - 2 }}</span>
-        </template>
+    <!-- 客户链接（仅客户视角可见/可点击；空态也展示紧凑 🔗 图标，与管理态同步） -->
+    <td v-if="isCustomer" class="px-4 py-3 w-20 align-middle">
+      <div class="flex items-center justify-center">
+        <DropdownMenuRoot v-if="item.links.length > 0">
+          <DropdownMenuTrigger as-child>
+            <button
+              type="button"
+              class="relative inline-flex items-center justify-center w-8 h-8 rounded-full border transition-colors bg-coral-50 border-coral-200 text-coral-700 hover:bg-coral-100"
+              :title="`${item.links.length} 个客户链接`"
+            >
+              <span class="scale-90" v-html="icon('link')"></span>
+              <span
+                v-if="item.links.length > 1"
+                class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-coral-600 text-white text-[9px] rounded-full flex items-center justify-center border border-white"
+              >
+                {{ item.links.length }}
+              </span>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuPortal>
+            <DropdownMenuContent align="start" class="min-w-[16rem]">
+              <DropdownMenuLabel>产品链接</DropdownMenuLabel>
+              <DropdownMenuItem
+                v-for="(url, idx) in item.links"
+                :key="idx"
+                as="a"
+                :href="url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="block truncate"
+                :title="url"
+              >
+                <span class="truncate">{{ url }}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenuPortal>
+        </DropdownMenuRoot>
+        <span
+          v-else
+          class="inline-flex items-center justify-center w-8 h-8 rounded-full border border-paper-200 bg-paper-100 text-paper-400"
+          title="无客户链接"
+        >
+          <span class="scale-90" v-html="icon('link')"></span>
+        </span>
       </div>
     </td>
 
@@ -580,26 +641,41 @@ const rowTint = computed<string>(() =>
     </td>
   </tr>
 
-  <!-- 照片展开行（管理态 + 有照片时显示缩略，支持删除任意一张） -->
+  <!-- 照片展开行（本行 + 有照片时显示大图；客户视角也可见，管理态可删除、可拖动缩放） -->
   <tr
-    v-if="!isCustomer && item.photoUrls.length > 0"
+    v-if="item.photoUrls.length > 0"
     class="border-b border-paper-200/60 bg-paper-50/30"
     :style="{ backgroundColor: rowTint }"
   >
     <td></td>
     <td :colspan="isCustomer ? 8 : 13" class="px-4 py-3">
-      <div class="flex items-center gap-2 flex-wrap">
+      <div class="flex items-start gap-2 flex-wrap">
         <div
           v-for="(url, idx) in item.photoUrls"
           :key="idx"
-          class="relative w-24 h-24 rounded overflow-hidden border border-paper-200 group"
+          class="relative rounded overflow-hidden border border-paper-200 group"
+          :style="{
+            width: `${photoSizes[idx]?.width ?? DEFAULT_PHOTO_SIZE}px`,
+            height: `${photoSizes[idx]?.height ?? DEFAULT_PHOTO_SIZE}px`,
+          }"
         >
-          <img :src="url" class="w-full h-full object-cover" />
+          <img :src="url" class="w-full h-full object-cover pointer-events-none select-none" />
           <button
+            v-if="!isCustomer"
             class="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 text-white text-sm"
             @click="removePhoto(idx)"
           >
             ×
+          </button>
+          <!-- 缩放手柄（管理态） -->
+          <button
+            v-if="!isCustomer"
+            type="button"
+            class="absolute bottom-0 right-0 w-4 h-4 bg-white/90 border-t border-l border-paper-200 text-paper-500 hover:text-ink flex items-center justify-center cursor-se-resize"
+            title="拖动调整大小"
+            @pointerdown="startResize($event, idx)"
+          >
+            <span class="scale-[0.55]" v-html="icon('grip')"></span>
           </button>
         </div>
       </div>

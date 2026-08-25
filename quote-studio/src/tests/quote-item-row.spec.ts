@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
-import { mount } from '@vue/test-utils';
+import { mount, flushPromises } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import QuoteItemRow from '@/modules/quotation/components/QuoteItemRow.vue';
 import type { QuoteItem } from '@/modules/quotation/types';
@@ -207,21 +207,42 @@ describe('客户链接字段显示逻辑', () => {
     expect(wrapper.findAll('input').find((i) => i.attributes('placeholder') === '客户链接')).toBeFalsy();
   });
 
-  it('客户视角：有链接时渲染可点击图标，无链接时显示占位', () => {
+  it('客户视角：有链接时渲染可点击图标，无链接时也展示紧凑 🔗 图标', async () => {
     const withLink = mount(QuoteItemRow, {
       props: { item: makeRow({ links: ['https://example.com/p/1'] }), qid: 'q1', isCustomer: true },
       global: globalMount(),
+      attachTo: document.body,
     });
-    const a = withLink.find('a');
-    expect(a.exists()).toBe(true);
-    expect(a.attributes('href')).toBe('https://example.com/p/1');
+    const linkBtn = withLink.findAll('button').find((b) => b.attributes('title')?.includes('客户链接'));
+    expect(linkBtn).toBeTruthy();
+    await linkBtn!.trigger('click');
+    await flushPromises();
+    const a = document.querySelector('a[href="https://example.com/p/1"]');
+    expect(a).toBeTruthy();
 
     const withoutLink = mount(QuoteItemRow, {
       props: { item: makeRow({ links: [] }), qid: 'q1', isCustomer: true },
       global: globalMount(),
     });
-    expect(withoutLink.find('a').exists()).toBe(false);
-    expect(withoutLink.text()).toContain('—');
+    const emptyIcon = withoutLink.find('[title="无客户链接"]');
+    expect(emptyIcon.exists()).toBe(true);
+    // 链接单元格自身不应再显示旧占位符
+    expect(withoutLink.findAll('td')[5].text()).not.toContain('—');
+  });
+});
+
+describe('客户视角照片展开行', () => {
+  it('客户视角也渲染第二行照片列表', () => {
+    const wrapper = mount(QuoteItemRow, {
+      props: {
+        item: makeRow({ photoUrls: ['data:image/png;base64,aaa', 'data:image/png;base64,bbb'] }),
+        qid: 'q1',
+        isCustomer: true,
+      },
+      global: globalMount(),
+    });
+    const photoRows = wrapper.findAll('img');
+    expect(photoRows.length).toBeGreaterThan(1);
   });
 });
 

@@ -70,7 +70,6 @@ function globalMount() {
   return {
     plugins: [pinia],
     directives: { 'focus-next': vFocusNext },
-    stubs: { Input: { template: '<input />' } },
   };
 }
 
@@ -155,6 +154,44 @@ describe('#5 数量步进按钮', () => {
     expect(minus!.attributes('disabled')).toBeDefined();
     await minus!.trigger('click');
     expect(q.items[0].quantity).toBe(1);
+  });
+});
+
+describe('默认数值渲染', () => {
+  it('空白行也应在输入框内显示默认值（quantity=1, dto=0, iva=21）', async () => {
+    const qs = useQuotationStore();
+    const ss = useSettingsStore();
+    ss.hydrate();
+    const q = qs.getOrCreate('p1');
+    qs.addItem(q.id, {
+      quotationId: q.id,
+      categoryGroupId: 'cg',
+      name: '',
+      nameEs: '',
+      model: '',
+      photoUrls: [],
+      customerNote: '',
+      internalNote: '',
+      cost: 0,
+      margin: 0,
+      salePrice: 0,
+      quantity: 1,
+      unit: '件',
+      salePriceUnit: '',
+      dtoPct: 0,
+      ivaPct: 21,
+      statusId: '',
+    } as Omit<QuoteItem, 'id' | 'lineTotal' | 'quotationId'>);
+    const item = q.items[0];
+    const wrapper = mount(QuoteItemRow, {
+      props: { item, qid: q.id, isCustomer: false },
+      global: globalMount(),
+    });
+    const inputs = wrapper.findAll('input');
+    const qty = inputs.find((i) => i.attributes('title') === '数量' || i.attributes('type') === 'number');
+    expect(inputs.some((i) => i.element.value === '1')).toBe(true);
+    expect(inputs.some((i) => i.element.value === '0')).toBe(true);
+    expect(inputs.some((i) => i.element.value === '21')).toBe(true);
   });
 });
 

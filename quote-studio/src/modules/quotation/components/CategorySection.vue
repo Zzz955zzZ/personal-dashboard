@@ -42,6 +42,8 @@ function onSelectNewGroup(val: string): void {
 /* ---- 行内产品模板下拉选择 ---- */
 const showProductSelect = ref(false);
 const selectedProductId = ref('');
+const addedHint = ref('');
+let hintTimer: ReturnType<typeof setTimeout> | null = null;
 
 function emptyTemplate(): ProductTemplate {
   return {
@@ -61,12 +63,24 @@ function onSelectProduct(val: string): void {
   if (!props.group) return;
   if (val === '__new__') {
     emit('add-templates', props.group.id, [emptyTemplate()]);
+    flashHint('已添加空白产品行');
   } else if (val) {
     const t = props.group.products.find((p) => p.id === val);
-    if (t) emit('add-templates', props.group.id, [t]);
+    if (t) {
+      emit('add-templates', props.group.id, [t]);
+      flashHint(`已添加「${t.name || '未命名模板'}」`);
+    }
   }
   selectedProductId.value = '';
   // 保持展开，方便连续添加同一产品；Select 关闭后用户可再次点开
+}
+
+function flashHint(text: string): void {
+  addedHint.value = text;
+  if (hintTimer) clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => {
+    addedHint.value = '';
+  }, 1500);
 }
 
 function toggleProductSelect(): void {
@@ -153,9 +167,11 @@ function toggleProductSelect(): void {
               :is-customer="isCustomer"
             />
             <tr v-if="items.length === 0 && !showProductSelect">
-              <td :colspan="isCustomer ? 8 : 13" class="px-4 py-8 text-center text-sm text-paper-400">
-                该分类暂无产品。
-                <button v-if="!isCustomer" class="text-ink underline underline-offset-2 ml-1" @click="toggleProductSelect">添加一个</button>
+              <td :colspan="isCustomer ? 8 : 13" class="px-4 py-8 text-sm text-paper-400">
+                <div class="flex items-center gap-2">
+                  <span>该分类暂无产品。</span>
+                  <button v-if="!isCustomer" class="text-ink underline underline-offset-2" @click="toggleProductSelect">添加一个</button>
+                </div>
               </td>
             </tr>
 
@@ -168,7 +184,6 @@ function toggleProductSelect(): void {
                       <SelectValue placeholder="选择产品模板…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__new__" class="text-xs">+ 录入新产品</SelectItem>
                       <SelectItem
                         v-for="t in group.products"
                         :key="t.id"
@@ -177,8 +192,11 @@ function toggleProductSelect(): void {
                       >
                         {{ t.name || '未命名模板' }}{{ t.model ? ' · ' + t.model : '' }} · {{ formatEUR(t.defaultSalePrice) }}{{ t.defaultUnit ? ' / ' + t.defaultUnit : '' }}
                       </SelectItem>
+                      <SelectItem disabled value="__sep__" class="text-xs py-0 h-px bg-paper-200 pointer-events-none" />
+                      <SelectItem value="__new__" class="text-xs font-medium text-coral-700">+ 录入空白新产品</SelectItem>
                     </SelectContent>
                   </Select>
+                  <span v-if="addedHint" class="text-[11px] text-coral-700 animate-pulse">{{ addedHint }}</span>
                   <button
                     type="button"
                     class="text-[11px] text-paper-500 hover:text-ink px-2 py-1 rounded hover:bg-paper-100 transition-colors"
@@ -207,7 +225,7 @@ function toggleProductSelect(): void {
               <td :colspan="isCustomer ? 8 : 13" class="px-3 py-1.5">
                 <button
                   type="button"
-                  class="w-full flex items-center justify-center gap-1.5 text-[11px] text-paper-400 hover:text-ink py-1 rounded border border-paper-200 hover:border-paper-300 hover:bg-paper-50 transition-colors"
+                  class="flex items-center gap-1.5 text-[11px] text-paper-400 hover:text-ink py-1 px-2 rounded border border-paper-200 hover:border-paper-300 hover:bg-paper-50 transition-colors"
                   @click="toggleProductSelect"
                 >
                   <span v-html="icon('plus')"></span> 添加产品

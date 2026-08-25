@@ -10,6 +10,7 @@ import { setActivePinia, createPinia } from 'pinia';
 
 import { useQuotationStore, recalc } from '@/modules/quotation/store/quotation-store';
 import { useRevenueStore } from '@/modules/revenue/store/revenue-store';
+import { useSettingsStore } from '@/modules/settings';
 import { normalizeQuoteItem, normalizeQuotation } from '@/modules/quotation/store/persistence';
 import type { QuoteItem, Quotation } from '@/modules/quotation/types';
 import { genId, nowIso } from '@/shared/util';
@@ -189,6 +190,66 @@ describe('confirmQuotation 触发收益同步（强约束 #4）', () => {
     qs.unconfirmQuotation(q.id);
     expect(rev.byProject('p1').length).toBe(0);
     expect(q.status).toBe('draft');
+  });
+});
+
+/* ============================ 添加产品默认值 ============================ */
+describe('添加产品时字段默认值与模板填充', () => {
+  it('addItem：未传 quantity 时默认 1，iva 默认 21，dto 默认 0', () => {
+    const qs = useQuotationStore();
+    const q = qs.getOrCreate('p1');
+    qs.addItem(q.id, {
+      quotationId: q.id,
+      categoryGroupId: 'cg',
+      name: '测试',
+      nameEs: '',
+      model: '',
+      photoUrls: [],
+      customerNote: '',
+      internalNote: '',
+      cost: 100,
+      margin: 0,
+      salePrice: 120,
+      quantity: 0,
+      unit: '件',
+      dtoPct: 0,
+      ivaPct: 0,
+      statusId: '',
+    } as Omit<QuoteItem, 'id' | 'lineTotal' | 'quotationId'>);
+    const it = q.items[0];
+    expect(it.quantity).toBe(1);
+    expect(it.ivaPct).toBe(21);
+    expect(it.dtoPct).toBe(0);
+  });
+
+  it('addItemsFromTemplates：正确拷贝模板字段并填充业务默认值', () => {
+    const qs = useQuotationStore();
+    const ss = useSettingsStore();
+    ss.hydrate();
+    const q = qs.getOrCreate('p1');
+    const g = ss.addCategoryGroup({ name: '灯具', nameEs: 'Iluminación' });
+    const t = ss.addProductTemplate(g.id, {
+      name: 'Tira led 3000k',
+      model: '(5m)',
+      note: '备注内容',
+      defaultCost: 50,
+      defaultSalePrice: 80,
+      defaultUnit: 'Uds.',
+    });
+    qs.addItemsFromTemplates(q.id, g.id, [t]);
+
+    expect(q.items.length).toBe(1);
+    const it = q.items[0];
+    expect(it.name).toBe('Tira led 3000k');
+    expect(it.model).toBe('(5m)');
+    expect(it.customerNote).toBe('备注内容');
+    expect(it.cost).toBe(50);
+    expect(it.salePrice).toBe(80);
+    expect(it.quantity).toBe(1);
+    expect(it.unit).toBe('Uds.');
+    expect(it.ivaPct).toBe(21);
+    expect(it.dtoPct).toBe(0);
+    expect(it.salePriceUnit).toBe('件'); // defaultSalePriceUnit 默认件
   });
 });
 

@@ -243,24 +243,34 @@ const rowTint = computed<string>(() =>
       </div>
     </td>
 
-    <!-- 照片 -->
+    <!-- 照片：主区域预览/粘贴，右下角小按钮触发文件上传 -->
     <td class="px-4 py-3 w-14">
-      <div
-        class="relative w-11 h-11 rounded bg-paper-100 overflow-hidden flex items-center justify-center shrink-0 cursor-pointer hover:bg-paper-200 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8c7b6b]"
-        title="点击上传照片；悬停该行后 Ctrl+V 可粘贴截图"
-        @click="fileInput?.click()"
-        tabindex="0"
-      >
-        <img v-if="item.photoUrls[0]" :src="item.photoUrls[0]" :alt="item.name" class="w-full h-full object-cover" />
-        <span
-          v-if="item.photoUrls.length > 1"
-          class="absolute bottom-0 right-0 bg-[#3d342b] text-white text-[9px] px-1 rounded-tl"
+      <div class="relative w-11 h-11">
+        <div
+          class="relative w-full h-full rounded bg-paper-100 overflow-hidden flex items-center justify-center shrink-0 hover:bg-paper-200 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8c7b6b]"
+          :class="item.photoUrls[0] ? '' : 'cursor-default'"
+          title="悬停该行后 Ctrl+V 可粘贴截图"
+          tabindex="0"
         >
-          {{ item.photoUrls.length }}
-        </span>
-        <span v-else class="text-paper-300 scale-90" v-html="icon('catalog')"></span>
+          <img v-if="item.photoUrls[0]" :src="item.photoUrls[0]" :alt="item.name" class="w-full h-full object-cover" />
+          <span
+            v-if="item.photoUrls.length > 1"
+            class="absolute bottom-0 right-0 bg-[#3d342b] text-white text-[9px] px-1 rounded-tl"
+          >
+            {{ item.photoUrls.length }}
+          </span>
+          <span v-else class="text-paper-300 scale-90" v-html="icon('catalog')"></span>
+        </div>
+        <button
+          type="button"
+          class="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full border border-paper-200 shadow-sm flex items-center justify-center text-paper-500 hover:text-ink hover:border-paper-300"
+          title="上传照片"
+          @click.stop="fileInput?.click()"
+        >
+          <span class="scale-75" v-html="icon('plus')"></span>
+        </button>
+        <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onPhotoFile" />
       </div>
-      <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onPhotoFile" />
     </td>
 
     <!-- 产品 -->
@@ -316,7 +326,7 @@ const rowTint = computed<string>(() =>
           />
           <Select v-model="salePriceUnitModel">
             <SelectTrigger
-              class="h-7 text-[11px] border-paper-200 bg-transparent px-1.5 py-0 w-[3.5rem] hover:border-paper-300 focus:ring-0 focus:ring-offset-0"
+              class="h-7 text-[11px] border-paper-200 bg-transparent px-1.5 py-0 min-w-[4rem] w-auto whitespace-nowrap hover:border-paper-300 focus:ring-0 focus:ring-offset-0"
             >
               <SelectValue />
             </SelectTrigger>
@@ -367,7 +377,7 @@ const rowTint = computed<string>(() =>
           </div>
           <Select v-model="unitModel">
             <SelectTrigger
-              class="h-7 text-[11px] border-paper-200 bg-transparent px-1.5 py-0 w-[3.5rem] hover:border-paper-300 focus:ring-0 focus:ring-offset-0"
+              class="h-7 text-[11px] border-paper-200 bg-transparent px-1.5 py-0 min-w-[3.5rem] w-auto whitespace-nowrap hover:border-paper-300 focus:ring-0 focus:ring-offset-0"
             >
               <SelectValue />
             </SelectTrigger>

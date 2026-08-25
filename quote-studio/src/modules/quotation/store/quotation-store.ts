@@ -168,6 +168,7 @@ export const useQuotationStore = defineStore('quotation', () => {
       ...item,
       id: genId('qi'),
       quotationId: qid,
+      quantity: Number(item.quantity) > 0 ? Number(item.quantity) : 1,
       salePriceUnit: item.salePriceUnit || settings.settings.defaultSalePriceUnit || settings.settings.defaultUnit,
       ivaPct,
       dtoPct,

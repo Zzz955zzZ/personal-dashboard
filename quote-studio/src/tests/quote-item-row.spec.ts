@@ -52,6 +52,7 @@ function makeRow(over: Partial<QuoteItem> = {}): QuoteItem {
     model: '',
     photoUrls: [],
     customerNote: '',
+    links: [],
     internalNote: '',
     cost: 100,
     margin: 20,
@@ -113,6 +114,7 @@ function addRowToStore(over: Partial<QuoteItem> = {}): QuoteItem {
     model: '',
     photoUrls: [],
     customerNote: '',
+    links: [],
     internalNote: '',
     cost: 100,
     margin: 20,
@@ -171,6 +173,7 @@ describe('默认数值渲染', () => {
       model: '',
       photoUrls: [],
       customerNote: '',
+      links: [],
       internalNote: '',
       cost: 0,
       margin: 0,
@@ -195,18 +198,18 @@ describe('默认数值渲染', () => {
 });
 
 describe('客户链接字段显示逻辑', () => {
-  it('管理态：渲染可编辑的「客户链接」输入框', () => {
+  it('管理态：链接以紧凑 🔗 按钮呈现', () => {
     const wrapper = mount(QuoteItemRow, {
-      props: { item: makeRow(), qid: 'q1', isCustomer: false },
+      props: { item: makeRow({ links: ['https://example.com/p/1'] }), qid: 'q1', isCustomer: false },
       global: globalMount(),
     });
-    const linkInput = wrapper.findAll('input').find((i) => i.attributes('placeholder') === '客户链接');
-    expect(linkInput).toBeTruthy();
+    expect(wrapper.findAll('button').some((b) => b.attributes('title')?.includes('客户链接'))).toBe(true);
+    expect(wrapper.findAll('input').find((i) => i.attributes('placeholder') === '客户链接')).toBeFalsy();
   });
 
-  it('客户视角：有链接时渲染可点击锚点，无链接时显示占位', () => {
+  it('客户视角：有链接时渲染可点击图标，无链接时显示占位', () => {
     const withLink = mount(QuoteItemRow, {
-      props: { item: makeRow({ link: 'https://example.com/p/1' }), qid: 'q1', isCustomer: true },
+      props: { item: makeRow({ links: ['https://example.com/p/1'] }), qid: 'q1', isCustomer: true },
       global: globalMount(),
     });
     const a = withLink.find('a');
@@ -214,19 +217,11 @@ describe('客户链接字段显示逻辑', () => {
     expect(a.attributes('href')).toBe('https://example.com/p/1');
 
     const withoutLink = mount(QuoteItemRow, {
-      props: { item: makeRow({ link: '' }), qid: 'q1', isCustomer: true },
+      props: { item: makeRow({ links: [] }), qid: 'q1', isCustomer: true },
       global: globalMount(),
     });
     expect(withoutLink.find('a').exists()).toBe(false);
     expect(withoutLink.text()).toContain('—');
-  });
-
-  it('客户视角：不渲染「客户链接」输入框（只读展示）', () => {
-    const wrapper = mount(QuoteItemRow, {
-      props: { item: makeRow(), qid: 'q1', isCustomer: true },
-      global: globalMount(),
-    });
-    expect(wrapper.findAll('input').find((i) => i.attributes('placeholder') === '客户链接')).toBeFalsy();
   });
 });
 

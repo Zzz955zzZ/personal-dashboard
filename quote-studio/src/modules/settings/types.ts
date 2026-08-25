@@ -65,7 +65,7 @@ export interface ProductTemplate {
   nameEs: string; // 西文名称（PDF 用）
   model: string; // 型号
   note: string; // 备注
-  link?: string; // 客户可见链接（可选，添加到报价单时带入）
+  links: string[]; // 客户可见链接（添加到报价单时带入）
   defaultCost: number; // 默认成本
   defaultSalePrice: number; // 默认售价
   defaultUnit: string; // 默认单位

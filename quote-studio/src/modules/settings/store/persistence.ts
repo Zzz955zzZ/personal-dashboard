@@ -120,12 +120,16 @@ export function normalizeProductTemplate(raw: unknown): ProductTemplate | null {
     : [];
   const legacy = str(raw.photoUrl, 4000);
   const photoUrls = arr.length > 0 ? arr : legacy ? [legacy] : [];
+  const links = Array.isArray(raw.links)
+    ? raw.links.map((u) => str(u, 4000)).filter(Boolean)
+    : (str(raw.link, 4000) ? [str(raw.link, 4000)] : []);
   return {
     id: raw.id,
     name: str(raw.name, 300) || '新产品模板',
     nameEs: str(raw.nameEs, 300),
     model: str(raw.model, 300),
     note: str(raw.note, 2000),
+    links,
     defaultCost: num(raw.defaultCost),
     defaultSalePrice: num(raw.defaultSalePrice),
     defaultUnit: normalizeUnitInput(str(raw.defaultUnit, 20)) || '',

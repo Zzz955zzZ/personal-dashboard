@@ -52,6 +52,7 @@ function emptyTemplate(): ProductTemplate {
     nameEs: '',
     model: '',
     note: '',
+    links: [],
     defaultCost: 0,
     defaultSalePrice: 0,
     defaultUnit: '',
@@ -144,7 +145,7 @@ function toggleProductSelect(): void {
           <thead>
             <tr class="bg-paper-50/80 text-paper-500 text-[11px] uppercase tracking-wide border-b border-paper-200">
               <th class="px-3 py-2.5 text-left font-medium w-24">状态</th>
-              <th class="px-4 py-2.5 text-left font-medium w-14">照片</th>
+              <th class="px-4 py-2.5 text-left font-medium w-[6.5rem]">照片</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[140px]">产品</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[120px]">型号</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[160px]">备注</th>
@@ -157,7 +158,9 @@ function toggleProductSelect(): void {
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">DTO%</th>
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">IVA%</th>
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60">利润</th>
-              <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium min-w-[160px] border-l border-paper-200 bg-paper-50/60">链接</th>
+              <th v-if="!isCustomer" class="px-3 py-2.5 text-center font-medium w-16 border-l border-paper-200 bg-paper-50/60">
+                <span class="inline-flex scale-90" v-html="icon('link')"></span>
+              </th>
             </tr>
           </thead>
           <tbody>

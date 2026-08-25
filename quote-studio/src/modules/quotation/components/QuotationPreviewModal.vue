@@ -97,6 +97,16 @@ const dtoPct = computed(() =>
   totals.value.neto > 0 ? (totals.value.dto / totals.value.neto) * 100 : 0,
 );
 
+const accentBg = computed(() =>
+  settings.settings.pdfTemplate.accentColor === 'brown' ? 'bg-[#5C4F42]' : 'bg-[#1A1A1A]',
+);
+const accentBorder = computed(() =>
+  settings.settings.pdfTemplate.accentColor === 'brown' ? 'border-[#5C4F42]' : 'border-[#1A1A1A]',
+);
+const accentText = computed(() =>
+  settings.settings.pdfTemplate.accentColor === 'brown' ? 'text-[#5C4F42]' : 'text-[#1A1A1A]',
+);
+
 function exportExcel(): void {
   exportQuotationToExcel({
     quotation: filteredQuotation.value,
@@ -223,63 +233,55 @@ function toggleGroup(groupId: string): void {
 
       <!-- 打印区域 -->
       <div class="print-area bg-white text-ink p-6 sm:p-8">
-        <!-- 公司抬头 -->
-        <header
-          class="flex items-start justify-between gap-4 pb-4 border-b-2"
-          :class="settings.settings.pdfTemplate.accentColor === 'brown' ? 'border-[#5C4F42]' : 'border-[#1A1A1A]'"
-        >
-          <div class="flex items-center gap-4">
-            <img
-              v-if="settings.settings.pdfTemplate.showLogo && settings.companyProfile.logoUrl"
-              :src="settings.companyProfile.logoUrl"
-              alt="logo"
-              class="h-14 w-auto object-contain"
-            />
-            <div>
-              <div class="text-xl font-bold tracking-wide">{{ settings.companyProfile.name || '工作室' }}</div>
-              <div v-if="settings.companyProfile.slogan" class="text-xs text-paper-500 mt-0.5">
-                {{ settings.companyProfile.slogan }}
+        <!-- 页眉：品牌信息 + 报价单信息 -->
+        <header class="flex flex-col gap-4 pb-5 border-b-2" :class="accentBorder">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex items-center gap-4 min-w-0">
+              <img
+                v-if="settings.settings.pdfTemplate.showLogo && settings.companyProfile.logoUrl"
+                :src="settings.companyProfile.logoUrl"
+                alt="logo"
+                class="h-20 w-auto object-contain shrink-0"
+              />
+              <div class="min-w-0">
+                <div class="text-2xl font-bold tracking-wide text-ink">{{ settings.companyProfile.name || '工作室' }}</div>
+                <div v-if="settings.companyProfile.slogan" class="text-sm text-paper-500 mt-1">
+                  {{ settings.companyProfile.slogan }}
+                </div>
+              </div>
+            </div>
+            <div class="text-right text-xs text-paper-600 leading-relaxed max-w-xs shrink-0">
+              <div v-if="settings.companyProfile.address">{{ settings.companyProfile.address }}</div>
+              <div v-if="settings.companyProfile.phone || settings.companyProfile.email">
+                {{ [settings.companyProfile.phone, settings.companyProfile.email].filter(Boolean).join(' · ') }}
+              </div>
+              <div v-if="settings.companyProfile.taxId">NIF/CIF: {{ settings.companyProfile.taxId }}</div>
+            </div>
+          </div>
+
+          <!-- 报价单信息卡 -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="p-3 rounded bg-paper-50 border border-paper-200">
+              <div class="text-[10px] uppercase tracking-wide text-paper-400 mb-1">Presupuesto / 报价单</div>
+              <div class="text-lg font-bold tabular-nums" :class="accentText">{{ filteredQuotation.quoteNumber || '—' }}</div>
+              <div class="text-xs text-paper-500 mt-1">Fecha / 日期：{{ formatDate(filteredQuotation.updatedAt) }}</div>
+            </div>
+            <div class="p-3 rounded bg-paper-50 border border-paper-200 space-y-1">
+              <div v-if="filteredQuotation.projectNo || project.projectNo" class="text-xs">
+                <span class="text-paper-400">Proyecto / 项目：</span>
+                <span class="font-medium">{{ filteredQuotation.projectNo || project.projectNo }}</span>
+              </div>
+              <div class="text-xs">
+                <span class="text-paper-400">Cliente / 客户：</span>
+                <span class="font-medium">{{ filteredQuotation.clientName || project.clientName || '—' }}</span>
+              </div>
+              <div v-if="filteredQuotation.address || project.address" class="text-xs">
+                <span class="text-paper-400">Dirección / 地址：</span>
+                <span class="font-medium">{{ filteredQuotation.address || project.address }}</span>
               </div>
             </div>
           </div>
-          <div class="text-right text-xs text-paper-600 leading-relaxed">
-            <div v-if="settings.companyProfile.address">{{ settings.companyProfile.address }}</div>
-            <div v-if="settings.companyProfile.phone || settings.companyProfile.email">
-              {{ [settings.companyProfile.phone, settings.companyProfile.email].filter(Boolean).join(' · ') }}
-            </div>
-            <div v-if="settings.companyProfile.taxId">NIF/CIF: {{ settings.companyProfile.taxId }}</div>
-          </div>
         </header>
-
-        <!-- 红色标题栏：PRESUPUESTO DE OBRA -->
-        <div class="mt-3 bg-[#B23A2E] text-white px-4 py-2.5 flex items-center justify-between">
-          <span class="text-base font-bold tracking-widest uppercase">Presupuesto de Obra</span>
-          <span class="text-xs font-medium">{{ filteredQuotation.quoteNumber || '—' }}</span>
-        </div>
-
-        <!-- 项目信息条 -->
-        <div class="mt-4 bg-paper-50 rounded px-4 py-3 flex flex-wrap gap-y-2 gap-x-8 text-sm">
-          <div v-if="quotation.projectNo">
-            <div class="text-[10px] uppercase tracking-wide text-paper-400">N.º de Proyecto / 项目编号</div>
-            <div class="font-medium">{{ quotation.projectNo }}</div>
-          </div>
-          <div>
-            <div class="text-[10px] uppercase tracking-wide text-paper-400">Cliente / 客户</div>
-            <div class="font-medium">{{ quotation.clientName || project.clientName || '—' }}</div>
-          </div>
-          <div>
-            <div class="text-[10px] uppercase tracking-wide text-paper-400">Proyecto / 项目</div>
-            <div class="font-medium">{{ project.projectNo || project.name }}</div>
-          </div>
-          <div v-if="quotation.address || project.address">
-            <div class="text-[10px] uppercase tracking-wide text-paper-400">Dirección / 地址</div>
-            <div class="font-medium">{{ quotation.address || project.address }}</div>
-          </div>
-          <div>
-            <div class="text-[10px] uppercase tracking-wide text-paper-400">Fecha / 日期</div>
-            <div class="font-medium">{{ formatDate(quotation.updatedAt) }}</div>
-          </div>
-        </div>
 
         <!-- 分类表格 -->
         <div class="mt-6 space-y-5">
@@ -289,53 +291,60 @@ function toggleGroup(groupId: string): void {
             </h3>
             <table class="w-full text-[11pt] border-collapse">
               <thead>
-                <tr class="bg-[#1A1A1A] text-white text-left">
-                  <th class="px-2 py-1.5 font-semibold w-[4%]">#</th>
-                  <th class="px-2 py-1.5 font-semibold w-[26%]">Concepto / 项目</th>
-                  <th class="px-2 py-1.5 font-semibold w-[22%]">Descripción / 描述</th>
-                  <th class="px-2 py-1.5 font-semibold w-[8%]">Ud.</th>
-                  <th class="px-2 py-1.5 font-semibold w-[12%] text-right">P.U. (€/ud)</th>
-                  <th class="px-2 py-1.5 font-semibold w-[8%] text-right">Cant.</th>
-                  <th class="px-2 py-1.5 font-semibold w-[7%] text-right">Dto %</th>
-                  <th class="px-2 py-1.5 font-semibold w-[7%] text-right">IVA %</th>
-                  <th class="px-2 py-1.5 font-semibold w-[10%] text-right">Total (€)</th>
+                <tr class="text-white text-left" :class="accentBg">
+                  <th class="px-2 py-1.5 font-semibold w-[3%]">#</th>
+                  <th class="px-2 py-1.5 font-semibold w-[8%]">Foto</th>
+                  <th class="px-2 py-1.5 font-semibold w-[18%]">Concepto / 项目</th>
+                  <th class="px-2 py-1.5 font-semibold w-[12%]">Modelo / 型号</th>
+                  <th class="px-2 py-1.5 font-semibold w-[16%]">Descripción / 描述</th>
+                  <th class="px-2 py-1.5 font-semibold w-[10%]">Link(s) / 链接</th>
+                  <th class="px-2 py-1.5 font-semibold w-[11%] text-right">Precio / 售价</th>
+                  <th class="px-2 py-1.5 font-semibold w-[10%] text-right">Cant. / 数量</th>
+                  <th class="px-2 py-1.5 font-semibold w-[10%] text-right">Total / 小计</th>
                 </tr>
               </thead>
               <tbody>
-                <template v-for="(it, ii) in pg.items" :key="it.id">
-                  <tr class="border-b border-paper-100 align-top">
-                    <td class="px-2 py-2">{{ String(gi + 1) }}.{{ String(ii + 1) }}</td>
-                    <td class="px-2 py-2">
-                      <div class="font-medium">{{ it.name }}</div>
-                      <div v-if="it.nameEs" class="text-[9pt] text-paper-500">{{ it.nameEs }}</div>
-                      <div v-if="it.model" class="text-[9pt] text-paper-500">{{ it.model }}</div>
-                    </td>
-                    <td class="px-2 py-2 text-paper-600">
-                      {{ it.customerNote || '—' }}
-                    </td>
-                    <td class="px-2 py-2">{{ it.unit || '—' }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums">{{ formatEUR(it.salePrice) }}</td>
-                    <td class="px-2 py-2 text-right">{{ it.quantity }}</td>
-                    <td class="px-2 py-2 text-right tabular-nums text-paper-600">{{ Number(it.dtoPct) || 0 }}%</td>
-                    <td class="px-2 py-2 text-right tabular-nums text-paper-600">{{ Number(it.ivaPct) || 0 }}%</td>
-                    <td class="px-2 py-2 text-right font-semibold tabular-nums">{{ formatEUR(it.lineTotal) }}</td>
-                  </tr>
-                  <!-- 产品照片 -->
-                  <tr v-if="it.photoUrls.length > 0" class="border-b border-paper-100 align-top">
-                    <td class="px-2 py-2"></td>
-                    <td colspan="8" class="px-2 py-2">
-                      <div class="flex gap-2 flex-wrap">
-                        <img
-                          v-for="(url, pi) in it.photoUrls"
-                          :key="pi"
-                          :src="url"
-                          class="h-32 w-auto object-cover rounded border border-paper-200"
-                          :alt="`${it.name} 照片 ${pi + 1}`"
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                </template>
+                <tr v-for="(it, ii) in pg.items" :key="it.id" class="border-b border-paper-100 align-top">
+                  <td class="px-2 py-2">{{ String(gi + 1) }}.{{ String(ii + 1) }}</td>
+                  <td class="px-2 py-2">
+                    <img
+                      v-if="it.photoUrls[0]"
+                      :src="it.photoUrls[0]"
+                      class="h-16 w-16 object-cover rounded border border-paper-200"
+                      :alt="`${it.name} 照片`"
+                    />
+                    <span v-else class="text-paper-300 text-xs">—</span>
+                  </td>
+                  <td class="px-2 py-2">
+                    <div class="font-medium">{{ it.name }}</div>
+                    <div v-if="it.nameEs" class="text-[9pt] text-paper-500">{{ it.nameEs }}</div>
+                  </td>
+                  <td class="px-2 py-2 text-paper-600">{{ it.model || '—' }}</td>
+                  <td class="px-2 py-2 text-paper-600">{{ it.customerNote || '—' }}</td>
+                  <td class="px-2 py-2">
+                    <div v-if="it.links.length === 0" class="text-paper-300 text-xs">—</div>
+                    <div v-else class="flex flex-col gap-0.5">
+                      <a
+                        v-for="(url, idx) in it.links"
+                        :key="idx"
+                        :href="url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="text-[9pt] text-coral-700 hover:underline truncate max-w-[120px]"
+                        :title="url"
+                      >🔗 {{ url }}</a>
+                    </div>
+                  </td>
+                  <td class="px-2 py-2 text-right tabular-nums">
+                    <div>{{ formatEUR(it.salePrice) }}</div>
+                    <div class="text-[9pt] text-paper-500">/ {{ it.salePriceUnit || it.unit || '—' }}</div>
+                  </td>
+                  <td class="px-2 py-2 text-right tabular-nums">
+                    <div>{{ it.quantity }}</div>
+                    <div class="text-[9pt] text-paper-500">{{ it.unit }}</div>
+                  </td>
+                  <td class="px-2 py-2 text-right font-semibold tabular-nums">{{ formatEUR(it.lineTotal) }}</td>
+                </tr>
                 <tr class="bg-[#F0EDE6] font-bold">
                   <td colspan="8" class="px-2 py-2 text-right">Subtotal {{ pg.group.name }}</td>
                   <td class="px-2 py-2 text-right tabular-nums">{{ formatEUR(groupSubtotal(pg.items)) }}</td>
@@ -353,7 +362,7 @@ function toggleGroup(groupId: string): void {
         <div
           v-if="visibleGroups.length > 0"
           class="mt-6 rounded-lg p-4 text-white"
-          :class="settings.settings.pdfTemplate.accentColor === 'brown' ? 'bg-[#5C4F42]' : 'bg-[#1A1A1A]'"
+          :class="accentBg"
         >
           <div class="flex justify-between py-1 text-sm">
             <span class="text-white/70">Neto / 税前小计</span>

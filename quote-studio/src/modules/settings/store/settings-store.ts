@@ -164,6 +164,7 @@ export const useSettingsStore = defineStore('settings', () => {
       nameEs: (payload?.nameEs ?? '').trim(),
       model: (payload?.model ?? '').trim(),
       note: (payload?.note ?? '').trim(),
+      links: Array.isArray(payload?.links) ? payload.links.filter(Boolean) : [],
       defaultCost: Number(payload?.defaultCost) || 0,
       defaultSalePrice: Number(payload?.defaultSalePrice) || 0,
       defaultUnit: (payload?.defaultUnit ?? '').trim() || settings.value.defaultUnit,

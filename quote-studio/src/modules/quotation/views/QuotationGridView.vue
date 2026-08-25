@@ -156,6 +156,7 @@ async function onImportExcel(e: Event): Promise<void> {
         model: row.model,
         photoUrls: row.photoUrl ? [row.photoUrl] : [],
         customerNote: row.customerNote,
+        links: [],
         internalNote: row.internalNote,
         cost: row.cost,
         margin: 0,

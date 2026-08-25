@@ -91,6 +91,7 @@ export async function parseQuotationExcel(
       customerNote: String(raw[colIndex.get('customerNote')!] ?? ''),
       internalNote: String(raw[colIndex.get('internalNote')!] ?? ''),
       status: String(raw[colIndex.get('status')!] ?? ''),
+      links: String(raw[colIndex.get('links')!] ?? ''),
     };
     const base = rowToBaseItem(row, ctx);
     if (!base.categoryGroupId) {

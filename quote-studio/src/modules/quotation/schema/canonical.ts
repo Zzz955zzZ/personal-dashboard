@@ -25,6 +25,7 @@ export interface QuoteItemRow {
   customerNote: string;
   internalNote: string;
   status: string; // 状态名称
+  links: string; // 多个链接用换行分隔
 }
 
 export interface ExcelColumn {
@@ -52,6 +53,7 @@ export const QUOTE_EXCEL_COLUMNS: ExcelColumn[] = [
   { key: 'customerNote', header: '客户备注' },
   { key: 'internalNote', header: '内部备注' },
   { key: 'status', header: '状态' },
+  { key: 'links', header: '客户链接' },
 ];
 
 export interface RowContext {
@@ -112,6 +114,7 @@ export function itemToRow(item: QuoteItem, ctx: RowContext): QuoteItemRow {
     customerNote: item.customerNote,
     internalNote: item.internalNote,
     status: ctx.statusIdToName.get(item.statusId) ?? '',
+    links: (item.links || []).join('\n'),
   };
 }
 
@@ -130,6 +133,7 @@ export function rowToBaseItem(
     photoUrls: [],
     customerNote: row.customerNote?.toString() ?? '',
     internalNote: row.internalNote?.toString() ?? '',
+    links: typeof row.links === 'string' ? row.links.split(/\r?\n/).map((s) => s.trim()).filter(Boolean) : [],
     cost: Number(row.cost) || 0,
     margin: Number(row.margin) || 0,
     salePrice: Number(row.salePrice) || 0,

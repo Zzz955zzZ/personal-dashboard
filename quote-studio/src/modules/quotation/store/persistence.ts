@@ -56,7 +56,9 @@ export function normalizeQuoteItem(raw: unknown): QuoteItem | null {
     model: str(raw.model, 300),
     photoUrls,
     customerNote: str(raw.customerNote, 2000),
-    link: str(raw.link, 2000),
+    links: Array.isArray(raw.links)
+      ? raw.links.map((u) => str(u, 2000)).filter(Boolean)
+      : (str(raw.link, 2000) ? [str(raw.link, 2000)] : []),
     internalNote: str(raw.internalNote, 2000),
     cost,
     margin: salePrice - cost,

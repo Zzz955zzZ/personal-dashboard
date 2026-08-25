@@ -17,6 +17,7 @@ const item: QuoteItem = {
   model: 'M1',
   photoUrls: [],
   customerNote: '大盆',
+  links: [],
   internalNote: '',
   cost: 10,
   margin: 5,

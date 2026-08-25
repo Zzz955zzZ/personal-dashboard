@@ -21,6 +21,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
+import {
+  DialogRoot,
+  DialogTrigger,
+  DialogPortal,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
@@ -38,6 +46,8 @@ const fileInput = ref<HTMLInputElement | null>(null);
 const pendingStatus = ref<string | null>(null);
 const rowRef = ref<HTMLTableRowElement | null>(null);
 const isRowHovered = ref(false);
+const linksOpen = ref(false);
+const draftLinks = ref<string[]>([]);
 
 function update(field: keyof QuoteItem, value: string | number | string[]): void {
   store.updateItem(props.qid, props.item.id, { [field]: value } as Partial<QuoteItem>);
@@ -73,12 +83,6 @@ const ivaPctModel = computed({
   set: (v: number) => update('ivaPct', Number(v)),
 });
 
-/* 客户可见链接（仅客户视角展示/可点击；内部视角由管理列编辑） */
-const linkModel = computed({
-  get: () => props.item.link,
-  set: (v: string) => update('link', v),
-});
-
 /* 售价单位（缺省回退 defaultSalePriceUnit → defaultUnit） */
 const salePriceUnitModel = computed({
   get: () => props.item.salePriceUnit || settings.settings.defaultSalePriceUnit || settings.settings.defaultUnit,
@@ -89,6 +93,27 @@ const salePriceUnitModel = computed({
 function stepQty(delta: number): void {
   const next = Math.max(1, (Number(props.item.quantity) || 1) + delta);
   update('quantity', next);
+}
+
+function openLinksDialog(): void {
+  draftLinks.value = (props.item.links || []).slice();
+  if (draftLinks.value.length === 0) draftLinks.value.push('');
+  linksOpen.value = true;
+}
+
+function addDraftLink(): void {
+  draftLinks.value.push('');
+}
+
+function removeDraftLink(idx: number): void {
+  draftLinks.value.splice(idx, 1);
+  if (draftLinks.value.length === 0) draftLinks.value.push('');
+}
+
+function saveLinks(): void {
+  const urls = draftLinks.value.map((s) => s.trim()).filter(Boolean);
+  update('links', urls);
+  linksOpen.value = false;
 }
 
 function onRemove(): void {
@@ -251,8 +276,8 @@ const rowTint = computed<string>(() =>
     </td>
 
     <!-- 照片：主区域预览/粘贴，右下角小按钮触发文件上传 -->
-    <td class="px-4 py-3 w-14">
-      <div class="relative w-11 h-11">
+    <td class="px-4 py-3 w-[6.5rem]">
+      <div class="relative w-[5.5rem] h-[5.5rem]">
         <div
           class="relative w-full h-full rounded bg-paper-100 overflow-hidden flex items-center justify-center shrink-0 hover:bg-paper-200 transition-colors focus:outline-none focus:ring-2 focus:ring-[#8c7b6b]"
           :class="item.photoUrls[0] ? '' : 'cursor-default'"
@@ -262,15 +287,15 @@ const rowTint = computed<string>(() =>
           <img v-if="item.photoUrls[0]" :src="item.photoUrls[0]" :alt="item.name" class="w-full h-full object-cover" />
           <span
             v-if="item.photoUrls.length > 1"
-            class="absolute bottom-0 right-0 bg-[#3d342b] text-white text-[9px] px-1 rounded-tl"
+            class="absolute bottom-0 right-0 bg-[#3d342b] text-white text-[9px] px-1.5 py-0.5 rounded-tl"
           >
             {{ item.photoUrls.length }}
           </span>
-          <span v-else class="text-paper-300 scale-90" v-html="icon('catalog')"></span>
+          <span v-else class="text-paper-300 scale-110" v-html="icon('catalog')"></span>
         </div>
         <button
           type="button"
-          class="absolute -bottom-1 -right-1 w-5 h-5 bg-white rounded-full border border-paper-200 shadow-sm flex items-center justify-center text-paper-500 hover:text-ink hover:border-paper-300"
+          class="absolute -bottom-1 -right-1 w-6 h-6 bg-white rounded-full border border-paper-200 shadow-sm flex items-center justify-center text-paper-500 hover:text-ink hover:border-paper-300"
           title="上传照片"
           @click.stop="fileInput?.click()"
         >
@@ -320,16 +345,26 @@ const rowTint = computed<string>(() =>
     </td>
 
     <!-- 客户链接（仅客户视角可见/可点击） -->
-    <td v-if="isCustomer" class="px-4 py-3 min-w-[160px] max-w-[200px]">
-      <a
-        v-if="item.link"
-        :href="item.link"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="text-xs text-coral-700 hover:underline truncate block"
-        :title="item.link"
-      >{{ item.link }}</a>
-      <span v-else class="text-xs text-paper-300">—</span>
+    <td v-if="isCustomer" class="px-4 py-3 w-28 align-middle">
+      <div class="flex items-center gap-1.5">
+        <template v-if="item.links.length === 0">
+          <span class="text-xs text-paper-300">—</span>
+        </template>
+        <template v-else>
+          <a
+            v-for="(url, idx) in item.links.slice(0, 2)"
+            :key="idx"
+            :href="url"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-paper-100 text-coral-700 hover:bg-coral-50 hover:text-coral-800 transition-colors"
+            :title="url"
+          >
+            <span class="scale-90" v-html="icon('link')"></span>
+          </a>
+          <span v-if="item.links.length > 2" class="text-[10px] text-paper-500">+{{ item.links.length - 2 }}</span>
+        </template>
+      </div>
     </td>
 
     <!-- 售价 -->
@@ -486,14 +521,62 @@ const rowTint = computed<string>(() =>
       </button>
     </td>
 
-    <!-- admin-only：客户链接（仅管理员可编辑；客户视角另以可点击链接展示） -->
-    <td v-if="!isCustomer" class="px-4 py-3 min-w-[160px] border-l border-paper-200 bg-paper-50/30">
-      <Input
-        v-focus-next
-        v-model="linkModel"
-        placeholder="客户链接"
-        class="h-7 px-1 py-0 text-xs border-paper-200 bg-white"
-      />
+    <!-- admin-only：客户链接（紧凑 🔗 按钮，点击打开多链接编辑） -->
+    <td v-if="!isCustomer" class="px-3 py-3 w-16 border-l border-paper-200 bg-paper-50/30 align-middle">
+      <DialogRoot v-model:open="linksOpen">
+        <DialogTrigger as-child>
+          <button
+            type="button"
+            class="inline-flex items-center justify-center w-8 h-8 rounded-full border transition-colors"
+            :class="item.links.length > 0
+              ? 'bg-coral-50 border-coral-200 text-coral-700 hover:bg-coral-100'
+              : 'bg-white border-paper-200 text-paper-500 hover:text-ink hover:border-paper-300'"
+            :title="item.links.length > 0 ? `${item.links.length} 个客户链接` : '添加客户链接'"
+            @click="openLinksDialog"
+          >
+            <span class="scale-90" v-html="icon('link')"></span>
+            <span v-if="item.links.length > 0" class="absolute -top-1 -right-1 min-w-[14px] h-[14px] px-0.5 bg-coral-600 text-white text-[9px] rounded-full flex items-center justify-center border border-white">
+              {{ item.links.length }}
+            </span>
+          </button>
+        </DialogTrigger>
+        <DialogPortal>
+          <DialogContent class="max-w-md">
+            <DialogHeader>
+              <DialogTitle class="text-sm font-semibold text-ink">产品链接</DialogTitle>
+            </DialogHeader>
+            <div class="mt-3 space-y-2">
+              <p class="text-xs text-paper-500">以下链接将在客户视角显示为可点击图标。</p>
+              <div
+                v-for="(_url, idx) in draftLinks"
+                :key="idx"
+                class="flex items-center gap-2"
+              >
+                <Input
+                  v-model="draftLinks[idx]"
+                  placeholder="https://..."
+                  class="flex-1 text-sm border-paper-200 bg-white"
+                />
+                <button
+                  type="button"
+                  class="text-paper-400 hover:text-red-600 p-1"
+                  title="移除"
+                  @click="removeDraftLink(idx)"
+                >
+                  <span v-html="icon('trash')"></span>
+                </button>
+              </div>
+              <Button variant="outline" size="sm" class="w-full text-xs" @click="addDraftLink">
+                <span v-html="icon('plus')"></span> 添加链接
+              </Button>
+            </div>
+            <div class="mt-5 flex justify-end gap-2">
+              <Button variant="outline" size="sm" @click="linksOpen = false">取消</Button>
+              <Button size="sm" @click="saveLinks">保存</Button>
+            </div>
+          </DialogContent>
+        </DialogPortal>
+      </DialogRoot>
     </td>
   </tr>
 
@@ -509,11 +592,11 @@ const rowTint = computed<string>(() =>
         <div
           v-for="(url, idx) in item.photoUrls"
           :key="idx"
-          class="relative w-12 h-12 rounded overflow-hidden border border-paper-200 group"
+          class="relative w-24 h-24 rounded overflow-hidden border border-paper-200 group"
         >
           <img :src="url" class="w-full h-full object-cover" />
           <button
-            class="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 text-white text-xs"
+            class="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/40 text-white text-sm"
             @click="removePhoto(idx)"
           >
             ×

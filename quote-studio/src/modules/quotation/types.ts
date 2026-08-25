@@ -36,6 +36,7 @@ export interface QuoteItem {
   model: string; // 型号
   photoUrls: string[]; // 产品照片（多张）
   customerNote: string; // 客户可见备注
+  link?: string; // 客户可见链接（仅客户视角显示/可点击；内部界面仅管理员可编辑，预览不显示）
   internalNote: string; // 仅管理员
   cost: number; // 进价（管理员字段；UI 标注「进价」）
   margin: number; // 毛利（管理员字段）

@@ -166,6 +166,7 @@ export const useQuotationStore = defineStore('quotation', () => {
     const dtoPct = Number(item.dtoPct) || 0;
     const full: QuoteItem = {
       ...item,
+      link: item.link || '',
       id: genId('qi'),
       quotationId: qid,
       quantity: Number(item.quantity) > 0 ? Number(item.quantity) : 1,
@@ -221,6 +222,7 @@ export const useQuotationStore = defineStore('quotation', () => {
         model: t.model,
         photoUrls: t.photoUrls || [],
         customerNote: t.note,
+        link: t.link || '',
         internalNote: '',
         cost: Number(t.defaultCost) || 0,
         margin: 0,

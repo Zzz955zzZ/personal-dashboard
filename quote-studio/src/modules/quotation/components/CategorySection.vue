@@ -148,6 +148,7 @@ function toggleProductSelect(): void {
               <th class="px-4 py-2.5 text-left font-medium min-w-[140px]">产品</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[120px]">型号</th>
               <th class="px-4 py-2.5 text-left font-medium min-w-[160px]">备注</th>
+              <th v-if="isCustomer" class="px-4 py-2.5 text-left font-medium min-w-[160px]">链接</th>
               <th class="px-4 py-2.5 text-left font-medium w-36">售价</th>
               <th class="px-4 py-2.5 text-left font-medium w-28">数量</th>
               <th class="px-4 py-2.5 text-left font-medium w-24">小计</th>
@@ -156,6 +157,7 @@ function toggleProductSelect(): void {
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">DTO%</th>
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60 whitespace-nowrap">IVA%</th>
               <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium w-20 border-l border-paper-200 bg-paper-50/60">利润</th>
+              <th v-if="!isCustomer" class="px-4 py-2.5 text-left font-medium min-w-[160px] border-l border-paper-200 bg-paper-50/60">链接</th>
             </tr>
           </thead>
           <tbody>
@@ -167,7 +169,7 @@ function toggleProductSelect(): void {
               :is-customer="isCustomer"
             />
             <tr v-if="items.length === 0 && !showProductSelect">
-              <td :colspan="isCustomer ? 8 : 13" class="px-4 py-8 text-sm text-paper-400">
+              <td :colspan="isCustomer ? 9 : 14" class="px-4 py-8 text-sm text-paper-400">
                 <div class="flex items-center gap-2">
                   <span>该分类暂无产品。</span>
                   <button v-if="!isCustomer" class="text-ink underline underline-offset-2" @click="toggleProductSelect">添加一个</button>
@@ -177,7 +179,7 @@ function toggleProductSelect(): void {
 
             <!-- 展开状态：行内产品模板下拉选择 -->
             <tr v-if="!isCustomer && showProductSelect" class="bg-paper-50/60 border-b border-paper-200">
-              <td :colspan="isCustomer ? 8 : 13" class="px-4 py-2.5">
+              <td :colspan="isCustomer ? 9 : 14" class="px-4 py-2.5">
                 <div class="flex items-center gap-3">
                   <Select :model-value="selectedProductId" @update:model-value="onSelectProduct">
                     <SelectTrigger class="h-8 text-xs border-paper-200 bg-white hover:border-paper-300 min-w-[240px] max-w-sm">
@@ -209,7 +211,7 @@ function toggleProductSelect(): void {
             </tr>
 
             <tr class="bg-paper-50 border-t border-paper-200 font-medium text-ink">
-              <td :colspan="7" class="px-4 py-3 text-right text-xs uppercase tracking-wide text-paper-500">
+              <td :colspan="isCustomer ? 8 : 7" class="px-4 py-3 text-right text-xs uppercase tracking-wide text-paper-500">
                 Subtotal {{ group.name }}
               </td>
               <td class="px-4 py-3 text-right tabular-nums">{{ formatEUR(groupTotal) }}</td>
@@ -218,11 +220,12 @@ function toggleProductSelect(): void {
               <td v-if="!isCustomer" class="px-4 py-3 border-l border-paper-200"></td>
               <td v-if="!isCustomer" class="px-4 py-3 border-l border-paper-200"></td>
               <td v-if="!isCustomer" class="px-4 py-3 border-l border-paper-200 text-right tabular-nums text-xs">{{ formatEUR(groupProfit) }}</td>
+              <td v-if="!isCustomer" class="px-4 py-3 border-l border-paper-200"></td>
             </tr>
 
             <!-- 收起状态：点击展开下拉选择 -->
             <tr v-if="!isCustomer && !showProductSelect" class="border-b border-paper-100">
-              <td :colspan="isCustomer ? 8 : 13" class="px-3 py-1.5">
+              <td :colspan="isCustomer ? 9 : 14" class="px-3 py-1.5">
                 <button
                   type="button"
                   class="flex items-center gap-1.5 text-[11px] text-paper-400 hover:text-ink py-1 px-2 rounded border border-paper-200 hover:border-paper-300 hover:bg-paper-50 transition-colors"

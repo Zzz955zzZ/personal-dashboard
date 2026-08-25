@@ -188,10 +188,45 @@ describe('默认数值渲染', () => {
       global: globalMount(),
     });
     const inputs = wrapper.findAll('input');
-    const qty = inputs.find((i) => i.attributes('title') === '数量' || i.attributes('type') === 'number');
     expect(inputs.some((i) => i.element.value === '1')).toBe(true);
     expect(inputs.some((i) => i.element.value === '0')).toBe(true);
     expect(inputs.some((i) => i.element.value === '21')).toBe(true);
+  });
+});
+
+describe('客户链接字段显示逻辑', () => {
+  it('管理态：渲染可编辑的「客户链接」输入框', () => {
+    const wrapper = mount(QuoteItemRow, {
+      props: { item: makeRow(), qid: 'q1', isCustomer: false },
+      global: globalMount(),
+    });
+    const linkInput = wrapper.findAll('input').find((i) => i.attributes('placeholder') === '客户链接');
+    expect(linkInput).toBeTruthy();
+  });
+
+  it('客户视角：有链接时渲染可点击锚点，无链接时显示占位', () => {
+    const withLink = mount(QuoteItemRow, {
+      props: { item: makeRow({ link: 'https://example.com/p/1' }), qid: 'q1', isCustomer: true },
+      global: globalMount(),
+    });
+    const a = withLink.find('a');
+    expect(a.exists()).toBe(true);
+    expect(a.attributes('href')).toBe('https://example.com/p/1');
+
+    const withoutLink = mount(QuoteItemRow, {
+      props: { item: makeRow({ link: '' }), qid: 'q1', isCustomer: true },
+      global: globalMount(),
+    });
+    expect(withoutLink.find('a').exists()).toBe(false);
+    expect(withoutLink.text()).toContain('—');
+  });
+
+  it('客户视角：不渲染「客户链接」输入框（只读展示）', () => {
+    const wrapper = mount(QuoteItemRow, {
+      props: { item: makeRow(), qid: 'q1', isCustomer: true },
+      global: globalMount(),
+    });
+    expect(wrapper.findAll('input').find((i) => i.attributes('placeholder') === '客户链接')).toBeFalsy();
   });
 });
 
@@ -201,7 +236,7 @@ describe('#3 售价单位回退显示', () => {
       props: { item: makeRow(), qid: 'q1', isCustomer: true },
       global: globalMount(),
     });
-    const priceTd = wrapper.findAll('td')[5]; // 客户视图第 6 列 = 售价
+    const priceTd = wrapper.findAll('td')[6]; // 客户视角：状态/照片/产品/型号/备注/链接/售价 → 售价=第 7 列
     expect(priceTd.text()).toContain('/ 件');
   });
 
@@ -210,7 +245,7 @@ describe('#3 售价单位回退显示', () => {
       props: { item: makeRow({ salePriceUnit: '米' }), qid: 'q1', isCustomer: true },
       global: globalMount(),
     });
-    const priceTd = wrapper.findAll('td')[5];
+    const priceTd = wrapper.findAll('td')[6];
     expect(priceTd.text()).toContain('/ 米');
   });
 });

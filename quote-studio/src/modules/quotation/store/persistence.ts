@@ -56,6 +56,7 @@ export function normalizeQuoteItem(raw: unknown): QuoteItem | null {
     model: str(raw.model, 300),
     photoUrls,
     customerNote: str(raw.customerNote, 2000),
+    link: str(raw.link, 2000),
     internalNote: str(raw.internalNote, 2000),
     cost,
     margin: salePrice - cost,

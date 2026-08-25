@@ -73,6 +73,12 @@ const ivaPctModel = computed({
   set: (v: number) => update('ivaPct', Number(v)),
 });
 
+/* 客户可见链接（仅客户视角展示/可点击；内部视角由管理列编辑） */
+const linkModel = computed({
+  get: () => props.item.link,
+  set: (v: string) => update('link', v),
+});
+
 /* 售价单位（缺省回退 defaultSalePriceUnit → defaultUnit） */
 const salePriceUnitModel = computed({
   get: () => props.item.salePriceUnit || settings.settings.defaultSalePriceUnit || settings.settings.defaultUnit,
@@ -313,6 +319,19 @@ const rowTint = computed<string>(() =>
       <span v-else class="text-sm text-paper-600">{{ item.customerNote || '—' }}</span>
     </td>
 
+    <!-- 客户链接（仅客户视角可见/可点击） -->
+    <td v-if="isCustomer" class="px-4 py-3 min-w-[160px] max-w-[200px]">
+      <a
+        v-if="item.link"
+        :href="item.link"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="text-xs text-coral-700 hover:underline truncate block"
+        :title="item.link"
+      >{{ item.link }}</a>
+      <span v-else class="text-xs text-paper-300">—</span>
+    </td>
+
     <!-- 售价 -->
     <td class="px-4 py-3 w-36 text-left">
       <template v-if="!isCustomer">
@@ -466,6 +485,16 @@ const rowTint = computed<string>(() =>
         <span v-html="icon('trash')"></span>
       </button>
     </td>
+
+    <!-- admin-only：客户链接（仅管理员可编辑；客户视角另以可点击链接展示） -->
+    <td v-if="!isCustomer" class="px-4 py-3 min-w-[160px] border-l border-paper-200 bg-paper-50/30">
+      <Input
+        v-focus-next
+        v-model="linkModel"
+        placeholder="客户链接"
+        class="h-7 px-1 py-0 text-xs border-paper-200 bg-white"
+      />
+    </td>
   </tr>
 
   <!-- 照片展开行（管理态 + 有照片时显示缩略，支持删除任意一张） -->
@@ -475,7 +504,7 @@ const rowTint = computed<string>(() =>
     :style="{ backgroundColor: rowTint }"
   >
     <td></td>
-    <td :colspan="isCustomer ? 7 : 12" class="px-4 py-3">
+    <td :colspan="isCustomer ? 8 : 13" class="px-4 py-3">
       <div class="flex items-center gap-2 flex-wrap">
         <div
           v-for="(url, idx) in item.photoUrls"
@@ -496,7 +525,7 @@ const rowTint = computed<string>(() =>
 
   <!-- 状态变更二次确认 -->
   <tr v-if="pendingStatus !== null" class="border-b border-paper-100 bg-paper-50">
-    <td :colspan="isCustomer ? 8 : 13" class="px-4 py-3">
+    <td :colspan="isCustomer ? 9 : 14" class="px-4 py-3">
       <div class="flex items-center gap-3 text-xs">
         <span class="text-paper-600">
           <template v-if="pendingStatus === ''">确定移除当前状态？</template>

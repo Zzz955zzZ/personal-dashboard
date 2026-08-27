@@ -4,7 +4,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import IngredientChipPicker from '../components/IngredientChipPicker.vue';
-import { MEAL_TYPES } from '../constants';
+import { MEAL_TYPES, mealTypeLabel } from '../constants';
 import { fmt1, fromGrams, round1, toGrams, unitLabel } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
@@ -15,7 +15,7 @@ const store = useDietStore();
 const { logDate, modals } = useDietUi();
 const { pushToast } = useUndo();
 
-const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null]; copyMeal: [m: MealType] }>();
+const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null] }>();
 
 /* ==================== 页面状态 ==================== */
 
@@ -323,19 +323,19 @@ function applyTemplate(tmpl: MealTemplate): void {
               <div class="grid grid-cols-4 gap-1.5 mb-3 p-2.5 rounded-xl bg-paper-50/80 border border-paper-200/60">
                 <div class="text-center">
                   <div class="text-[9px] text-paper-400">热量</div>
-                  <div class="text-xs font-bold text-coral-500">{{ fmt1(selectedIng?.nutrition?.calories) }}<span class="text-[9px] font-normal">kcal</span></div>
+                  <div class="text-xs font-bold text-coral-500">{{ fmt1(selectedIng?.nutrition?.calories ?? 0) }}<span class="text-[9px] font-normal">kcal</span></div>
                 </div>
                 <div class="text-center">
                   <div class="text-[9px] text-paper-400">碳水</div>
-                  <div class="text-xs font-bold text-yellow-500">{{ fmt1(selectedIng?.nutrition?.carbs) }}<span class="text-[9px] font-normal">g</span></div>
+                  <div class="text-xs font-bold text-yellow-500">{{ fmt1(selectedIng?.nutrition?.carbs ?? 0) }}<span class="text-[9px] font-normal">g</span></div>
                 </div>
                 <div class="text-center">
                   <div class="text-[9px] text-paper-400">蛋白</div>
-                  <div class="text-xs font-bold text-blue-500">{{ fmt1(selectedIng?.nutrition?.protein) }}<span class="text-[9px] font-normal">g</span></div>
+                  <div class="text-xs font-bold text-blue-500">{{ fmt1(selectedIng?.nutrition?.protein ?? 0) }}<span class="text-[9px] font-normal">g</span></div>
                 </div>
                 <div class="text-center">
                   <div class="text-[9px] text-paper-400">脂肪</div>
-                  <div class="text-xs font-bold text-purple-500">{{ fmt1(selectedIng?.nutrition?.fat) }}<span class="text-[9px] font-normal">g</span></div>
+                  <div class="text-xs font-bold text-purple-500">{{ fmt1(selectedIng?.nutrition?.fat ?? 0) }}<span class="text-[9px] font-normal">g</span></div>
                 </div>
               </div>
 

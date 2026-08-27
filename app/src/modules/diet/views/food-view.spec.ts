@@ -60,7 +60,7 @@ describe('FoodView 冒烟', () => {
     const wrapper = await mountFood();
     const ui = useDietUi();
 
-    const keys = ['ingForm', 'recipeForm', 'pantryForm', 'copyDay', 'copyMeal', 'template'] as const;
+    const keys = ['ingForm', 'recipeForm', 'pantryForm', 'copyDay', 'template'] as const;
     for (const k of keys) {
       ui.modals[k] = true;
       await nextTick();

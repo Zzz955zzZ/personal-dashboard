@@ -83,13 +83,13 @@ describe('FoodView 冒烟', () => {
     await flushPromises();
 
     // 断言：页签栏仍存在 + 无 Vue 告警（说明异步加载成功）
-    expect(wrapper.text()).toContain('原材料库');
+    expect(wrapper.text()).toContain('食材');
     assertNoVueComplaints();
 
     // 再切回每日记录验证双向切换
     ui.foodTab.value = 'dailylog';
     await nextTick();
-    expect(wrapper.text()).toContain('每日记录');
+    expect(wrapper.text()).toContain('记录');
 
     wrapper.unmount();
   });

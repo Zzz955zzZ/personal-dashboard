@@ -1,9 +1,9 @@
 <script setup lang="ts">
-/** 把当前查看日期的整日记录复制到另一天 */
+/** 把某一天的整日记录复制到当前查看日期（从后往前复制） */
 import { computed, ref, watch } from 'vue';
 
 import BaseModal from '@/shared/components/BaseModal.vue';
-import { todayStr, tomorrowStr } from '../constants';
+import { localDateStr, todayStr } from '../constants';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 import { useUndo } from '@/shared/composables/use-undo';
@@ -15,43 +15,47 @@ const store = useDietStore();
 const { logDate } = useDietUi();
 const { pushUndo } = useUndo();
 
-const targetDate = ref(tomorrowStr());
+const sourceDate = ref(todayStr());
 const withPantryDeduct = ref(false);
 
-const sourceCount = computed(() => store.getDayLog(logDate.value).length);
+const sourceCount = computed(() => store.getDayLog(sourceDate.value).length);
+
+function yesterdayStr(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return localDateStr(d);
+}
 
 watch(
   () => props.open,
   (open) => {
-    if (open) targetDate.value = tomorrowStr();
+    if (open) sourceDate.value = yesterdayStr();
   },
 );
 
 function execute(): void {
-  if (!targetDate.value || !sourceCount.value) return;
-  const to = targetDate.value;
-  const { count, revert } = store.copyDay(logDate.value, to, withPantryDeduct.value);
-  pushUndo(`复制 ${count} 条记录至 ${to}`, revert);
+  if (!sourceDate.value || !sourceCount.value) return;
+  const from = sourceDate.value;
+  const to = logDate.value;
+  const { count, revert } = store.copyDay(from, to, withPantryDeduct.value);
+  pushUndo(`从 ${from} 复制 ${count} 条记录`, revert);
   emit('close');
-  logDate.value = to;
 }
 </script>
 
 <template>
-  <BaseModal :open="open" title="📋 复制饮食记录" width="md" :closable="false" @close="emit('close')">
+  <BaseModal :open="open" title="复制往日记录" width="md" :closable="false" @close="emit('close')">
     <div class="flex flex-col gap-4">
       <div>
-        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">
-          来源日期（当前查看的日期）
-        </label>
+        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">目标日期</label>
         <div class="text-sm font-medium text-paper-700">{{ logDate }}</div>
-        <div class="text-[11px] text-paper-400 mt-1">共 {{ sourceCount }} 条记录</div>
+        <div class="text-[11px] text-paper-400 mt-1">复制到此日期</div>
       </div>
 
       <div>
-        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">复制到目标日期</label>
+        <label class="text-[11px] uppercase tracking-wide2 text-paper-500 block mb-1">来源日期</label>
         <input
-          v-model="targetDate"
+          v-model="sourceDate"
           type="date"
           class="w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
         />
@@ -59,18 +63,19 @@ function execute(): void {
           <button
             type="button"
             class="px-3 py-1.5 rounded-lg text-xs border border-paper-300 hover:bg-coral-50 text-paper-600"
-            @click="targetDate = todayStr()"
+            @click="sourceDate = yesterdayStr()"
           >
-            复制到今天
+            昨天
           </button>
           <button
             type="button"
             class="px-3 py-1.5 rounded-lg text-xs border border-paper-300 hover:bg-coral-50 text-paper-600"
-            @click="targetDate = tomorrowStr()"
+            @click="sourceDate = todayStr()"
           >
-            复制到明天
+            今天
           </button>
         </div>
+        <div class="text-[11px] text-paper-400 mt-2">共 {{ sourceCount }} 条记录可复制</div>
       </div>
 
       <div>

@@ -27,7 +27,6 @@ const modals = reactive({
   recipeForm: false,
   pantryForm: false,
   copyDay: false,
-  copyMeal: false,
   template: false,
 });
 

@@ -138,11 +138,11 @@ function openSection(key: string): void {
       </transition>
     </div>
 
-    <!-- 撤销条 -->
+    <!-- 撤销/提示条 -->
     <transition name="fade">
       <div v-if="undoToast.visible" class="undo-toast">
         <span>{{ undoToast.message }}</span>
-        <button @click="executeUndo()">撤销</button>
+        <button v-if="undoToast.mode === 'undo'" @click="executeUndo()">撤销</button>
         <button
           style="background: transparent; color: #9e907e; border: none; cursor: pointer; font-size: 12px"
           @click="dismissUndo()"

@@ -30,6 +30,9 @@ import {
   SEED_RECIPES,
   SEED_SHOPPING,
 } from '../data/seed';
+
+/** 种子食材 id 集合，用于禁用编辑/删除 */
+const SEED_IDS = new Set(SEED_INGREDIENTS.map((i) => i.id));
 import {
   DEFAULT_TARGETS,
   loadState,
@@ -222,6 +225,8 @@ export const useDietStore = defineStore('diet', () => {
   /* ---------------- 查询 ---------------- */
   const findIng = (id: number): Ingredient | undefined =>
     ingredients.value.find((i) => i.id === id);
+
+  const isSeedIngredient = (id: number): boolean => SEED_IDS.has(id);
 
   const ingByCat = (cat: Ingredient['category']): Ingredient[] =>
     ingredients.value.filter((i) => i.category === cat);
@@ -490,16 +495,25 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   /**
-   * 新的一天且当日无记录时，自动套用默认模板。
-   * 返回是否真的填充了。
+   * 自动套用每个餐次的默认套餐。
+   * 当某餐次为空且存在该餐次的默认模板时，自动填入。
+   * 返回总共填充了多少项。
    */
-  function autoFillIfEmpty(date: string): boolean {
-    const entries = getDayLog(date);
-    if (entries.length > 0) return false;
-    const def = mealTemplates.value.find((t) => t.isDefault);
-    if (!def || !def.items.length) return false;
-    applyTemplate(date, def);
-    return true;
+  function autoFillDefaults(date: string): number {
+    const defaults = mealTemplates.value.filter((t) => t.isDefault && t.items.length);
+    if (!defaults.length) return 0;
+    let filled = 0;
+    for (const tmpl of defaults) {
+      const mealType = tmpl.defaultMealType || 'breakfast';
+      const hasMeal = getDayLog(date).some((e) => e.mealType === mealType);
+      if (hasMeal) continue;
+      for (const item of tmpl.items) {
+        getDayLog(date).push({ ...item, mealType });
+        deductPantry(item.ingredientId, item.amount);
+      }
+      filled += tmpl.items.length;
+    }
+    return filled;
   }
 
   /* ---------------- 食材 / 菜谱 CRUD ---------------- */
@@ -600,6 +614,7 @@ export const useDietStore = defineStore('diet', () => {
     snapshot,
     // query
     findIng,
+    isSeedIngredient,
     ingByCat,
     hasInPantry,
     zeroStockIds,
@@ -635,7 +650,7 @@ export const useDietStore = defineStore('diet', () => {
     applyTemplate,
     saveTemplate,
     deleteTemplate,
-    autoFillIfEmpty,
+    autoFillDefaults,
     // crud
     saveIngredient,
     deleteIngredient,

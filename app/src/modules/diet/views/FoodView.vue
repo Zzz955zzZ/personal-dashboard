@@ -29,10 +29,9 @@ const IngredientFormModal = defineAsyncComponent(() => import('../components/Ing
 const RecipeFormModal = defineAsyncComponent(() => import('../components/RecipeFormModal.vue'));
 const PantryFormModal = defineAsyncComponent(() => import('../components/PantryFormModal.vue'));
 const CopyDayModal = defineAsyncComponent(() => import('../components/CopyDayModal.vue'));
-const CopyMealModal = defineAsyncComponent(() => import('../components/CopyMealModal.vue'));
 const MealTemplateModal = defineAsyncComponent(() => import('../components/MealTemplateModal.vue'));
 
-import type { Ingredient, MealTemplate, MealType, Recipe } from '../types';
+import type { Ingredient, MealTemplate, Recipe } from '../types';
 
 const store = useDietStore();
 const { foodTab, modals } = useDietUi();
@@ -41,7 +40,6 @@ const { foodTab, modals } = useDietUi();
 const editingIng = ref<Ingredient | null>(null);
 const editingRecipe = ref<Recipe | null>(null);
 const editingTemplate = ref<MealTemplate | null>(null);
-const copyMealSource = ref<MealType>('breakfast');
 
 onMounted(() => {
   store.hydrate();
@@ -63,11 +61,6 @@ function openTemplateModal(tmpl: MealTemplate | null): void {
   editingTemplate.value = tmpl;
   modals.template = true;
 }
-
-function openCopyMeal(m: MealType): void {
-  copyMealSource.value = m;
-  modals.copyMeal = true;
-}
 </script>
 
 <template>
@@ -82,17 +75,17 @@ function openCopyMeal(m: MealType): void {
       本地数据解析失败，已改用初始数据展示。原始内容仍保留在内存中，请先导出备份再继续操作。
     </div>
 
-    <!-- 页签：手机端紧凑 -->
-    <div class="overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0 mb-3 sm:mb-8">
-      <div class="flex gap-1.5 min-w-max justify-start sm:justify-center">
+    <!-- 页签：手机端平铺五等分，无空隙 -->
+    <div class="mb-3 sm:mb-8">
+      <div class="grid grid-cols-5 gap-0 rounded-xl border border-paper-300/60 overflow-hidden bg-white/70">
         <button
           v-for="t in FOOD_TABS"
           :key="t.key"
-          class="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-medium border transition-all whitespace-nowrap"
+          class="py-2 text-xs sm:text-sm font-medium transition-all whitespace-nowrap border-r border-paper-300/40 last:border-r-0"
           :class="
             foodTab === t.key
-              ? 'bg-coral-400 text-white border-coral-400'
-              : 'border-paper-300 text-paper-600 hover:border-coral-300'
+              ? 'bg-coral-400 text-white'
+              : 'text-paper-600 hover:bg-coral-50'
           "
           @click="foodTab = t.key"
         >
@@ -106,7 +99,6 @@ function openCopyMeal(m: MealType): void {
         v-if="foodTab === 'dailylog'"
         key="dailylog"
         @edit-template="openTemplateModal"
-        @copy-meal="openCopyMeal"
       />
       <IngredientsView v-else-if="foodTab === 'ingredients'" key="ingredients" @edit="openIngForm" />
       <RecipesView v-else-if="foodTab === 'recipes'" key="recipes" @edit="openRecipeForm" />
@@ -121,11 +113,6 @@ function openCopyMeal(m: MealType): void {
     <RecipeFormModal :open="modals.recipeForm" :editing="editingRecipe" @close="modals.recipeForm = false" />
     <PantryFormModal :open="modals.pantryForm" @close="modals.pantryForm = false" />
     <CopyDayModal :open="modals.copyDay" @close="modals.copyDay = false" />
-    <CopyMealModal
-      :open="modals.copyMeal"
-      :source-meal="copyMealSource"
-      @close="modals.copyMeal = false"
-    />
     <MealTemplateModal
       :open="modals.template"
       :editing="editingTemplate"

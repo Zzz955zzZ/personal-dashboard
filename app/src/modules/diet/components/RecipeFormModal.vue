@@ -90,7 +90,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
       </div>
 
       <div>
-        <label :class="LABEL_CLS">所需食材（从原材料库选择）</label>
+        <label :class="LABEL_CLS">所需食材</label>
         <div class="mt-1.5 p-3 rounded-xl border border-paper-300/60 bg-white">
           <IngredientChipPicker
             v-model:search="search"

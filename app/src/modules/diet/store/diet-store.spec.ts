@@ -169,7 +169,7 @@ describe('复制', () => {
 });
 
 describe('模板', () => {
-  it('autoFillIfEmpty 只在当日为空且存在默认模板时填充', () => {
+  it('autoFillDefaults 只在当日某餐为空且存在对应默认模板时填充', () => {
     const store = freshStore();
     const [id] = pickIds(store);
     for (const t of store.mealTemplates) t.isDefault = false;
@@ -184,10 +184,10 @@ describe('模板', () => {
       null,
     );
 
-    expect(store.autoFillIfEmpty(D1)).toBe(true);
+    expect(store.autoFillDefaults(D1)).toBe(1);
     expect(store.getDayLog(D1)).toHaveLength(1);
     // 已有记录时不再重复填充
-    expect(store.autoFillIfEmpty(D1)).toBe(false);
+    expect(store.autoFillDefaults(D1)).toBe(0);
     expect(store.getDayLog(D1)).toHaveLength(1);
   });
 

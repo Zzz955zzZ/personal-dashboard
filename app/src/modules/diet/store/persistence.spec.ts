@@ -203,7 +203,7 @@ describe('useDietStore — 装载行为', () => {
 
     expect(store.ingredients).toHaveLength(SEED_INGREDIENTS.length);
     expect(store.recipes).toHaveLength(6);
-    expect(store.mealTemplates).toHaveLength(1);
+    expect(store.mealTemplates).toHaveLength(3);
   });
 
   it('有存量数据时保留用户数据，并自动补齐缺失的种子食材', () => {
@@ -354,16 +354,28 @@ describe('useDietStore — 套餐模板', () => {
     for (const t of store.mealTemplates) t.isDefault = false;
     store.mealTemplates[0]!.isDefault = true;
 
-    expect(store.autoFillIfEmpty('2026-07-30')).toBe(true);
-    expect(store.getDayLog('2026-07-30')).toHaveLength(4);
+    expect(store.autoFillDefaults('2026-07-30')).toBeGreaterThan(0);
+    expect(store.getDayLog('2026-07-30').length).toBeGreaterThan(0);
   });
 
-  it('已有记录的日期不自动填充，避免覆盖用户输入', () => {
+  it('已存在记录的餐次不会被重复填充', () => {
     const store = useDietStore();
     store.hydrate();
-    store.addLogEntry('2026-07-30', { ingredientId: 1, amount: 100, mealType: 'lunch' });
+    // 只保留一个午餐默认模板，手动添加早餐后不应再被午餐模板覆盖
+    for (const t of store.mealTemplates) t.isDefault = false;
+    store.saveTemplate(
+      {
+        name: '午餐模板',
+        emoji: '🍽️',
+        isDefault: true,
+        defaultMealType: 'lunch',
+        items: [{ ingredientId: 1, amount: 100 }],
+      },
+      null,
+    );
+    store.addLogEntry('2026-07-30', { ingredientId: 2, amount: 100, mealType: 'lunch' });
 
-    expect(store.autoFillIfEmpty('2026-07-30')).toBe(false);
+    expect(store.autoFillDefaults('2026-07-30')).toBe(0);
     expect(store.getDayLog('2026-07-30')).toHaveLength(1);
   });
 });

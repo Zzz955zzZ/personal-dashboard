@@ -107,7 +107,7 @@ function openTemplateModal(tmpl: MealTemplate | null): void {
     </transition>
 
     <!-- 抽屉与弹窗（全部懒加载，无需 Suspense —— Vue 内部处理异步组件解析） -->
-    <IngredientDetailDrawer />
+    <IngredientDetailDrawer @edit="openIngForm" />
 
     <IngredientFormModal :open="modals.ingForm" :editing="editingIng" @close="modals.ingForm = false" />
     <RecipeFormModal :open="modals.recipeForm" :editing="editingRecipe" @close="modals.recipeForm = false" />

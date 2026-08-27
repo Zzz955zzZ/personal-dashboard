@@ -2,17 +2,15 @@
 import { computed, ref } from 'vue';
 
 import SearchInput from '@/shared/components/SearchInput.vue';
-import { CAT_DEFS } from '../constants';
-import { fmt1 } from '../engine';
+import { CAT_DEFS, mealTypeLabel } from '../constants';
+import { fmt1, toGrams } from '../engine';
 import { sortByRecency } from '../composables/use-ingredient-picker';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
-import { useUndo } from '@/shared/composables/use-undo';
 import type { Ingredient, IngredientCategory } from '../types';
 
 const store = useDietStore();
-const { openIngDetail } = useDietUi();
-const { pushToast } = useUndo();
+const { foodTab, openIngDetail, pickerContext, clearPickerContext } = useDietUi();
 
 const emit = defineEmits<{ edit: [ing: Ingredient | null] }>();
 
@@ -31,17 +29,21 @@ const searchedIngList = computed(() => {
   return sortByRecency(list, store.ingLastSelected);
 });
 
-function deleteIng(it: Ingredient): void {
-  if (store.isSeedIngredient(it.id)) {
-    pushToast('系统默认食材不可删除');
+function onCardClick(it: Ingredient): void {
+  const ctx = pickerContext.value;
+  if (ctx) {
+    const grams = toGrams(it, it.unit === '个' ? 1 : 100);
+    store.addLogEntry(ctx.date, { ingredientId: it.id, amount: grams, mealType: ctx.mealType });
+    clearPickerContext();
+    foodTab.value = 'dailylog';
     return;
   }
-  store.deleteIngredient(it.id);
-  pushToast(`已删除 ${it.name}`);
+  openIngDetail(it);
 }
 
-function canEdit(it: Ingredient): boolean {
-  return !store.isSeedIngredient(it.id);
+function cancelPicker(): void {
+  clearPickerContext();
+  foodTab.value = 'dailylog';
 }
 </script>
 
@@ -68,11 +70,17 @@ function canEdit(it: Ingredient): boolean {
         <span class="ml-0.5 opacity-70">{{ store.ingByCat(key).length }}</span>
       </button>
       <button
+        v-if="!pickerContext"
         class="ml-auto px-3 py-1 rounded-lg text-[11px] font-medium bg-coral-400 text-white hover:opacity-90 transition-opacity"
         @click="emit('edit', null)"
       >
         + 新增
       </button>
+    </div>
+
+    <div v-if="pickerContext" class="mb-3 p-3 rounded-xl bg-coral-50 border border-coral-200 flex items-center justify-between">
+      <span class="text-sm font-medium text-coral-700">选择食材加入 {{ mealTypeLabel(pickerContext.mealType) }}</span>
+      <button class="text-xs text-paper-500 hover:text-coral-600 px-2 py-1" @click="cancelPicker">取消</button>
     </div>
 
     <div class="mb-3">
@@ -85,7 +93,8 @@ function canEdit(it: Ingredient): boolean {
         v-for="it in searchedIngList"
         :key="it.id"
         class="group relative p-2.5 rounded-xl border border-paper-300/60 bg-white/80 hover:border-coral-300 transition-all cursor-pointer flex flex-col"
-        @click="openIngDetail(it)"
+        :class="pickerContext ? 'active:scale-[0.98]' : ''"
+        @click="onCardClick(it)"
       >
         <div class="flex items-start gap-2">
           <div class="avatar-img shrink-0" :style="it.image ? 'background:none' : ''" style="width: 36px; height: 36px; font-size: 20px;">
@@ -99,22 +108,6 @@ function canEdit(it: Ingredient): boolean {
         </div>
         <div class="mt-1.5 text-[10px] text-paper-400 truncate">
           碳{{ fmt1(it.nutrition?.carbs) }} · 蛋{{ fmt1(it.nutrition?.protein) }} · 脂{{ fmt1(it.nutrition?.fat) }} /100g
-        </div>
-        <div class="absolute top-2 right-2 flex gap-1">
-          <button
-            v-if="canEdit(it)"
-            class="w-6 h-6 rounded-md bg-paper-200 text-xs hover:bg-coral-100 flex items-center justify-center"
-            @click.stop="emit('edit', it)"
-          >
-            ✎
-          </button>
-          <button
-            v-if="canEdit(it)"
-            class="w-6 h-6 rounded-md bg-red-50 text-red-500 text-xs hover:bg-red-100 flex items-center justify-center"
-            @click.stop="deleteIng(it)"
-          >
-            ×
-          </button>
         </div>
       </div>
       <div v-if="!searchedIngList.length" class="col-span-full text-center text-paper-400 py-12 text-sm font-light">

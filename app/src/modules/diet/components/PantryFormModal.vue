@@ -55,7 +55,7 @@ function submit(): void {
 </script>
 
 <template>
-  <BaseModal :open="open" title="添加到库存" width="sm" @close="emit('close')">
+  <BaseModal :open="open" title="添加到库存" width="full" @close="emit('close')">
     <form class="flex flex-col gap-4" @submit.prevent="submit">
       <IngredientChipPicker
         v-model:search="search"

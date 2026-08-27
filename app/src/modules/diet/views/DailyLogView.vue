@@ -3,7 +3,6 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
-import IngredientChipPicker from '../components/IngredientChipPicker.vue';
 import { MEAL_TYPES, mealTypeLabel } from '../constants';
 import { fmt1, fromGrams, round1, toGrams, unitLabel } from '../engine';
 import { useDietStore } from '../store/diet-store';
@@ -12,7 +11,7 @@ import { useUndo } from '@/shared/composables/use-undo';
 import type { LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
-const { logDate, modals } = useDietUi();
+const { logDate, modals, startIngredientPicker } = useDietUi();
 const { pushToast } = useUndo();
 
 const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null] }>();
@@ -63,50 +62,11 @@ function toggleMeal(meal: MealType): void {
   expandedMeals[meal] = !expandedMeals[meal];
 }
 
-/* ==================== 添加弹窗（底部Sheet） ==================== */
-const showAddSheet = ref(false);
-const addMealType = ref<MealType>('breakfast');
-const addIngredientId = ref<number | ''>('');
-const addAmount = ref<number | ''>('');
-const addSearch = ref('');
-const addPickerOpen = ref(false);
-
-const selectedIng = computed(() =>
-  addIngredientId.value === '' ? undefined : store.findIng(Number(addIngredientId.value)),
-);
-const addUnitLabel = computed(() => unitLabel(selectedIng.value));
-const addPlaceholder = computed(() => (addUnitLabel.value === '个' ? '1' : '100'));
-
-function openAddSheet(meal?: MealType): void {
-  if (meal) addMealType.value = meal;
-  showAddSheet.value = true;
-  resetAddForm();
-}
-
-function resetAddForm(): void {
-  addIngredientId.value = '';
-  addAmount.value = '';
-  addSearch.value = '';
-  addPickerOpen.value = false;
-}
-
-function selectAddIngredient(id: number): void {
-  addIngredientId.value = id;
-  store.touchIngredient(id);
-  addSearch.value = '';
-  addPickerOpen.value = false;
-  const ing = store.findIng(id);
-  if (!addAmount.value) addAmount.value = ing?.unit === '个' ? 1 : 100;
-}
-
-function submitAdd(): void {
-  if (addIngredientId.value === '' || !addAmount.value) return;
-  const id = Number(addIngredientId.value);
-  const grams = toGrams(store.findIng(id), Number(addAmount.value));
-  if (grams <= 0) return;
-  store.addLogEntry(logDate.value, { ingredientId: id, amount: grams, mealType: addMealType.value });
-  expandedMeals[addMealType.value] = true;
-  showAddSheet.value = false;
+/* ==================== 添加食材：跳转食材页选择 ==================== */
+function startPicker(meal?: MealType): void {
+  const m = meal || 'breakfast';
+  expandedMeals[m] = true;
+  startIngredientPicker(logDate.value, m);
 }
 
 /* ==================== 移动端编辑抽屉 ==================== */
@@ -142,6 +102,21 @@ function saveEdit(): void {
   });
   closeEdit();
 }
+
+/** 编辑抽屉里「该分量」的实时营养素：按所选数量与单位换算 */
+const editPreviewNutrition = computed<Nutrition>(() => {
+  const out: Nutrition = { calories: 0, carbs: 0, protein: 0, fat: 0 };
+  if (editForm.ingredientId === '') return out;
+  const ing = store.findIng(Number(editForm.ingredientId));
+  if (!ing?.nutrition) return out;
+  const grams = toGrams(ing, Number(editForm.amount) || 0);
+  const f = grams / 100;
+  out.calories = (ing.nutrition.calories || 0) * f;
+  out.carbs = (ing.nutrition.carbs || 0) * f;
+  out.protein = (ing.nutrition.protein || 0) * f;
+  out.fat = (ing.nutrition.fat || 0) * f;
+  return out;
+});
 
 function removeEntry(realIdx: number, name: string): void {
   store.removeLogEntryAt(logDate.value, realIdx);
@@ -220,6 +195,25 @@ function applyTemplate(tmpl: MealTemplate): void {
 
         <!-- 展开明细 -->
         <div v-show="expandedMeals[m.key]" class="px-2 pb-2">
+          <!-- 该餐次总摄入量 -->
+          <div class="grid grid-cols-4 gap-1.5 mb-2 p-2 rounded-lg bg-paper-50/70">
+            <div class="text-center">
+              <div class="text-[9px] text-paper-400">热量</div>
+              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).calories) }}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-[9px] text-paper-400">碳水</div>
+              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).carbs) }}g</div>
+            </div>
+            <div class="text-center">
+              <div class="text-[9px] text-paper-400">蛋白</div>
+              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).protein) }}g</div>
+            </div>
+            <div class="text-center">
+              <div class="text-[9px] text-paper-400">脂肪</div>
+              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).fat) }}g</div>
+            </div>
+          </div>
           <div
             v-for="(entry, idx) in store.mealEntries(logDate, m.key)"
             :key="entry._idx"
@@ -249,7 +243,7 @@ function applyTemplate(tmpl: MealTemplate): void {
           </div>
           <button
             class="w-full mt-1 py-1.5 rounded-lg text-xs font-medium text-coral-500 hover:bg-coral-50 transition-colors"
-            @click="openAddSheet(m.key)"
+            @click="startPicker(m.key)"
           >
             + 添加
           </button>
@@ -261,7 +255,7 @@ function applyTemplate(tmpl: MealTemplate): void {
     <div v-if="!currentDayEntries.length" class="text-center py-10">
       <div class="text-3xl mb-2">🍽️</div>
       <p class="text-xs text-paper-400">今天还没有记录</p>
-      <button class="mt-2 px-4 py-2 rounded-xl bg-coral-400 text-white text-xs font-medium" @click="openAddSheet()">
+      <button class="mt-2 px-4 py-2 rounded-xl bg-coral-400 text-white text-xs font-medium" @click="startPicker()">
         添加第一餐
       </button>
     </div>
@@ -270,98 +264,12 @@ function applyTemplate(tmpl: MealTemplate): void {
     <div class="fixed bottom-4 right-4 z-30">
       <button
         class="w-14 h-14 rounded-full bg-coral-500 text-white shadow-lg hover:bg-coral-400 transition-all flex items-center justify-center text-3xl"
-        @click="openAddSheet()"
+        @click="startPicker()"
       >
         +
       </button>
     </div>
 
-    <!-- 添加食物底部弹窗 -->
-    <Teleport to="body">
-      <transition name="slide-up">
-        <div v-if="showAddSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showAddSheet = false">
-          <div class="absolute inset-0 bg-black/70" @click="showAddSheet = false" />
-          <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div class="flex items-center justify-between px-4 py-3 border-b border-paper-100">
-              <h3 class="text-sm font-semibold text-ink">添加食物</h3>
-              <button class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-paper-100 text-paper-400 text-sm" @click="showAddSheet = false">✕</button>
-            </div>
-
-            <div class="px-4 pt-3 pb-2">
-              <div class="grid grid-cols-3 gap-2">
-                <button
-                  v-for="m in MEAL_TYPES"
-                  :key="m.key"
-                  class="py-1.5 rounded-lg text-xs font-medium border transition-all"
-                  :class="addMealType === m.key ? 'bg-coral-50 border-coral-300 text-coral-600' : 'border-paper-200 text-paper-500'"
-                  @click="addMealType = m.key"
-                >
-                  {{ m.label }}
-                </button>
-              </div>
-            </div>
-
-            <div class="px-4 pb-3">
-              <IngredientChipPicker
-                v-model:search="addSearch"
-                v-model:open="addPickerOpen"
-                :source="store.ingredients"
-                :last-selected="store.ingLastSelected"
-                :selected-id="addIngredientId === '' ? null : Number(addIngredientId)"
-                :always-open="true"
-                @pick="selectAddIngredient"
-              />
-            </div>
-
-            <div v-if="addIngredientId !== ''" class="px-4 pb-3 border-t border-paper-100 pt-3">
-              <div class="flex items-center gap-2 mb-2">
-                <span class="text-sm font-medium">{{ selectedIng?.emoji }} {{ selectedIng?.name }}</span>
-                <span v-if="selectedIng?.brand" class="text-[11px] text-paper-400">·{{ selectedIng.brand }}</span>
-                <button class="text-paper-400 hover:text-red-500 text-xs" @click="addIngredientId = ''; addAmount = ''">清除</button>
-              </div>
-
-              <div class="grid grid-cols-4 gap-1.5 mb-3 p-2.5 rounded-xl bg-paper-50/80 border border-paper-200/60">
-                <div class="text-center">
-                  <div class="text-[9px] text-paper-400">热量</div>
-                  <div class="text-xs font-bold text-coral-500">{{ fmt1(selectedIng?.nutrition?.calories ?? 0) }}<span class="text-[9px] font-normal">kcal</span></div>
-                </div>
-                <div class="text-center">
-                  <div class="text-[9px] text-paper-400">碳水</div>
-                  <div class="text-xs font-bold text-yellow-500">{{ fmt1(selectedIng?.nutrition?.carbs ?? 0) }}<span class="text-[9px] font-normal">g</span></div>
-                </div>
-                <div class="text-center">
-                  <div class="text-[9px] text-paper-400">蛋白</div>
-                  <div class="text-xs font-bold text-blue-500">{{ fmt1(selectedIng?.nutrition?.protein ?? 0) }}<span class="text-[9px] font-normal">g</span></div>
-                </div>
-                <div class="text-center">
-                  <div class="text-[9px] text-paper-400">脂肪</div>
-                  <div class="text-xs font-bold text-purple-500">{{ fmt1(selectedIng?.nutrition?.fat ?? 0) }}<span class="text-[9px] font-normal">g</span></div>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <input
-                  v-model.number="addAmount"
-                  type="number"
-                  :placeholder="addPlaceholder"
-                  min="0.1"
-                  step="0.1"
-                  class="flex-1 px-3 py-2 rounded-lg border border-paper-300 bg-white text-base sm:text-sm focus:outline-none focus:border-coral-400"
-                />
-                <span class="text-sm text-paper-500 w-6 text-center">{{ addUnitLabel }}</span>
-                <button
-                  class="px-4 py-2 rounded-xl bg-coral-400 text-white text-sm font-medium hover:bg-coral-500 active:scale-[0.98] transition-all"
-                  @click="submitAdd"
-                >
-                  记录
-                </button>
-              </div>
-            </div>
-            <div v-else class="px-4 pb-4 text-[11px] text-paper-400">↑ 搜索或点击食材进行选择</div>
-          </div>
-        </div>
-      </transition>
-    </Teleport>
 
     <!-- 编辑食物抽屉 -->
     <Teleport to="body">
@@ -391,6 +299,31 @@ function applyTemplate(tmpl: MealTemplate): void {
                     class="flex-1 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
                   />
                   <span class="text-sm text-paper-500 w-6 text-center">{{ unitLabel(store.findIng(Number(editForm.ingredientId))) }}</span>
+                </div>
+              </div>
+              <!-- 该分量营养素（随数量/单位实时换算） -->
+              <div class="p-3 rounded-xl bg-paper-50 border border-paper-200/60">
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-[11px] text-paper-500">该分量营养素</span>
+                  <span class="text-[11px] text-paper-400">{{ Number(editForm.amount) || 0 }}{{ unitLabel(store.findIng(Number(editForm.ingredientId))) }}</span>
+                </div>
+                <div class="grid grid-cols-4 gap-1.5 text-center">
+                  <div>
+                    <div class="text-[9px] text-paper-400">热量</div>
+                    <div class="text-sm font-bold text-ink">{{ fmt1(editPreviewNutrition.calories) }}</div>
+                  </div>
+                  <div>
+                    <div class="text-[9px] text-paper-400">碳水</div>
+                    <div class="text-sm font-bold text-ink">{{ fmt1(editPreviewNutrition.carbs) }}g</div>
+                  </div>
+                  <div>
+                    <div class="text-[9px] text-paper-400">蛋白</div>
+                    <div class="text-sm font-bold text-ink">{{ fmt1(editPreviewNutrition.protein) }}g</div>
+                  </div>
+                  <div>
+                    <div class="text-[9px] text-paper-400">脂肪</div>
+                    <div class="text-sm font-bold text-ink">{{ fmt1(editPreviewNutrition.fat) }}g</div>
+                  </div>
                 </div>
               </div>
               <div>

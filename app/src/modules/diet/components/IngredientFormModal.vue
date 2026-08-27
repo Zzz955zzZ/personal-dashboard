@@ -203,8 +203,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
   <BaseModal
     :open="open"
     :title="editing ? '编辑食材' : '新增食材'"
-    width="lg"
-    scrollable
+    width="full"
     @close="emit('close')"
   >
     <form class="flex flex-col gap-4" @submit.prevent="submit">

@@ -1,16 +1,46 @@
 <script setup lang="ts">
 import { CAT_DEFS } from '../constants';
 import { catClass, classifyTag, fmt1, healthTags, micronGroups, unitLabel } from '../engine';
+import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
+import { useUndo } from '@/shared/composables/use-undo';
+import type { Ingredient } from '../types';
 
+const store = useDietStore();
 const { selectedIng } = useDietUi();
+const { pushUndo, pushToast } = useUndo();
+
+const emit = defineEmits<{ edit: [ing: Ingredient]; close: [] }>();
 
 function close(): void {
   selectedIng.value = null;
+  emit('close');
 }
 
 function perUnit(v: number | undefined, grams: number): string {
   return fmt1(((v || 0) * grams) / 100);
+}
+
+function onEdit(): void {
+  if (!selectedIng.value) return;
+  const ing = selectedIng.value;
+  selectedIng.value = null;
+  emit('edit', ing);
+}
+
+function onDelete(): void {
+  if (!selectedIng.value) return;
+  const ing = selectedIng.value;
+  if (store.isSeedIngredient(ing.id)) {
+    pushToast('系统默认食材不可删除');
+    return;
+  }
+  const idx = store.ingredients.findIndex((x) => x.id === ing.id);
+  store.deleteIngredient(ing.id);
+  selectedIng.value = null;
+  pushUndo(`已删除 ${ing.name}`, () => {
+    store.ingredients.splice(idx < 0 ? store.ingredients.length : idx, 0, ing);
+  });
 }
 </script>
 
@@ -94,6 +124,24 @@ function perUnit(v: number | undefined, grams: number): string {
           </div>
 
           <p v-if="selectedIng.note" class="text-sm text-paper-600 font-light leading-relaxed">{{ selectedIng.note }}</p>
+
+          <div class="mt-8 sticky bottom-0 -mx-7 -mb-7 p-7 bg-coral-50/95 backdrop-blur border-t border-paper-300/60 flex gap-3">
+            <button
+              v-if="!store.isSeedIngredient(selectedIng.id)"
+              class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 bg-white hover:bg-coral-50 transition-colors"
+              @click="onEdit"
+            >
+              ✎ 编辑
+            </button>
+            <button
+              v-if="!store.isSeedIngredient(selectedIng.id)"
+              class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+              @click="onDelete"
+            >
+              删除
+            </button>
+            <div v-else class="w-full text-center text-xs text-paper-400 py-2">系统默认食材，不可编辑或删除</div>
+          </div>
         </div>
       </div>
     </aside>

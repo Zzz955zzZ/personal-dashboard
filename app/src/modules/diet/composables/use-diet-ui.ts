@@ -22,6 +22,14 @@ const selectedIng = ref<Ingredient | null>(null);
 /** 菜谱页的多选食材（用于筛选菜谱 / 一键加入记录） */
 const selectedIngIds = ref<number[]>([]);
 
+/** 从记录页跳转过来选择食材的上下文 */
+interface IngredientPickerContext {
+  type: 'ingredient';
+  date: string;
+  mealType: MealType;
+}
+const pickerContext = ref<IngredientPickerContext | null>(null);
+
 const modals = reactive({
   ingForm: false,
   recipeForm: false,
@@ -41,14 +49,26 @@ export function useDietUi() {
     else selectedIngIds.value.push(id);
   }
 
+  function startIngredientPicker(date: string, mealType: MealType): void {
+    pickerContext.value = { type: 'ingredient', date, mealType };
+    foodTab.value = 'ingredients';
+  }
+
+  function clearPickerContext(): void {
+    pickerContext.value = null;
+  }
+
   return {
     foodTab,
     logDate,
     logMealType,
     selectedIng,
     selectedIngIds,
+    pickerContext,
     modals,
     openIngDetail,
     toggleIngSelect,
+    startIngredientPicker,
+    clearPickerContext,
   };
 }

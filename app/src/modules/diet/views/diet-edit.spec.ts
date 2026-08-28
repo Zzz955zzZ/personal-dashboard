@@ -10,6 +10,7 @@ import { nextTick } from 'vue';
 import FoodView from './FoodView.vue';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
+import { useUndo } from '@/shared/composables/use-undo';
 
 let warnSpy: ReturnType<typeof vi.spyOn>;
 let errorSpy: ReturnType<typeof vi.spyOn>;
@@ -232,6 +233,149 @@ describe('store：孤儿数据预防与兜底', () => {
     expect(count).toBe(1);
     expect(store.findIng(ing.id)).toBeUndefined();
     expect(store.getDayLog('2026-01-01').length).toBe(0);
+  });
+});
+
+describe('修复：非首个餐次的记录可正常打开编辑（位置定位）', () => {
+  it('点击午餐记录仍能打开编辑抽屉，且不报「位置已变」', async () => {
+    const wrapper = await mountFood();
+    const store = useDietStore();
+    const ui = useDietUi();
+    const { undoToast, dismissUndo } = useUndo();
+    dismissUndo();
+
+    // 确保存在一条「午餐」记录（真实食材）
+    const ing = store.ingredients[0]!;
+    store.addLogEntry(ui.logDate.value, { ingredientId: ing.id, amount: 80, mealType: 'lunch' });
+    await nextTick();
+
+    const rows = wrapper.findAll('[data-testid="log-row"]');
+    const row = rows.find((r) => r.text().includes(ing.name));
+    expect(row).toBeTruthy();
+    await row!.trigger('click');
+    await nextTick();
+    await flushPromises();
+
+    // 修复后：编辑抽屉应打开，且不应出现「位置已变」提示
+    expect(bodySheet()).not.toBeNull();
+    expect(undoToast.visible).toBe(false);
+    expect(undoToast.message).not.toContain('记录位置已变');
+    wrapper.unmount();
+  });
+});
+
+describe('修复：删除记录可撤回', () => {
+  it('删除记录后弹出撤回条，点「撤销」可恢复该条目', async () => {
+    const wrapper = await mountFood();
+    const store = useDietStore();
+    const ui = useDietUi();
+    const { undoToast, executeUndo, dismissUndo } = useUndo();
+    dismissUndo();
+
+    const ing = store.ingredients[0]!;
+    const before = store.getDayLog(ui.logDate.value).length;
+    store.addLogEntry(ui.logDate.value, { ingredientId: ing.id, amount: 100, mealType: 'breakfast' });
+    await nextTick();
+
+    await wrapper.find('[data-testid="log-row"]').trigger('click');
+    await nextTick();
+    await flushPromises();
+
+    const sheet = bodySheet();
+    expect(sheet).not.toBeNull();
+    const delBtn = Array.from(sheet!.querySelectorAll('button')).find((b) =>
+      (b.textContent || '').includes('×'),
+    ) as HTMLButtonElement | undefined;
+    expect(delBtn).toBeTruthy();
+    delBtn!.click();
+    await nextTick();
+    await flushPromises();
+
+    // 删除后：撤回条弹出、记录数回到 +0、抽屉关闭
+    expect(undoToast.visible).toBe(true);
+    expect(undoToast.mode).toBe('undo');
+    expect(store.getDayLog(ui.logDate.value).length).toBe(before);
+    expect(bodySheet()).toBeNull();
+
+    // 执行撤回 → 条目恢复
+    executeUndo();
+    await nextTick();
+    expect(store.getDayLog(ui.logDate.value).length).toBe(before + 1);
+    expect(undoToast.visible).toBe(false);
+    wrapper.unmount();
+  });
+});
+
+describe('修复：添加记录可撤回', () => {
+  it('从食材页添加记录后弹出撤回条，点「撤销」可移除该条目', async () => {
+    const wrapper = await mountFood();
+    const store = useDietStore();
+    const ui = useDietUi();
+    const { undoToast, executeUndo, dismissUndo } = useUndo();
+    dismissUndo();
+
+    // 触发一次 DailyLogView 重挂载，让默认套餐先填充完毕（子组件 onMounted 早于
+    // FoodView 的 store.hydrate，故挂载时默认模板尚未就绪；这里主动切换页签触发填充，
+    // 避免后续 picker 流程再次挂载时填充默认条目、干扰计数断言）。
+    ui.foodTab.value = 'ingredients';
+    await nextTick();
+    await flushPromises();
+    ui.foodTab.value = 'dailylog';
+    await nextTick();
+    await flushPromises();
+
+    const before = store.getDayLog(ui.logDate.value).length;
+
+    // 进入 picker 模式（跳到食材页选择）
+    ui.startIngredientPicker(ui.logDate.value, 'breakfast');
+    await nextTick();
+    await flushPromises();
+
+    // 等待 IngredientsView 异步挂载
+    let card: ReturnType<VueWrapper['find']> | null = null;
+    for (let i = 0; i < 40; i++) {
+      await nextTick();
+      await flushPromises();
+      const c = wrapper.find('[data-testid="ing-card"]');
+      if (c.exists()) {
+        card = c;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(card).not.toBeNull();
+
+    // 点选食材 -> 打开 picker 抽屉（确认添加）
+    await card!.trigger('click');
+    await nextTick();
+    await flushPromises();
+
+    let confirmBtn: HTMLButtonElement | undefined;
+    for (let i = 0; i < 40; i++) {
+      await nextTick();
+      await flushPromises();
+      confirmBtn = Array.from(document.body.querySelectorAll('button')).find((b) =>
+        (b.textContent || '').includes('确认添加'),
+      ) as HTMLButtonElement | undefined;
+      if (confirmBtn) break;
+      await new Promise((r) => setTimeout(r, 20));
+    }
+    expect(confirmBtn).toBeTruthy();
+    confirmBtn!.click();
+    await nextTick();
+    await flushPromises();
+
+    // 添加后：撤回条弹出、记录数 +1
+    expect(undoToast.visible).toBe(true);
+    expect(undoToast.mode).toBe('undo');
+    expect(store.getDayLog(ui.logDate.value).length).toBe(before + 1);
+
+    // 执行撤回 -> 条目移除
+    executeUndo();
+    await nextTick();
+    expect(store.getDayLog(ui.logDate.value).length).toBe(before);
+    expect(undoToast.visible).toBe(false);
+    wrapper.unmount();
   });
 });
 

@@ -38,15 +38,26 @@ function computedGrams(): number {
 
 function confirmAdd(): void {
   if (!pickerContext.value || !selectedIng.value) return;
-  store.addLogEntry(pickerContext.value.date, {
-    ingredientId: selectedIng.value.id,
+  const ctx = pickerContext.value;
+  const ing = selectedIng.value;
+  const added = store.addLogEntry(ctx.date, {
+    ingredientId: ing.id,
     amount: computedGrams(),
-    mealType: pickerContext.value.mealType,
+    mealType: ctx.mealType,
     unit: addUnit.value,
   });
   clearPickerContext();
   selectedIng.value = null;
   foodTab.value = 'dailylog';
+  // 撤回：移除刚加入的条目并回补库存，8 秒内可撤销误加
+  pushUndo(`已添加 ${ing.name}`, () => {
+    const list = store.getDayLog(ctx.date);
+    const idx = list.indexOf(added);
+    if (idx > -1) {
+      list.splice(idx, 1);
+      store.restorePantry(added.ingredientId, added.amount);
+    }
+  });
 }
 
 function cancelAdd(): void {

@@ -13,7 +13,7 @@ import type { IngredientUnit, LogEntry, MealTemplate, MealType, Nutrition } from
 
 const store = useDietStore();
 const { logDate, modals, startIngredientPicker, startRelink, openIngDetail } = useDietUi();
-const { pushToast } = useUndo();
+const { pushUndo, pushToast } = useUndo();
 
 const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null] }>();
 
@@ -88,12 +88,9 @@ const editForm = reactive<{
 });
 
 function openEdit(entry: LogEntry & { _idx: number }, mealType: MealType): void {
-  const realIdx = store.resolveRealIndex(logDate.value, mealType, entry._idx);
-  // 错误处理：真实下标无效时仅提示，不再因「食材缺失」而堵死整条记录的编辑入口
-  if (realIdx < 0) {
-    pushToast('该记录位置已变化，请刷新后重试');
-    return;
-  }
+  // entry._idx 即该记录在「整日数组」中的真实下标（mealEntries 已赋值），
+  // 直接采用，避免「按餐次序号二次换算」导致非首个餐次记录定位失败、误报「位置已变」。
+  const realIdx = entry._idx;
   editRealIdx.value = realIdx;
   editMealType.value = mealType;
   editForm.ingredientId = entry.ingredientId;
@@ -187,9 +184,18 @@ const editPreviewNutrition = computed<Nutrition>(() => {
 });
 
 function removeEntry(realIdx: number, name: string): void {
-  store.removeLogEntryAt(logDate.value, realIdx);
-  pushToast(`已删除 ${name}`);
+  const removed = store.removeLogEntryAt(logDate.value, realIdx);
   closeEdit();
+  if (removed) {
+    // 撤回：把刚删的条目原位插回并回补库存，8 秒内可撤销误删
+    pushUndo(`已删除 ${name}`, () => {
+      const list = store.getDayLog(logDate.value);
+      list.splice(realIdx, 0, removed);
+      store.deductPantry(removed.ingredientId, removed.amount);
+    });
+  } else {
+    pushToast(`已删除 ${name}`);
+  }
 }
 
 /* ==================== 餐次详情页 ==================== */

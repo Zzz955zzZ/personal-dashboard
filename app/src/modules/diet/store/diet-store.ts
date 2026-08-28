@@ -43,6 +43,24 @@ import {
 
 const EMPTY_NUTRITION: Nutrition = { calories: 0, carbs: 0, protein: 0, fat: 0 };
 
+/**
+ * 幽灵食材：当某条记录引用的食材已不存在（被删 / 老数据损坏）时，
+ * 用这个占位对象兜底，保证列表与详情页不会渲染出空白名或崩溃，
+ * 同时让编辑入口仍然可用（用户可重新关联到真实食材或删除记录）。
+ */
+const GHOST_INGREDIENT: Ingredient = {
+  id: -1,
+  name: '未知食材',
+  category: 'protein',
+  emoji: '❓',
+  image: '',
+  tags: [],
+  nutrition: { ...EMPTY_NUTRITION },
+  note: '',
+  unit: 'g',
+  gramsPerUnit: 1,
+};
+
 /** 种子食材按 id 索引，用于把最新版营养/解析同步到已装载的库里 */
 const SEED_BY_ID = new Map(SEED_INGREDIENTS.map((it) => [it.id, it]));
 
@@ -225,6 +243,10 @@ export const useDietStore = defineStore('diet', () => {
   /* ---------------- 查询 ---------------- */
   const findIng = (id: number): Ingredient | undefined =>
     ingredients.value.find((i) => i.id === id);
+
+  /** 找不到食材时返回幽灵占位，避免渲染空白/崩溃，且保留可编辑性 */
+  const safeIng = (id: number): Ingredient =>
+    findIng(id) ?? { ...GHOST_INGREDIENT, id };
 
   const isSeedIngredient = (id: number): boolean => SEED_IDS.has(id);
 
@@ -517,18 +539,42 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   /* ---------------- 食材 / 菜谱 CRUD ---------------- */
+  /**
+   * 生成不与现有食材冲突的新 id。
+   * 旧实现直接用 Date.now()，同一毫秒内连续新增会碰撞（导致部分记录「显示错食材」）。
+   * 这里取 max(现有最大 id, Date.now()) + 1，保证单调递增且永不重复。
+   */
+  function nextIngredientId(): number {
+    const maxExisting = ingredients.value.reduce((m, i) => Math.max(m, i.id), 0);
+    return Math.max(maxExisting + 1, Date.now());
+  }
+
   function saveIngredient(data: Omit<Ingredient, 'id'>, editingId: number | null): void {
     if (editingId !== null) {
       const it = ingredients.value.find((x) => x.id === editingId);
       if (it) Object.assign(it, data);
     } else {
-      ingredients.value.push({ id: Date.now(), ...data });
+      ingredients.value.push({ id: nextIngredientId(), ...data });
     }
   }
 
-  function deleteIngredient(id: number): void {
+  /**
+   * 删除食材并级联清理其引用：每日记录、库存、采购清单。
+   * 返回被级联删除的记录条数（供 UI 提示）。
+   * 这样从根上杜绝「删了食材却留下孤儿记录」这类异常数据复现。
+   */
+  function deleteIngredient(id: number): number {
+    let removedLogs = 0;
+    for (const date of Object.keys(dailyLogs)) {
+      const before = dailyLogs[date]!.length;
+      dailyLogs[date] = dailyLogs[date]!.filter((e) => e.ingredientId !== id);
+      removedLogs += before - dailyLogs[date]!.length;
+    }
+    pantry.value = pantry.value.filter((p) => p.ingredientId !== id);
+    shopping.value = shopping.value.filter((s) => s.ingredientId !== id);
     const i = ingredients.value.findIndex((x) => x.id === id);
     if (i > -1) ingredients.value.splice(i, 1);
+    return removedLogs;
   }
 
   function saveRecipe(data: Omit<Recipe, 'id'>, editingId: number | null): void {
@@ -614,6 +660,7 @@ export const useDietStore = defineStore('diet', () => {
     snapshot,
     // query
     findIng,
+    safeIng,
     isSeedIngredient,
     ingByCat,
     hasInPantry,

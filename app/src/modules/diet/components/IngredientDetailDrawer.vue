@@ -6,7 +6,7 @@ import { catClass, classifyTag, fmt1, healthTags, micronGroups, unitLabel } from
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 import { useUndo } from '@/shared/composables/use-undo';
-import type { Ingredient } from '../types';
+import type { Ingredient, LogEntry } from '../types';
 
 const store = useDietStore();
 const { selectedIng, pickerContext, clearPickerContext, foodTab } = useDietUi();
@@ -76,11 +76,20 @@ function onDelete(): void {
     pushToast('系统默认食材不可删除');
     return;
   }
+  // 捕获被级联删除的记录，撤销时一并恢复，避免留下孤儿数据
+  const removedLogs: Record<string, LogEntry[]> = {};
+  for (const date of Object.keys(store.dailyLogs)) {
+    const rs = store.dailyLogs[date]!.filter((e) => e.ingredientId === ing.id);
+    if (rs.length) removedLogs[date] = rs;
+  }
   const idx = store.ingredients.findIndex((x) => x.id === ing.id);
-  store.deleteIngredient(ing.id);
+  const removedCount = store.deleteIngredient(ing.id);
   selectedIng.value = null;
-  pushUndo(`已删除 ${ing.name}`, () => {
+  pushUndo(`已删除 ${ing.name}${removedCount ? ` 及 ${removedCount} 条记录` : ''}`, () => {
     store.ingredients.splice(idx < 0 ? store.ingredients.length : idx, 0, ing);
+    for (const [date, rs] of Object.entries(removedLogs)) {
+      store.dailyLogs[date]!.push(...rs);
+    }
   });
 }
 </script>

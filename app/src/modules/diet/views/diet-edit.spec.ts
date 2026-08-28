@@ -27,7 +27,9 @@ afterEach(() => {
 });
 
 async function mountFood(): Promise<VueWrapper> {
-  const wrapper = mount(FoodView, { attachTo: document.body });
+  // transition: true 让 <transition mode="out-in"> 直接渲染子节点，
+  // 避免 jsdom 下离场动画不结束导致异步组件迟迟不挂载。
+  const wrapper = mount(FoodView, { attachTo: document.body, global: { stubs: { transition: true } } });
   await nextTick();
   await flushPromises();
   return wrapper;
@@ -112,5 +114,140 @@ describe('记录页修改食物', () => {
     expect(updated.amount).toBe(250);
     expect(bodySheet()).toBeNull(); // 保存后抽屉关闭
     wrapper.unmount();
+  });
+});
+
+describe('孤儿记录（食材已不存在）：显示与编辑', () => {
+  it('引用已删除食材的记录在列表中显示兜底名且能打开编辑', async () => {
+    const wrapper = await mountFood();
+    const store = useDietStore();
+    const ui = useDietUi();
+    // 引用一个不存在的食材 id（模拟被删除 / 老数据损坏）
+    store.addLogEntry(ui.logDate.value, { ingredientId: 999999, amount: 120, mealType: 'breakfast' });
+    await nextTick();
+
+    const row = wrapper.find('[data-testid="log-row"]');
+    expect(row.exists()).toBe(true);
+    // safeIng 兜底：不再显示空白名
+    expect(row.text()).toContain('未知食材');
+
+    await row.trigger('click');
+    await nextTick();
+    await flushPromises();
+
+    const sheet = bodySheet();
+    expect(sheet).not.toBeNull();
+    // 旧逻辑会 toast 并直接 return；新逻辑必须能打开并给出重关联入口
+    expect(sheet!.textContent).toContain('该食材已不存在');
+    expect(sheet!.textContent).toContain('重新选择食材');
+    wrapper.unmount();
+  });
+
+  it('点击「重新选择食材」可在食材页把孤儿记录重新关联', async () => {
+    const wrapper = await mountFood();
+    const store = useDietStore();
+    const ui = useDietUi();
+    // 先放一个真实食材供重新关联
+    store.saveIngredient(
+      { name: '真实食材', category: 'protein', emoji: '🍗', nutrition: { calories: 100, carbs: 0, protein: 20, fat: 5 }, note: '', tags: [], image: '' },
+      null,
+    );
+    store.addLogEntry(ui.logDate.value, { ingredientId: 999999, amount: 120, mealType: 'breakfast' });
+    await nextTick();
+
+    await wrapper.find('[data-testid="log-row"]').trigger('click');
+    await nextTick();
+    await flushPromises();
+
+    const sheet = bodySheet()!;
+    const relinkBtn = Array.from(sheet.querySelectorAll('button')).find((b) =>
+      (b.textContent || '').includes('重新选择食材'),
+    ) as HTMLButtonElement;
+    expect(relinkBtn).toBeTruthy();
+    relinkBtn.click();
+    await nextTick();
+    await flushPromises();
+
+    // 异步组件（IngredientsView）动态导入 + out-in 过渡，轮询等待其挂载
+    let card: ReturnType<VueWrapper['find']> | null = null;
+    for (let i = 0; i < 40; i++) {
+      await nextTick();
+      await flushPromises();
+      const c = wrapper.find('[data-testid="ing-card"]');
+      if (c.exists()) {
+        card = c;
+        break;
+      }
+      await new Promise((r) => setTimeout(r, 20));
+    }
+
+    // 应跳到食材页
+    expect(ui.foodTab.value).toBe('ingredients');
+    expect(card).not.toBeNull();
+    const cardEl = card!;
+    await cardEl.trigger('click');
+    await nextTick();
+    await flushPromises();
+
+    const entry = store.getDayLog(ui.logDate.value)[0]!;
+    expect(entry.ingredientId).not.toBe(999999);
+    expect(store.findIng(entry.ingredientId)).toBeTruthy();
+    // 关联后回到记录页
+    expect(ui.foodTab.value).toBe('dailylog');
+    wrapper.unmount();
+  });
+});
+
+describe('store：孤儿数据预防与兜底', () => {
+  it('safeIng 对缺失 id 返回幽灵占位而非 undefined', () => {
+    const store = useDietStore();
+    const g = store.safeIng(123456);
+    expect(g.name).toBe('未知食材');
+    expect(g.nutrition.calories).toBe(0);
+  });
+
+  it('连续新增食材 id 不碰撞', () => {
+    const store = useDietStore();
+    store.saveIngredient(
+      { name: 'A', category: 'protein', emoji: '', nutrition: { calories: 0, carbs: 0, protein: 0, fat: 0 }, note: '', tags: [], image: '' },
+      null,
+    );
+    store.saveIngredient(
+      { name: 'B', category: 'protein', emoji: '', nutrition: { calories: 0, carbs: 0, protein: 0, fat: 0 }, note: '', tags: [], image: '' },
+      null,
+    );
+    const ids = store.ingredients.map((i) => i.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('deleteIngredient 级联删除其记录（杜绝新孤儿）', () => {
+    const store = useDietStore();
+    store.saveIngredient(
+      { name: 'A', category: 'protein', emoji: '', nutrition: { calories: 0, carbs: 0, protein: 0, fat: 0 }, note: '', tags: [], image: '' },
+      null,
+    );
+    const ing = store.ingredients[0]!;
+    store.addLogEntry('2026-01-01', { ingredientId: ing.id, amount: 100, mealType: 'breakfast' });
+    const count = store.deleteIngredient(ing.id);
+    expect(count).toBe(1);
+    expect(store.findIng(ing.id)).toBeUndefined();
+    expect(store.getDayLog('2026-01-01').length).toBe(0);
+  });
+});
+
+describe('persistence：损坏日志条目过滤', () => {
+  it('normalizeDailyLogs 丢弃 ingredientId<=0 / 非有限的损坏条目', async () => {
+    const { normalizeState } = await import('../store/persistence');
+    const st = normalizeState(
+      { dailyLogs: { '2026-01-01': [
+        { ingredientId: 0, amount: 50 },
+        { ingredientId: 'abc', amount: 50 },
+        { ingredientId: 5, amount: 100 },
+      ] } },
+      () => [],
+    );
+    const logs = st.dailyLogs!['2026-01-01'];
+    expect(logs.length).toBe(1);
+    expect(logs[0]!.ingredientId).toBe(5);
   });
 });

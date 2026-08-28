@@ -71,9 +71,9 @@ function onEntryClick(entry: LogEntry & { _idx: number }): void {
           class="flex items-center gap-3 p-3 rounded-xl border border-paper-300/60 bg-white/70 hover:bg-paper-50/60 transition-colors cursor-pointer"
           @click="onEntryClick(entry)"
         >
-          <IngredientAvatar :ing="store.findIng(entry.ingredientId)" :size="38" />
+          <IngredientAvatar :ing="store.safeIng(entry.ingredientId)" :size="38" />
           <div class="flex-1 min-w-0">
-            <div class="text-sm font-medium truncate">{{ store.findIng(entry.ingredientId)?.name }}</div>
+            <div class="text-sm font-medium truncate">{{ store.safeIng(entry.ingredientId).name }}</div>
             <div class="text-[10px] text-paper-400">
               {{ entryFromGrams(entry, store.findIng(entry.ingredientId), entry.amount).toFixed(1) }}{{ entryUnit(entry, store.findIng(entry.ingredientId)) }}
               · {{ fmtNutri(entryNutrition(entry)) }}

@@ -12,7 +12,7 @@ import { useUndo } from '@/shared/composables/use-undo';
 import type { IngredientUnit, LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
-const { logDate, modals, startIngredientPicker, openIngDetail } = useDietUi();
+const { logDate, modals, startIngredientPicker, startRelink, openIngDetail } = useDietUi();
 const { pushToast } = useUndo();
 
 const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null] }>();
@@ -88,20 +88,33 @@ const editForm = reactive<{
 });
 
 function openEdit(entry: LogEntry & { _idx: number }, mealType: MealType): void {
-  const ing = store.findIng(entry.ingredientId);
   const realIdx = store.resolveRealIndex(logDate.value, mealType, entry._idx);
-  // 错误处理：记录引用的食材已不存在（如老数据损坏 / 被删）时不打开空抽屉
-  if (realIdx < 0 || !ing) {
-    pushToast('该记录数据异常，无法编辑');
+  // 错误处理：真实下标无效时仅提示，不再因「食材缺失」而堵死整条记录的编辑入口
+  if (realIdx < 0) {
+    pushToast('该记录位置已变化，请刷新后重试');
     return;
   }
   editRealIdx.value = realIdx;
   editMealType.value = mealType;
   editForm.ingredientId = entry.ingredientId;
-  editForm.unit = entry.unit || ing.unit || 'g';
+  const ing = store.findIng(entry.ingredientId);
+  editForm.unit = entry.unit || ing?.unit || 'g';
   editForm.amount = round1(entryFromGrams(entry, ing, entry.amount));
   editForm.mealType = entry.mealType;
   showEditSheet.value = true;
+}
+
+/** 当前编辑的记录是否引用了已不存在的食材（幽灵记录） */
+const isGhostEdit = computed(() =>
+  editForm.ingredientId === '' ? false : !store.findIng(Number(editForm.ingredientId)),
+);
+
+/** 把幽灵记录重新关联到真实食材（复用食材页搜索选择，避免旧的长下拉） */
+function startRelinkEntry(): void {
+  if (editRealIdx.value === null) return;
+  const idx = editRealIdx.value;
+  closeEdit();
+  startRelink(logDate.value, idx);
 }
 
 function closeEdit(): void {
@@ -125,12 +138,17 @@ async function saveEdit(): Promise<void> {
   }
   saving.value = true;
   try {
-    const ing = store.findIng(Number(editForm.ingredientId));
+    const idNum = Number(editForm.ingredientId);
+    const ing = store.findIng(idNum);
+    // 幽灵记录没有换算基准：把输入值直接按克存储
+    const grams = ing
+      ? entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount))
+      : Number(editForm.amount) || 0;
     store.updateLogEntry(logDate.value, editRealIdx.value, {
-      ingredientId: Number(editForm.ingredientId),
-      amount: entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount)),
+      ingredientId: idNum,
+      amount: grams,
       mealType: editForm.mealType,
-      unit: editForm.unit,
+      unit: ing ? editForm.unit : 'g',
     });
     pushToast('已保存');
     closeEdit();
@@ -145,6 +163,8 @@ async function saveEdit(): Promise<void> {
 
 function setEditUnit(u: IngredientUnit): void {
   if (editForm.unit === u || editForm.ingredientId === '') return;
+  // 幽灵记录无 gramsPerUnit，单位只能按克
+  if (isGhostEdit.value) return;
   const ing = store.findIng(Number(editForm.ingredientId));
   const grams = entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount) || 0);
   editForm.unit = u;
@@ -269,11 +289,11 @@ function applyTemplate(tmpl: MealTemplate): void {
             class="flex items-center gap-2 p-2 rounded-xl hover:bg-paper-50/80 active:bg-paper-100 transition-colors"
             @click="openEdit(entry, m.key)"
           >
-            <IngredientAvatar :ing="store.findIng(entry.ingredientId)" :size="34" />
+            <IngredientAvatar :ing="store.safeIng(entry.ingredientId)" :size="34" />
             <div class="flex-1 min-w-0">
               <div class="text-sm font-medium text-ink truncate">
-                {{ store.findIng(entry.ingredientId)?.name }}
-                <span v-if="store.findIng(entry.ingredientId)?.brand" class="text-[10px] text-paper-400">·{{ store.findIng(entry.ingredientId)?.brand }}</span>
+                {{ store.safeIng(entry.ingredientId).name }}
+                <span v-if="store.safeIng(entry.ingredientId).brand" class="text-[10px] text-paper-400">·{{ store.safeIng(entry.ingredientId).brand }}</span>
               </div>
             <div class="text-[10px] text-paper-400">
               {{ round1(entryFromGrams(entry, store.findIng(entry.ingredientId), entry.amount)) }}{{ entryUnit(entry, store.findIng(entry.ingredientId)) }}
@@ -337,12 +357,22 @@ function applyTemplate(tmpl: MealTemplate): void {
               <div>
                 <div class="flex items-center justify-between mb-1">
                   <label class="text-[11px] text-paper-500">食材</label>
-                  <button class="text-[11px] text-coral-500 hover:text-coral-600" @click="openDetailFromEdit">食材详情 ›</button>
+                  <button
+                    v-if="!isGhostEdit"
+                    class="text-[11px] text-coral-500 hover:text-coral-600"
+                    @click="openDetailFromEdit"
+                  >食材详情 ›</button>
+                  <button
+                    v-else
+                    class="text-[11px] text-coral-500 hover:text-coral-600"
+                    @click="startRelinkEntry"
+                  >重新选择食材 ›</button>
                 </div>
                 <div class="flex items-center gap-3 px-3 py-2 rounded-lg border border-paper-300/60 bg-paper-50/50">
-                  <span class="text-lg">{{ store.findIng(Number(editForm.ingredientId))?.emoji }}</span>
-                  <span class="text-sm text-ink">{{ store.findIng(Number(editForm.ingredientId))?.name }}</span>
+                  <span class="text-lg">{{ store.safeIng(Number(editForm.ingredientId)).emoji }}</span>
+                  <span class="text-sm text-ink">{{ store.safeIng(Number(editForm.ingredientId)).name }}</span>
                 </div>
+                <p v-if="isGhostEdit" class="mt-1 text-[11px] text-amber-500">⚠ 该食材已不存在，可重新选择或删除此记录</p>
               </div>
               <div>
                 <label class="text-[11px] text-paper-500 block mb-1">分量</label>
@@ -363,14 +393,15 @@ function applyTemplate(tmpl: MealTemplate): void {
                     >
                       g
                     </button>
-                    <button
-                      type="button"
-                      class="px-3 py-2 text-sm font-medium transition-colors"
-                      :class="editForm.unit === '个' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
-                      @click="setEditUnit('个')"
-                    >
-                      个
-                    </button>
+                  <button
+                    type="button"
+                    class="px-3 py-2 text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    :class="editForm.unit === '个' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                    :disabled="isGhostEdit"
+                    @click="setEditUnit('个')"
+                  >
+                    个
+                  </button>
                   </div>
                 </div>
               </div>

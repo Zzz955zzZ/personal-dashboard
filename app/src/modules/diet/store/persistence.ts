@@ -108,7 +108,8 @@ function normalizeDailyLogs(raw: unknown): DailyLogs {
           ? (e.mealType as MealType)
           : 'breakfast',
       }))
-      .filter((e) => Number.isFinite(e.ingredientId));
+      // 丢弃 ingredientId 无效（NaN / 0 / 负数）的损坏条目，避免脏数据进入 UI
+      .filter((e) => Number.isFinite(e.ingredientId) && e.ingredientId > 0);
   }
   return out;
 }

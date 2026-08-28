@@ -10,7 +10,7 @@ import { useDietUi } from '../composables/use-diet-ui';
 import type { Ingredient, IngredientCategory } from '../types';
 
 const store = useDietStore();
-const { foodTab, openIngDetail, pickerContext, clearPickerContext } = useDietUi();
+const { foodTab, openIngDetail, pickerContext, relinkContext, clearRelinkContext, cancelContext } = useDietUi();
 
 const emit = defineEmits<{ edit: [ing: Ingredient | null] }>();
 
@@ -30,11 +30,23 @@ const searchedIngList = computed(() => {
 });
 
 function onCardClick(it: Ingredient): void {
+  // 重新关联模式：点选食材后替换孤儿记录的 ingredientId，再回到记录页
+  if (relinkContext.value) {
+    const { date, realIdx } = relinkContext.value;
+    const cur = store.getDayLog(date)[realIdx];
+    if (cur) {
+      store.updateLogEntry(date, realIdx, { ...cur, ingredientId: it.id });
+      store.touchIngredient(it.id);
+    }
+    clearRelinkContext();
+    foodTab.value = 'dailylog';
+    return;
+  }
   openIngDetail(it);
 }
 
 function cancelPicker(): void {
-  clearPickerContext();
+  cancelContext();
   foodTab.value = 'dailylog';
 }
 </script>
@@ -75,6 +87,11 @@ function cancelPicker(): void {
       <button class="text-xs text-paper-500 hover:text-coral-600 px-2 py-1" @click="cancelPicker">取消</button>
     </div>
 
+    <div v-else-if="relinkContext" class="mb-3 p-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
+      <span class="text-sm font-medium text-amber-700">选择替换食材（重新关联该记录）</span>
+      <button class="text-xs text-paper-500 hover:text-amber-600 px-2 py-1" @click="cancelPicker">取消</button>
+    </div>
+
     <div class="mb-3">
       <SearchInput v-model="ingSearch" placeholder="搜索食材或品牌…" size="sm" />
     </div>
@@ -84,6 +101,7 @@ function cancelPicker(): void {
       <div
         v-for="it in searchedIngList"
         :key="it.id"
+        data-testid="ing-card"
         class="group relative p-2.5 rounded-xl border border-paper-300/60 bg-white/80 hover:border-coral-300 transition-all cursor-pointer flex flex-col"
         :class="pickerContext ? 'active:scale-[0.98]' : ''"
         @click="onCardClick(it)"

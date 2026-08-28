@@ -22,13 +22,22 @@ const selectedIng = ref<Ingredient | null>(null);
 /** 菜谱页的多选食材（用于筛选菜谱 / 一键加入记录） */
 const selectedIngIds = ref<number[]>([]);
 
-/** 从记录页跳转过来选择食材的上下文 */
+/** 从记录页跳转过来选择食材的上下文（用于新增一条记录） */
 interface IngredientPickerContext {
   type: 'ingredient';
   date: string;
   mealType: MealType;
 }
 const pickerContext = ref<IngredientPickerContext | null>(null);
+
+/** 把某条「食材已不存在」的记录重新关联到真实食材的上下文 */
+interface IngredientRelinkContext {
+  type: 'relink';
+  date: string;
+  /** 该记录在整日数组中的真实下标 */
+  realIdx: number;
+}
+const relinkContext = ref<IngredientRelinkContext | null>(null);
 
 const modals = reactive({
   ingForm: false,
@@ -56,6 +65,22 @@ export function useDietUi() {
     pickerContext.value = null;
   }
 
+  /** 进入「重新选择食材」模式：跳到食材页，点选后替换孤儿记录的 ingredientId */
+  function startRelink(date: string, realIdx: number): void {
+    relinkContext.value = { type: 'relink', date, realIdx };
+    foodTab.value = 'ingredients';
+  }
+
+  function clearRelinkContext(): void {
+    relinkContext.value = null;
+  }
+
+  /** 食材页的两种跳转上下文共用一个「取消」动作 */
+  function cancelContext(): void {
+    pickerContext.value = null;
+    relinkContext.value = null;
+  }
+
   return {
     foodTab,
     logDate,
@@ -63,10 +88,14 @@ export function useDietUi() {
     selectedIng,
     selectedIngIds,
     pickerContext,
+    relinkContext,
     modals,
     openIngDetail,
     toggleIngSelect,
     startIngredientPicker,
     clearPickerContext,
+    startRelink,
+    clearRelinkContext,
+    cancelContext,
   };
 }

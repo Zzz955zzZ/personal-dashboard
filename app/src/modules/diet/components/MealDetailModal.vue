@@ -5,7 +5,7 @@ import { computed } from 'vue';
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from './IngredientAvatar.vue';
 import { mealTypeLabel } from '../constants';
-import { fmt1, fromGrams, unitLabel } from '../engine';
+import { entryFromGrams, entryUnit, fmt1 } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import type { LogEntry, MealType } from '../types';
 
@@ -74,7 +74,7 @@ function onEntryClick(entry: LogEntry & { _idx: number }): void {
           <div class="flex-1 min-w-0">
             <div class="text-sm font-medium truncate">{{ store.findIng(entry.ingredientId)?.name }}</div>
             <div class="text-[10px] text-paper-400">
-              {{ fromGrams(store.findIng(entry.ingredientId), entry.amount).toFixed(1) }}{{ unitLabel(store.findIng(entry.ingredientId)) }}
+              {{ entryFromGrams(entry, store.findIng(entry.ingredientId), entry.amount).toFixed(1) }}{{ entryUnit(entry, store.findIng(entry.ingredientId)) }}
               · {{ fmtNutri(entryNutrition(entry)) }}
             </div>
           </div>

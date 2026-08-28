@@ -5,11 +5,11 @@ import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import MealDetailModal from '../components/MealDetailModal.vue';
 import { MEAL_TYPES, mealTypeLabel } from '../constants';
-import { fmt1, fromGrams, round1, toGrams, unitLabel } from '../engine';
+import { entryFromGrams, entryToGrams, entryUnit, fmt1, round1 } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 import { useUndo } from '@/shared/composables/use-undo';
-import type { LogEntry, MealTemplate, MealType, Nutrition } from '../types';
+import type { IngredientUnit, LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
 const { logDate, modals, startIngredientPicker, openIngDetail } = useDietUi();
@@ -74,17 +74,24 @@ function startPicker(meal?: MealType): void {
 const showEditSheet = ref(false);
 const editRealIdx = ref<number | null>(null);
 const editMealType = ref<MealType>('breakfast');
-const editForm = reactive<{ ingredientId: number | ''; amount: number | ''; mealType: MealType }>({
+const editForm = reactive<{
+  ingredientId: number | '';
+  amount: number | '';
+  mealType: MealType;
+  unit: IngredientUnit;
+}>({
   ingredientId: '',
   amount: '',
   mealType: 'breakfast',
+  unit: 'g',
 });
 
 function openEdit(entry: LogEntry & { _idx: number }, mealType: MealType): void {
   editRealIdx.value = store.resolveRealIndex(logDate.value, mealType, entry._idx);
   editMealType.value = mealType;
   editForm.ingredientId = entry.ingredientId;
-  editForm.amount = round1(fromGrams(store.findIng(entry.ingredientId), entry.amount));
+  editForm.unit = entry.unit || store.findIng(entry.ingredientId)?.unit || 'g';
+  editForm.amount = round1(entryFromGrams(entry, store.findIng(entry.ingredientId), entry.amount));
   editForm.mealType = entry.mealType;
   showEditSheet.value = true;
 }
@@ -104,12 +111,22 @@ function openDetailFromEdit(): void {
 
 function saveEdit(): void {
   if (editRealIdx.value === null || editForm.ingredientId === '' || !editForm.amount) return;
+  const ing = store.findIng(Number(editForm.ingredientId));
   store.updateLogEntry(logDate.value, editRealIdx.value, {
     ingredientId: Number(editForm.ingredientId),
-    amount: toGrams(store.findIng(Number(editForm.ingredientId)), Number(editForm.amount)),
+    amount: entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount)),
     mealType: editForm.mealType,
+    unit: editForm.unit,
   });
   closeEdit();
+}
+
+function setEditUnit(u: IngredientUnit): void {
+  if (editForm.unit === u || editForm.ingredientId === '') return;
+  const ing = store.findIng(Number(editForm.ingredientId));
+  const grams = entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount) || 0);
+  editForm.unit = u;
+  editForm.amount = round1(entryFromGrams({ unit: u }, ing, grams));
 }
 
 /** 编辑抽屉里「该分量」的实时营养素：按所选数量与单位换算 */
@@ -118,7 +135,7 @@ const editPreviewNutrition = computed<Nutrition>(() => {
   if (editForm.ingredientId === '') return out;
   const ing = store.findIng(Number(editForm.ingredientId));
   if (!ing?.nutrition) return out;
-  const grams = toGrams(ing, Number(editForm.amount) || 0);
+  const grams = entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount) || 0);
   const f = grams / 100;
   out.calories = (ing.nutrition.calories || 0) * f;
   out.carbs = (ing.nutrition.carbs || 0) * f;
@@ -199,7 +216,7 @@ function applyTemplate(tmpl: MealTemplate): void {
 
     <!-- 按餐次分组 -->
     <template v-for="m in MEAL_TYPES" :key="m.key">
-      <div v-if="store.mealEntries(logDate, m.key).length || expandedMeals[m.key]" class="mb-3 rounded-xl border border-paper-200/60 bg-white/80 overflow-hidden">
+      <div class="mb-3 rounded-xl border border-paper-200/60 bg-white/80 overflow-hidden">
         <!-- 餐次标题 -->
         <button
           class="w-full flex items-center justify-between px-3 py-2.5 bg-paper-50/60"
@@ -235,10 +252,10 @@ function applyTemplate(tmpl: MealTemplate): void {
                 {{ store.findIng(entry.ingredientId)?.name }}
                 <span v-if="store.findIng(entry.ingredientId)?.brand" class="text-[10px] text-paper-400">·{{ store.findIng(entry.ingredientId)?.brand }}</span>
               </div>
-              <div class="text-[10px] text-paper-400">
-                {{ round1(fromGrams(store.findIng(entry.ingredientId), entry.amount)) }}{{ unitLabel(store.findIng(entry.ingredientId)) }}
-                · {{ fmtNutri(entryNutrition(entry)) }}
-              </div>
+            <div class="text-[10px] text-paper-400">
+              {{ round1(entryFromGrams(entry, store.findIng(entry.ingredientId), entry.amount)) }}{{ entryUnit(entry, store.findIng(entry.ingredientId)) }}
+              · {{ fmtNutri(entryNutrition(entry)) }}
+            </div>
             </div>
           </div>
           <div v-if="!store.mealEntries(logDate, m.key).length" class="text-center text-paper-400 py-4 text-xs">
@@ -299,9 +316,10 @@ function applyTemplate(tmpl: MealTemplate): void {
                   <label class="text-[11px] text-paper-500">食材</label>
                   <button class="text-[11px] text-coral-500 hover:text-coral-600" @click="openDetailFromEdit">食材详情 ›</button>
                 </div>
-                <select v-model="editForm.ingredientId" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
-                  <option v-for="it in store.ingredients" :key="it.id" :value="it.id">{{ it.emoji }} {{ it.name }}</option>
-                </select>
+                <div class="flex items-center gap-3 px-3 py-2 rounded-lg border border-paper-300/60 bg-paper-50/50">
+                  <span class="text-lg">{{ store.findIng(Number(editForm.ingredientId))?.emoji }}</span>
+                  <span class="text-sm text-ink">{{ store.findIng(Number(editForm.ingredientId))?.name }}</span>
+                </div>
               </div>
               <div>
                 <label class="text-[11px] text-paper-500 block mb-1">分量</label>
@@ -313,14 +331,31 @@ function applyTemplate(tmpl: MealTemplate): void {
                     step="0.1"
                     class="flex-1 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
                   />
-                  <span class="text-sm text-paper-500 w-6 text-center">{{ unitLabel(store.findIng(Number(editForm.ingredientId))) }}</span>
+                  <div class="flex rounded-lg border border-paper-300/60 bg-white overflow-hidden">
+                    <button
+                      type="button"
+                      class="px-3 py-2 text-sm font-medium transition-colors"
+                      :class="editForm.unit === 'g' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                      @click="setEditUnit('g')"
+                    >
+                      g
+                    </button>
+                    <button
+                      type="button"
+                      class="px-3 py-2 text-sm font-medium transition-colors"
+                      :class="editForm.unit === '个' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                      @click="setEditUnit('个')"
+                    >
+                      个
+                    </button>
+                  </div>
                 </div>
               </div>
               <!-- 该分量营养素（随数量/单位实时换算） -->
               <div class="p-3 rounded-xl bg-paper-50 border border-paper-200/60">
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-[11px] text-paper-500">该分量营养素</span>
-                  <span class="text-[11px] text-paper-400">{{ Number(editForm.amount) || 0 }}{{ unitLabel(store.findIng(Number(editForm.ingredientId))) }}</span>
+                  <span class="text-[11px] text-paper-400">{{ Number(editForm.amount) || 0 }}{{ editForm.unit }}</span>
                 </div>
                 <div class="grid grid-cols-4 gap-1.5 text-center">
                   <div>

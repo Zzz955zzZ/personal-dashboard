@@ -42,6 +42,7 @@ function confirmAdd(): void {
     ingredientId: selectedIng.value.id,
     amount: computedGrams(),
     mealType: pickerContext.value.mealType,
+    unit: addUnit.value,
   });
   clearPickerContext();
   selectedIng.value = null;

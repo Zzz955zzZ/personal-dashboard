@@ -2,7 +2,7 @@
  * 单位系统：内部一律以克存储，仅在展示/输入层做「个 ↔ g」换算。
  * 行为与 v1.0 单文件版逐行等价。
  */
-import type { Ingredient } from '../types';
+import type { Ingredient, IngredientUnit } from '../types';
 
 /** 参与换算所需的最小食材形状，便于传入部分对象 */
 type UnitLike = Pick<Ingredient, 'unit' | 'gramsPerUnit'> | null | undefined;
@@ -12,9 +12,24 @@ export function unitLabel(ing: UnitLike): '个' | 'g' {
   return ing && ing.unit === '个' ? '个' : 'g';
 }
 
+/** 条目实际使用的单位（条目可覆盖食材默认单位） */
+export function entryUnit(entry: { unit?: IngredientUnit } | null | undefined, ing: UnitLike): '个' | 'g' {
+  return entry?.unit || ing?.unit || 'g';
+}
+
 /** 用户输入值 -> 克 */
 export function toGrams(ing: UnitLike, val: number): number {
   if (ing && ing.unit === '个') return val * (Number(ing.gramsPerUnit) || 1);
+  return val;
+}
+
+/** 条目输入值 -> 克（考虑条目覆盖的单位） */
+export function entryToGrams(
+  entry: { unit?: IngredientUnit } | null | undefined,
+  ing: UnitLike,
+  val: number,
+): number {
+  if (entryUnit(entry, ing) === '个') return val * (Number(ing?.gramsPerUnit) || 1);
   return val;
 }
 
@@ -22,6 +37,19 @@ export function toGrams(ing: UnitLike, val: number): number {
 export function fromGrams(ing: UnitLike, g: number): number {
   if (ing && ing.unit === '个') {
     const gp = Number(ing.gramsPerUnit) || 1;
+    return gp ? g / gp : g;
+  }
+  return g;
+}
+
+/** 克 -> 条目展示值（考虑条目覆盖的单位） */
+export function entryFromGrams(
+  entry: { unit?: IngredientUnit } | null | undefined,
+  ing: UnitLike,
+  g: number,
+): number {
+  if (entryUnit(entry, ing) === '个') {
+    const gp = Number(ing?.gramsPerUnit) || 1;
     return gp ? g / gp : g;
   }
   return g;

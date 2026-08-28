@@ -1,4 +1,13 @@
-export { unitLabel, toGrams, fromGrams, round1, fmt1 } from './units';
+export {
+  unitLabel,
+  toGrams,
+  fromGrams,
+  round1,
+  fmt1,
+  entryUnit,
+  entryToGrams,
+  entryFromGrams,
+} from './units';
 export { healthTags } from './health-tags';
 export { inferCategory, CATEGORY_RULES } from './infer-category';
 export { aiRecognize, detectMicrons } from './recognize';

@@ -91,6 +91,8 @@ export interface LogEntry {
   /** 克 */
   amount: number;
   mealType: MealType;
+  /** 该条目优先使用的计量单位；未指定时回退到食材自身的 unit */
+  unit?: IngredientUnit;
 }
 
 /** 按日期分组的记录，key 为 YYYY-MM-DD */

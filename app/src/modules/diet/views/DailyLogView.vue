@@ -72,6 +72,7 @@ function startPicker(meal?: MealType): void {
 
 /* ==================== 移动端编辑抽屉 ==================== */
 const showEditSheet = ref(false);
+const saving = ref(false);
 const editRealIdx = ref<number | null>(null);
 const editMealType = ref<MealType>('breakfast');
 const editForm = reactive<{
@@ -87,11 +88,18 @@ const editForm = reactive<{
 });
 
 function openEdit(entry: LogEntry & { _idx: number }, mealType: MealType): void {
-  editRealIdx.value = store.resolveRealIndex(logDate.value, mealType, entry._idx);
+  const ing = store.findIng(entry.ingredientId);
+  const realIdx = store.resolveRealIndex(logDate.value, mealType, entry._idx);
+  // 错误处理：记录引用的食材已不存在（如老数据损坏 / 被删）时不打开空抽屉
+  if (realIdx < 0 || !ing) {
+    pushToast('该记录数据异常，无法编辑');
+    return;
+  }
+  editRealIdx.value = realIdx;
   editMealType.value = mealType;
   editForm.ingredientId = entry.ingredientId;
-  editForm.unit = entry.unit || store.findIng(entry.ingredientId)?.unit || 'g';
-  editForm.amount = round1(entryFromGrams(entry, store.findIng(entry.ingredientId), entry.amount));
+  editForm.unit = entry.unit || ing.unit || 'g';
+  editForm.amount = round1(entryFromGrams(entry, ing, entry.amount));
   editForm.mealType = entry.mealType;
   showEditSheet.value = true;
 }
@@ -109,16 +117,30 @@ function openDetailFromEdit(): void {
   openIngDetail(ing);
 }
 
-function saveEdit(): void {
-  if (editRealIdx.value === null || editForm.ingredientId === '' || !editForm.amount) return;
-  const ing = store.findIng(Number(editForm.ingredientId));
-  store.updateLogEntry(logDate.value, editRealIdx.value, {
-    ingredientId: Number(editForm.ingredientId),
-    amount: entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount)),
-    mealType: editForm.mealType,
-    unit: editForm.unit,
-  });
-  closeEdit();
+async function saveEdit(): Promise<void> {
+  // 校验：未选食材或分量非法时拦截并提示
+  if (editRealIdx.value === null || editForm.ingredientId === '' || !editForm.amount || Number(editForm.amount) <= 0) {
+    pushToast('请输入有效的分量');
+    return;
+  }
+  saving.value = true;
+  try {
+    const ing = store.findIng(Number(editForm.ingredientId));
+    store.updateLogEntry(logDate.value, editRealIdx.value, {
+      ingredientId: Number(editForm.ingredientId),
+      amount: entryToGrams({ unit: editForm.unit }, ing, Number(editForm.amount)),
+      mealType: editForm.mealType,
+      unit: editForm.unit,
+    });
+    pushToast('已保存');
+    closeEdit();
+  } catch (e) {
+    // 兜底错误提示，避免静默失败
+    pushToast('保存失败，请重试');
+    console.error('[DailyLogView] saveEdit 失败', e);
+  } finally {
+    saving.value = false;
+  }
 }
 
 function setEditUnit(u: IngredientUnit): void {
@@ -243,6 +265,7 @@ function applyTemplate(tmpl: MealTemplate): void {
           <div
             v-for="entry in store.mealEntries(logDate, m.key)"
             :key="entry._idx"
+            data-testid="log-row"
             class="flex items-center gap-2 p-2 rounded-xl hover:bg-paper-50/80 active:bg-paper-100 transition-colors"
             @click="openEdit(entry, m.key)"
           >
@@ -294,7 +317,7 @@ function applyTemplate(tmpl: MealTemplate): void {
     <!-- 编辑食物抽屉 -->
     <Teleport to="body">
       <transition name="slide-up">
-        <div v-if="showEditSheet" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center" @click.self="showEditSheet = false">
+        <div v-if="showEditSheet" data-testid="edit-sheet" class="fixed inset-0 z-[60] flex items-end sm:items-center justify-center" @click.self="showEditSheet = false">
           <div class="absolute inset-0 bg-black/70" @click="showEditSheet = false" />
           <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl">
             <div class="flex items-center justify-between px-4 py-3 border-b border-paper-100">
@@ -391,10 +414,11 @@ function applyTemplate(tmpl: MealTemplate): void {
                 </div>
               </div>
               <button
-                class="w-full px-4 py-2.5 rounded-xl bg-coral-400 text-white text-sm font-medium hover:bg-coral-500 active:scale-[0.98] transition-all"
+                class="w-full px-4 py-2.5 rounded-xl bg-coral-400 text-white text-sm font-medium hover:bg-coral-500 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="saving"
                 @click="saveEdit"
               >
-                保存
+                {{ saving ? '保存中…' : '保存' }}
               </button>
             </div>
           </div>
@@ -407,7 +431,7 @@ function applyTemplate(tmpl: MealTemplate): void {
       :meal-type="detailMealType"
       :date="logDate"
       @close="closeMealDetail"
-      @edit-entry="(entry, mt) => openEdit(entry, mt)"
+      @edit-entry="(entry, mt) => { closeMealDetail(); openEdit(entry, mt); }"
       @add="startPicker"
     />
 

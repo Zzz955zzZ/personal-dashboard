@@ -67,6 +67,7 @@ function onEntryClick(entry: LogEntry & { _idx: number }): void {
         <div
           v-for="entry in entries"
           :key="entry._idx"
+          data-testid="detail-row"
           class="flex items-center gap-3 p-3 rounded-xl border border-paper-300/60 bg-white/70 hover:bg-paper-50/60 transition-colors cursor-pointer"
           @click="onEntryClick(entry)"
         >

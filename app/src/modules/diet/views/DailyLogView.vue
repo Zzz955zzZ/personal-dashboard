@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
+import MealDetailModal from '../components/MealDetailModal.vue';
 import { MEAL_TYPES, mealTypeLabel } from '../constants';
 import { fmt1, fromGrams, round1, toGrams, unitLabel } from '../engine';
 import { useDietStore } from '../store/diet-store';
@@ -11,7 +12,7 @@ import { useUndo } from '@/shared/composables/use-undo';
 import type { LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
-const { logDate, modals, startIngredientPicker } = useDietUi();
+const { logDate, modals, startIngredientPicker, openIngDetail } = useDietUi();
 const { pushToast } = useUndo();
 
 const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null] }>();
@@ -93,6 +94,14 @@ function closeEdit(): void {
   editRealIdx.value = null;
 }
 
+function openDetailFromEdit(): void {
+  if (editForm.ingredientId === '') return;
+  const ing = store.findIng(Number(editForm.ingredientId));
+  if (!ing) return;
+  closeEdit();
+  openIngDetail(ing);
+}
+
 function saveEdit(): void {
   if (editRealIdx.value === null || editForm.ingredientId === '' || !editForm.amount) return;
   store.updateLogEntry(logDate.value, editRealIdx.value, {
@@ -121,6 +130,19 @@ const editPreviewNutrition = computed<Nutrition>(() => {
 function removeEntry(realIdx: number, name: string): void {
   store.removeLogEntryAt(logDate.value, realIdx);
   pushToast(`已删除 ${name}`);
+  closeEdit();
+}
+
+/* ==================== 餐次详情页 ==================== */
+const showMealDetail = ref(false);
+const detailMealType = ref<MealType>('breakfast');
+
+function openMealDetail(mealType: MealType): void {
+  detailMealType.value = mealType;
+  showMealDetail.value = true;
+}
+function closeMealDetail(): void {
+  showMealDetail.value = false;
 }
 
 /* ==================== 管理弹窗 ==================== */
@@ -189,33 +211,20 @@ function applyTemplate(tmpl: MealTemplate): void {
           </div>
           <div class="flex items-center gap-2">
             <span class="text-[11px] text-paper-500">{{ fmt1(store.mealMacroSum(logDate, m.key).calories) }} kcal</span>
+            <button
+              class="text-[11px] text-coral-500 hover:text-coral-600 px-1"
+              @click.stop="openMealDetail(m.key)"
+            >
+              详情
+            </button>
             <span class="text-xs transition-transform" :class="expandedMeals[m.key] ? 'rotate-180' : ''">▼</span>
           </div>
         </button>
 
         <!-- 展开明细 -->
         <div v-show="expandedMeals[m.key]" class="px-2 pb-2">
-          <!-- 该餐次总摄入量 -->
-          <div class="grid grid-cols-4 gap-1.5 mb-2 p-2 rounded-lg bg-paper-50/70">
-            <div class="text-center">
-              <div class="text-[9px] text-paper-400">热量</div>
-              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).calories) }}</div>
-            </div>
-            <div class="text-center">
-              <div class="text-[9px] text-paper-400">碳水</div>
-              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).carbs) }}g</div>
-            </div>
-            <div class="text-center">
-              <div class="text-[9px] text-paper-400">蛋白</div>
-              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).protein) }}g</div>
-            </div>
-            <div class="text-center">
-              <div class="text-[9px] text-paper-400">脂肪</div>
-              <div class="text-xs font-bold text-ink">{{ fmt1(store.mealMacroSum(logDate, m.key).fat) }}g</div>
-            </div>
-          </div>
           <div
-            v-for="(entry, idx) in store.mealEntries(logDate, m.key)"
+            v-for="entry in store.mealEntries(logDate, m.key)"
             :key="entry._idx"
             class="flex items-center gap-2 p-2 rounded-xl hover:bg-paper-50/80 active:bg-paper-100 transition-colors"
             @click="openEdit(entry, m.key)"
@@ -231,12 +240,6 @@ function applyTemplate(tmpl: MealTemplate): void {
                 · {{ fmtNutri(entryNutrition(entry)) }}
               </div>
             </div>
-            <button
-              class="w-7 h-7 rounded-full bg-paper-200 text-red-500 text-xs flex items-center justify-center opacity-80 hover:opacity-100"
-              @click.stop="removeEntry(store.resolveRealIndex(logDate, m.key, idx), store.findIng(entry.ingredientId)?.name || '记录')"
-            >
-              ×
-            </button>
           </div>
           <div v-if="!store.mealEntries(logDate, m.key).length" class="text-center text-paper-400 py-4 text-xs">
             暂无记录，点击下方按钮添加
@@ -279,11 +282,23 @@ function applyTemplate(tmpl: MealTemplate): void {
           <div class="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl">
             <div class="flex items-center justify-between px-4 py-3 border-b border-paper-100">
               <h3 class="text-sm font-semibold text-ink">修改分量 / 餐次</h3>
-              <button class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-paper-100 text-paper-400 text-sm" @click="closeEdit">✕</button>
+              <div class="flex items-center gap-1">
+                <button
+                  v-if="editRealIdx !== null"
+                  class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-red-50 text-red-500 text-sm"
+                  @click.stop="removeEntry(editRealIdx, store.findIng(Number(editForm.ingredientId))?.name || '记录')"
+                >
+                  ×
+                </button>
+                <button class="w-7 h-7 flex items-center justify-center rounded-full hover:bg-paper-100 text-paper-400 text-sm" @click="closeEdit">✕</button>
+              </div>
             </div>
             <div class="p-4 space-y-4">
               <div>
-                <label class="text-[11px] text-paper-500 block mb-1">食材</label>
+                <div class="flex items-center justify-between mb-1">
+                  <label class="text-[11px] text-paper-500">食材</label>
+                  <button class="text-[11px] text-coral-500 hover:text-coral-600" @click="openDetailFromEdit">食材详情 ›</button>
+                </div>
                 <select v-model="editForm.ingredientId" class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300">
                   <option v-for="it in store.ingredients" :key="it.id" :value="it.id">{{ it.emoji }} {{ it.name }}</option>
                 </select>
@@ -351,6 +366,15 @@ function applyTemplate(tmpl: MealTemplate): void {
         </div>
       </transition>
     </Teleport>
+
+    <MealDetailModal
+      :open="showMealDetail"
+      :meal-type="detailMealType"
+      :date="logDate"
+      @close="closeMealDetail"
+      @edit-entry="(entry, mt) => openEdit(entry, mt)"
+      @add="startPicker"
+    />
 
     <!-- 管理弹窗 -->
     <BaseModal :open="showManage" title="管理" width="sm" @close="showManage = false">

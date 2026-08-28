@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { CAT_DEFS } from '../constants';
+import { computed, ref, watch } from 'vue';
+
+import { CAT_DEFS, mealTypeLabel } from '../constants';
 import { catClass, classifyTag, fmt1, healthTags, micronGroups, unitLabel } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
@@ -7,10 +9,48 @@ import { useUndo } from '@/shared/composables/use-undo';
 import type { Ingredient } from '../types';
 
 const store = useDietStore();
-const { selectedIng } = useDietUi();
+const { selectedIng, pickerContext, clearPickerContext, foodTab } = useDietUi();
 const { pushUndo, pushToast } = useUndo();
 
 const emit = defineEmits<{ edit: [ing: Ingredient]; close: [] }>();
+
+/* ==================== picker 模式：添加到记录 ==================== */
+const addQty = ref(100);
+const addUnit = ref<'g' | '个'>('g');
+const isPicker = computed(() => pickerContext.value !== null);
+
+watch(
+  () => selectedIng.value,
+  (ing) => {
+    if (!ing) return;
+    addUnit.value = ing.unit === '个' ? '个' : 'g';
+    addQty.value = addUnit.value === '个' ? 1 : 100;
+  },
+  { immediate: true },
+);
+
+function computedGrams(): number {
+  if (!selectedIng.value) return 0;
+  const qty = Number(addQty.value) || 0;
+  if (addUnit.value === '个') return qty * (Number(selectedIng.value.gramsPerUnit) || 50);
+  return qty;
+}
+
+function confirmAdd(): void {
+  if (!pickerContext.value || !selectedIng.value) return;
+  store.addLogEntry(pickerContext.value.date, {
+    ingredientId: selectedIng.value.id,
+    amount: computedGrams(),
+    mealType: pickerContext.value.mealType,
+  });
+  clearPickerContext();
+  selectedIng.value = null;
+  foodTab.value = 'dailylog';
+}
+
+function cancelAdd(): void {
+  selectedIng.value = null;
+}
 
 function close(): void {
   selectedIng.value = null;
@@ -125,7 +165,56 @@ function onDelete(): void {
 
           <p v-if="selectedIng.note" class="text-sm text-paper-600 font-light leading-relaxed">{{ selectedIng.note }}</p>
 
-          <div class="mt-8 sticky bottom-0 -mx-7 -mb-7 p-7 bg-coral-50/95 backdrop-blur border-t border-paper-300/60 flex gap-3">
+          <!-- picker 模式：数量 + 单位 + 确认添加 -->
+          <div v-if="isPicker" class="mt-8 sticky bottom-0 -mx-7 -mb-7 p-7 bg-coral-50/95 backdrop-blur border-t border-paper-300/60">
+            <div class="text-sm font-medium text-ink mb-3">
+              加入 {{ pickerContext ? mealTypeLabel(pickerContext.mealType) : '' }}
+            </div>
+            <div class="flex items-center gap-2 mb-4">
+              <input
+                v-model.number="addQty"
+                type="number"
+                min="0.1"
+                step="0.1"
+                class="flex-1 px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+              />
+              <div class="flex rounded-xl border border-paper-300/60 bg-white overflow-hidden">
+                <button
+                  type="button"
+                  class="px-3 py-2.5 text-sm font-medium transition-colors"
+                  :class="addUnit === 'g' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                  @click="addUnit = 'g'"
+                >
+                  g
+                </button>
+                <button
+                  type="button"
+                  class="px-3 py-2.5 text-sm font-medium transition-colors"
+                  :class="addUnit === '个' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                  @click="addUnit = '个'"
+                >
+                  个
+                </button>
+              </div>
+            </div>
+            <div class="flex gap-3">
+              <button
+                class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 bg-white hover:bg-coral-50 transition-colors"
+                @click="cancelAdd"
+              >
+                取消
+              </button>
+              <button
+                class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-coral-400 text-white hover:opacity-90 transition-opacity"
+                @click="confirmAdd"
+              >
+                确认添加
+              </button>
+            </div>
+          </div>
+
+          <!-- 普通模式：编辑 / 删除 -->
+          <div v-else class="mt-8 sticky bottom-0 -mx-7 -mb-7 p-7 bg-coral-50/95 backdrop-blur border-t border-paper-300/60 flex gap-3">
             <button
               v-if="!store.isSeedIngredient(selectedIng.id)"
               class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium border border-paper-300 bg-white hover:bg-coral-50 transition-colors"
@@ -140,7 +229,7 @@ function onDelete(): void {
             >
               删除
             </button>
-            <div v-else class="w-full text-center text-xs text-paper-400 py-2">系统默认食材，不可编辑或删除</div>
+            <div v-if="store.isSeedIngredient(selectedIng.id)" class="w-full text-center text-xs text-paper-400 py-2">系统默认食材，不可编辑或删除</div>
           </div>
         </div>
       </div>

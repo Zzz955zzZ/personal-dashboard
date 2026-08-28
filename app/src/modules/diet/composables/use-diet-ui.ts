@@ -32,8 +32,6 @@ const pickerContext = ref<IngredientPickerContext | null>(null);
 
 const modals = reactive({
   ingForm: false,
-  recipeForm: false,
-  pantryForm: false,
   copyDay: false,
   template: false,
 });

@@ -26,19 +26,16 @@ const ShoppingView = defineAsyncComponent(() => import('./ShoppingView.vue'));
 // 抽屉与弹窗 —— 用户交互时才加载
 const IngredientDetailDrawer = defineAsyncComponent(() => import('../components/IngredientDetailDrawer.vue'));
 const IngredientFormModal = defineAsyncComponent(() => import('../components/IngredientFormModal.vue'));
-const RecipeFormModal = defineAsyncComponent(() => import('../components/RecipeFormModal.vue'));
-const PantryFormModal = defineAsyncComponent(() => import('../components/PantryFormModal.vue'));
 const CopyDayModal = defineAsyncComponent(() => import('../components/CopyDayModal.vue'));
 const MealTemplateModal = defineAsyncComponent(() => import('../components/MealTemplateModal.vue'));
 
-import type { Ingredient, MealTemplate, Recipe } from '../types';
+import type { Ingredient, MealTemplate } from '../types';
 
 const store = useDietStore();
 const { foodTab, modals } = useDietUi();
 
 /** 正在编辑的对象由外壳持有 —— 弹窗只负责表单，不关心「谁在编辑」 */
 const editingIng = ref<Ingredient | null>(null);
-const editingRecipe = ref<Recipe | null>(null);
 const editingTemplate = ref<MealTemplate | null>(null);
 
 onMounted(() => {
@@ -50,11 +47,6 @@ onMounted(() => {
 function openIngForm(ing: Ingredient | null): void {
   editingIng.value = ing;
   modals.ingForm = true;
-}
-
-function openRecipeForm(r: Recipe | null): void {
-  editingRecipe.value = r;
-  modals.recipeForm = true;
 }
 
 function openTemplateModal(tmpl: MealTemplate | null): void {
@@ -101,7 +93,7 @@ function openTemplateModal(tmpl: MealTemplate | null): void {
         @edit-template="openTemplateModal"
       />
       <IngredientsView v-else-if="foodTab === 'ingredients'" key="ingredients" @edit="openIngForm" />
-      <RecipesView v-else-if="foodTab === 'recipes'" key="recipes" @edit="openRecipeForm" />
+      <RecipesView v-else-if="foodTab === 'recipes'" key="recipes" />
       <PantryView v-else-if="foodTab === 'pantry'" key="pantry" />
       <ShoppingView v-else key="shopping" />
     </transition>
@@ -110,8 +102,6 @@ function openTemplateModal(tmpl: MealTemplate | null): void {
     <IngredientDetailDrawer @edit="openIngForm" />
 
     <IngredientFormModal :open="modals.ingForm" :editing="editingIng" @close="modals.ingForm = false" />
-    <RecipeFormModal :open="modals.recipeForm" :editing="editingRecipe" @close="modals.recipeForm = false" />
-    <PantryFormModal :open="modals.pantryForm" @close="modals.pantryForm = false" />
     <CopyDayModal :open="modals.copyDay" @close="modals.copyDay = false" />
     <MealTemplateModal
       :open="modals.template"

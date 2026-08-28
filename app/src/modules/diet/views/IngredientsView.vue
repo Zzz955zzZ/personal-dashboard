@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 
 import SearchInput from '@/shared/components/SearchInput.vue';
 import { CAT_DEFS, mealTypeLabel } from '../constants';
-import { fmt1, toGrams } from '../engine';
+import { fmt1 } from '../engine';
 import { sortByRecency } from '../composables/use-ingredient-picker';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
@@ -30,14 +30,6 @@ const searchedIngList = computed(() => {
 });
 
 function onCardClick(it: Ingredient): void {
-  const ctx = pickerContext.value;
-  if (ctx) {
-    const grams = toGrams(it, it.unit === '个' ? 1 : 100);
-    store.addLogEntry(ctx.date, { ingredientId: it.id, amount: grams, mealType: ctx.mealType });
-    clearPickerContext();
-    foodTab.value = 'dailylog';
-    return;
-  }
   openIngDetail(it);
 }
 

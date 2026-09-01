@@ -65,6 +65,21 @@ export const EMOJI_OPTIONS: string[] = [
   '☕', '🍵', '🧃', '🥤', '🍨', '🧁', '🍰', '🍪',
 ];
 
+/** 用户档案可选主题色（十六进制），用于区分不同用户的记录 */
+export const PROFILE_COLORS: string[] = [
+  '#fb7185', // 珊瑚红（默认「我」）
+  '#6366f1', // 靛蓝
+  '#10b981', // 翠绿
+  '#f59e0b', // 琥珀
+  '#ec4899', // 玫红
+  '#06b6d4', // 青
+  '#8b5cf6', // 紫
+  '#ef4444', // 红
+];
+
+/** 默认用户档案（首次运行时注入） */
+export const DEFAULT_PROFILE_ID = 'me';
+
 /** 本地日期串 YYYY-MM-DD。刻意不用 toISOString —— 那会按 UTC 截断，跨时区会错一天。 */
 export function todayStr(): string {
   return localDateStr(new Date());

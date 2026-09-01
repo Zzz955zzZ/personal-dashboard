@@ -10,7 +10,9 @@
 
 import type {
   DailyLogs,
+  DietProfile,
   Ingredient,
+  IngredientUnit,
   MealTemplate,
   MealType,
   PantryItem,
@@ -31,6 +33,10 @@ export interface PersistedState {
   targets: Targets;
   ingLastSelected: Record<number, number>;
   mealTemplates: MealTemplate[];
+  /** 多用户档案（v2 新增，v1.0 忽略此字段） */
+  profiles?: DietProfile[];
+  /** 当前选中的用户档案 id（v2 新增，v1.0 忽略此字段） */
+  currentUserId?: string;
 }
 
 export const DEFAULT_TARGETS: Targets = {
@@ -107,6 +113,9 @@ function normalizeDailyLogs(raw: unknown): DailyLogs {
         mealType: VALID_MEAL_TYPES.includes(e.mealType as MealType)
           ? (e.mealType as MealType)
           : 'breakfast',
+        // v2：保留计量单位与所属用户；缺失时回退到克、无归属
+        unit: (e.unit === '个' ? '个' : 'g') as IngredientUnit,
+        userId: typeof e.userId === 'string' && e.userId ? e.userId : undefined,
       }))
       // 丢弃 ingredientId 无效（NaN / 0 / 负数）的损坏条目，避免脏数据进入 UI
       .filter((e) => Number.isFinite(e.ingredientId) && e.ingredientId > 0);
@@ -199,6 +208,21 @@ export function normalizeState(
     state.mealTemplates = raw.mealTemplates
       .map(normalizeMealTemplate)
       .filter((x): x is MealTemplate => x !== null);
+  }
+  if (Array.isArray(raw.profiles)) {
+    state.profiles = raw.profiles
+      .filter(isRecord)
+      .map((p) => ({
+        id: typeof p.id === 'string' ? p.id : '',
+        name: typeof p.name === 'string' ? p.name : '用户',
+        emoji: typeof p.emoji === 'string' ? p.emoji : '🙂',
+        color: typeof p.color === 'string' ? p.color : '#fb7185',
+        isDefault: !!p.isDefault,
+      }))
+      .filter((p) => p.id);
+  }
+  if (typeof raw.currentUserId === 'string' && raw.currentUserId) {
+    state.currentUserId = raw.currentUserId;
   }
 
   return state;

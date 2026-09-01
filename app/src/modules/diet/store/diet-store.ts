@@ -11,8 +11,10 @@ import { computed, reactive, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 
 import { detectMicrons, fromGrams, toGrams } from '../engine';
+import { DEFAULT_PROFILE_ID } from '../constants';
 import type {
   DailyLogs,
+  DietProfile,
   Ingredient,
   LogEntry,
   MealTemplate,
@@ -73,6 +75,10 @@ export const useDietStore = defineStore('diet', () => {
   const dailyLogs = reactive<DailyLogs>({});
   const targets = reactive<Targets>({ ...DEFAULT_TARGETS });
   const mealTemplates = ref<MealTemplate[]>([]);
+  /** 多用户档案（协同记录）；至少保留一个默认档案「我」 */
+  const profiles = ref<DietProfile[]>([]);
+  /** 当前正在查看/编辑的用户档案 id */
+  const currentUserId = ref<string>('');
   /** 食材最近选用时间，用于选择器按「最近用过」排序 */
   const ingLastSelected = reactive<Record<number, number>>({});
   /** 数据损坏时保留原文，供 UI 提示并允许应急导出 */
@@ -94,6 +100,7 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   function seed(): void {
+    seedProfiles();
     // 食材：合并式装载 —— 保留已有条目（含用户自定义），补齐缺失的种子食材，
     // 使老用户无需重装即可获得新增的全部库。
     const existingById = new Map(ingredients.value.map((i) => [i.id, i]));
@@ -121,6 +128,15 @@ export const useDietStore = defineStore('diet', () => {
       }));
   }
 
+  /** 至少保留一个默认用户档案「我」 */
+  function seedProfiles(): void {
+    if (profiles.value.length === 0) {
+      profiles.value = [
+        { id: DEFAULT_PROFILE_ID, name: '我', emoji: '🙂', color: '#fb7185', isDefault: true },
+      ];
+    }
+  }
+
   function hydrate(): void {
     const { found, state, corruptedRaw: bad } = loadState(detectMicrons);
     if (bad) corruptedRaw.value = bad;
@@ -133,8 +149,22 @@ export const useDietStore = defineStore('diet', () => {
       if (state.targets) Object.assign(targets, state.targets);
       if (state.ingLastSelected) Object.assign(ingLastSelected, state.ingLastSelected);
       if (state.mealTemplates) mealTemplates.value = state.mealTemplates;
+      if (Array.isArray(state.profiles)) profiles.value = state.profiles;
+      if (typeof state.currentUserId === 'string' && state.currentUserId) {
+        currentUserId.value = state.currentUserId;
+      }
+    }
+    // 老数据 / 老版本迁移：无 userId 的记录统一归入默认档案，避免被隔离隐藏
+    for (const date of Object.keys(dailyLogs)) {
+      for (const e of dailyLogs[date]!) {
+        if (!e.userId) e.userId = DEFAULT_PROFILE_ID;
+      }
     }
     seed();
+    // 当前选中的用户必须仍存在于档案列表，否则回落到第一个
+    if (!profiles.value.some((p) => p.id === currentUserId.value)) {
+      currentUserId.value = profiles.value[0]?.id ?? DEFAULT_PROFILE_ID;
+    }
     // 把种子库最新的营养/解析同步到老用户的同名标准食材上
     syncSeedNutrition();
     if (found) persist();
@@ -150,6 +180,8 @@ export const useDietStore = defineStore('diet', () => {
       targets,
       ingLastSelected,
       mealTemplates: mealTemplates.value,
+      profiles: profiles.value,
+      currentUserId: currentUserId.value,
     };
   }
 
@@ -194,6 +226,8 @@ export const useDietStore = defineStore('diet', () => {
         targets,
         ingLastSelected,
         mealTemplates.value,
+        profiles.value,
+        currentUserId.value,
       ],
       () => schedulePersist(),
       { deep: true },
@@ -335,6 +369,57 @@ export const useDietStore = defineStore('diet', () => {
     return fromGrams(findIng(item.ingredientId), item.quantity);
   }
 
+  /* ---------------- 用户档案 / 多用户隔离 ---------------- */
+  /** 当前激活的档案；无匹配时返回 null（隔离关闭，显示全部） */
+  const activeProfile = computed<DietProfile | null>(
+    () => profiles.value.find((p) => p.id === currentUserId.value) ?? null,
+  );
+  /** 是否启用按用户隔离（存在激活档案时启用） */
+  const isolationOn = computed(() => activeProfile.value !== null);
+
+  /** 取一条记录归属的 userId；缺失时回退到默认档案，保证老数据始终可见 */
+  function ownerOf(e: LogEntry): string {
+    return e.userId ?? DEFAULT_PROFILE_ID;
+  }
+
+  /** 按当前用户过滤记录集合；隔离关闭时原样返回（兼容老测试 / 未初始化态） */
+  function visibleForUser(entries: LogEntry[]): LogEntry[] {
+    if (!isolationOn.value) return entries;
+    const uid = currentUserId.value;
+    return entries.filter((e) => ownerOf(e) === uid);
+  }
+
+  function setCurrentUser(id: string): void {
+    if (profiles.value.some((p) => p.id === id)) currentUserId.value = id;
+  }
+
+  /** 新增或更新用户档案；editingId 为 null 时新增 */
+  function saveProfile(data: Omit<DietProfile, 'id'>, editingId: string | null): void {
+    if (editingId !== null) {
+      const p = profiles.value.find((x) => x.id === editingId);
+      if (p) Object.assign(p, data);
+    } else {
+      profiles.value.push({ id: `u${Date.now()}`, ...data });
+    }
+  }
+
+  /**
+   * 删除用户档案。至少保留一个；被删用户的记录并入其他档案（默认回落到第一个），
+   * 避免误删导致数据丢失。当前用户被删时自动切换到 fallback。
+   */
+  function deleteProfile(id: string): void {
+    const idx = profiles.value.findIndex((p) => p.id === id);
+    if (idx < 0 || profiles.value.length <= 1) return;
+    const fallback = profiles.value.find((p) => p.id !== id) ?? profiles.value[0]!;
+    for (const date of Object.keys(dailyLogs)) {
+      for (const e of dailyLogs[date]!) {
+        if (ownerOf(e) === id) e.userId = fallback.id;
+      }
+    }
+    profiles.value.splice(idx, 1);
+    if (currentUserId.value === id) currentUserId.value = fallback.id;
+  }
+
   /* ---------------- 每日记录 ---------------- */
   function getDayLog(date: string): LogEntry[] {
     if (!dailyLogs[date]) dailyLogs[date] = [];
@@ -356,23 +441,32 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   function dayTotals(date: string): Nutrition {
-    return sumEntries(getDayLog(date));
+    return sumEntries(visibleForUser(getDayLog(date)));
   }
 
+  /** 仅返回当前用户可见的某餐次记录；_idx 仍是「整日数组」真实下标，供编辑/删除定位 */
   function mealEntries(date: string, mealType: MealType): Array<LogEntry & { _idx: number }> {
+    const on = isolationOn.value;
+    const uid = currentUserId.value;
     return getDayLog(date)
       .map((e, i) => ({ ...e, _idx: i }))
-      .filter((e) => e.mealType === mealType);
+      .filter((e) => e.mealType === mealType && (!on || ownerOf(e) === uid));
   }
 
   function mealMacroSum(date: string, mealType: MealType): Nutrition {
-    return sumEntries(getDayLog(date).filter((e) => e.mealType === mealType));
+    return sumEntries(visibleForUser(getDayLog(date)).filter((e) => e.mealType === mealType));
   }
 
-  /** 新增记录并同步扣库存，返回新条目以便撤销 */
+  /** 当前用户在某天的全部记录（用于空状态判断等） */
+  function visibleDayLog(date: string): LogEntry[] {
+    return visibleForUser(getDayLog(date));
+  }
+
+  /** 新增记录并同步扣库存，返回新条目以便撤销；隔离开启时自动标记归属用户 */
   function addLogEntry(date: string, entry: LogEntry): LogEntry {
     const list = getDayLog(date);
     const newEntry: LogEntry = { ...entry };
+    if (isolationOn.value) newEntry.userId = currentUserId.value;
     list.push(newEntry);
     touchIngredient(entry.ingredientId);
     deductPantry(entry.ingredientId, entry.amount);
@@ -435,12 +529,12 @@ export const useDietStore = defineStore('diet', () => {
     toDate: string,
     deductStock: boolean,
   ): { count: number; revert: () => void } {
-    const source = getDayLog(fromDate).map((e) => ({ ...e }));
+    const source = visibleForUser(getDayLog(fromDate)).map((e) => ({ ...e }));
     const targetLog = getDayLog(toDate);
     const before = targetLog.map((e) => ({ ...e }));
 
     for (const e of source) {
-      targetLog.push({ ...e });
+      targetLog.push({ ...e, userId: isolationOn.value ? currentUserId.value : e.userId });
       if (deductStock) deductPantry(e.ingredientId, e.amount);
     }
 
@@ -463,14 +557,14 @@ export const useDietStore = defineStore('diet', () => {
     toDate: string,
     toMeal: MealType,
   ): { count: number; revert: () => void } {
-    const source = getDayLog(fromDate)
+    const source = visibleForUser(getDayLog(fromDate))
       .filter((e) => e.mealType === fromMeal)
       .map((e) => ({ ...e }));
     const targetLog = getDayLog(toDate);
     const before = targetLog.map((e) => ({ ...e }));
 
     for (const e of source) {
-      targetLog.push({ ingredientId: e.ingredientId, amount: e.amount, mealType: toMeal });
+      targetLog.push({ ingredientId: e.ingredientId, amount: e.amount, mealType: toMeal, userId: isolationOn.value ? currentUserId.value : e.userId });
       deductPantry(e.ingredientId, e.amount);
     }
 
@@ -487,11 +581,13 @@ export const useDietStore = defineStore('diet', () => {
   /* ---------------- 套餐模板 ---------------- */
   function applyTemplate(date: string, tmpl: MealTemplate): number {
     const list = getDayLog(date);
+    const uid = isolationOn.value ? currentUserId.value : undefined;
     for (const item of tmpl.items) {
       list.push({
         ingredientId: item.ingredientId,
         amount: item.amount,
         mealType: tmpl.defaultMealType || 'breakfast',
+        userId: uid,
       });
       deductPantry(item.ingredientId, item.amount);
     }
@@ -524,13 +620,16 @@ export const useDietStore = defineStore('diet', () => {
   function autoFillDefaults(date: string): number {
     const defaults = mealTemplates.value.filter((t) => t.isDefault && t.items.length);
     if (!defaults.length) return 0;
+    // 按「当前用户」判断某餐是否已有记录，避免把其他用户的餐次当成已填充
+    const userEntries = visibleForUser(getDayLog(date));
+    const uid = isolationOn.value ? currentUserId.value : undefined;
     let filled = 0;
     for (const tmpl of defaults) {
       const mealType = tmpl.defaultMealType || 'breakfast';
-      const hasMeal = getDayLog(date).some((e) => e.mealType === mealType);
+      const hasMeal = userEntries.some((e) => e.mealType === mealType);
       if (hasMeal) continue;
       for (const item of tmpl.items) {
-        getDayLog(date).push({ ...item, mealType });
+        getDayLog(date).push({ ...item, mealType, userId: uid });
         deductPantry(item.ingredientId, item.amount);
       }
       filled += tmpl.items.length;
@@ -614,6 +713,8 @@ export const useDietStore = defineStore('diet', () => {
     if (d.targets) Object.assign(targets, d.targets);
     if (d.ingLastSelected) Object.assign(ingLastSelected, d.ingLastSelected);
     if (Array.isArray(d.mealTemplates)) mealTemplates.value = d.mealTemplates;
+    if (Array.isArray(d.profiles) && d.profiles.length) profiles.value = d.profiles;
+    if (typeof d.currentUserId === 'string' && d.currentUserId) currentUserId.value = d.currentUserId;
     persist();
   }
 
@@ -651,6 +752,10 @@ export const useDietStore = defineStore('diet', () => {
     mealTemplates,
     ingLastSelected,
     corruptedRaw,
+    profiles,
+    currentUserId,
+    activeProfile,
+    isolationOn,
     // lifecycle
     hydrate,
     seed,
@@ -686,10 +791,15 @@ export const useDietStore = defineStore('diet', () => {
     sumEntries,
     mealEntries,
     mealMacroSum,
+    visibleDayLog,
     addLogEntry,
     removeLogEntryAt,
     resolveRealIndex,
     updateLogEntry,
+    // profiles / multi-user
+    setCurrentUser,
+    saveProfile,
+    deleteProfile,
     // copy
     copyDay,
     copyMeal,

@@ -93,6 +93,24 @@ export interface LogEntry {
   mealType: MealType;
   /** 该条目优先使用的计量单位；未指定时回退到食材自身的 unit */
   unit?: IngredientUnit;
+  /**
+   * 所属用户档案 id（多用户隔离）。
+   * 旧版数据无此字段，载入时统一归入默认档案；v1.0 单文件版忽略此字段不报错。
+   */
+  userId?: string;
+}
+
+/**
+ * 饮食模块的用户档案（多人协同记录）。
+ * id 稳定且可读（'me' / 'u<timestamp>'），用于把记录归属到具体用户。
+ */
+export interface DietProfile {
+  id: string;
+  name: string;
+  emoji: string;
+  /** 主题强调色（十六进制），用于界面区分不同用户 */
+  color: string;
+  isDefault?: boolean;
 }
 
 /** 按日期分组的记录，key 为 YYYY-MM-DD */

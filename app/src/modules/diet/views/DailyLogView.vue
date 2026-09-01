@@ -4,23 +4,45 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import MealDetailModal from '../components/MealDetailModal.vue';
+import ProfileManagerModal from '../components/ProfileManagerModal.vue';
 import { MEAL_TYPES, mealTypeLabel } from '../constants';
 import { entryFromGrams, entryToGrams, entryUnit, fmt1, round1 } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 import { useUndo } from '@/shared/composables/use-undo';
-import type { IngredientUnit, LogEntry, MealTemplate, MealType, Nutrition } from '../types';
+import type { DietProfile, IngredientUnit, LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
 const { logDate, modals, startIngredientPicker, startRelink, openIngDetail } = useDietUi();
 const { pushUndo, pushToast } = useUndo();
+
+/* ==================== 多用户切换 ==================== */
+const showProfileManager = ref(false);
+const editingProfileId = ref<string | null>(null);
+
+function openProfileManager(id: string | null): void {
+  editingProfileId.value = id;
+  showProfileManager.value = true;
+}
+
+/** 在档案管理弹窗内点「编辑」：保持在打开状态并切换为编辑表单 */
+function onProfileEdit(id: string): void {
+  editingProfileId.value = id;
+}
+
+function switcherActiveStyle(p: DietProfile): Record<string, string> {
+  return { borderColor: p.color, color: p.color, backgroundColor: p.color + '1A' };
+}
+function switcherIdleStyle(p: DietProfile): Record<string, string> {
+  return { borderColor: p.color + '66', color: p.color };
+}
 
 const emit = defineEmits<{ editTemplate: [tmpl: MealTemplate | null] }>();
 
 /* ==================== 页面状态 ==================== */
 
 const dayTotals = computed(() => store.dayTotals(logDate.value));
-const currentDayEntries = computed(() => store.getDayLog(logDate.value));
+const currentDayEntries = computed(() => store.visibleDayLog(logDate.value));
 
 function pct(key: keyof Nutrition): number {
   const t = store.targets[key];
@@ -223,13 +245,48 @@ function applyTemplate(tmpl: MealTemplate): void {
 
 <template>
   <div>
+    <!-- 用户切换：每个用户独立记录，点击切换查看/编辑对象 -->
+    <div class="flex items-center gap-1.5 mb-3 flex-wrap">
+      <button
+        v-for="p in store.profiles"
+        :key="p.id"
+        class="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
+        :class="store.currentUserId === p.id ? 'ring-1' : 'opacity-80 hover:opacity-100'"
+        :style="store.currentUserId === p.id ? switcherActiveStyle(p) : switcherIdleStyle(p)"
+        :data-testid="'user-chip-' + p.id"
+        @click="store.setCurrentUser(p.id)"
+      >
+        <span>{{ p.emoji }}</span>
+        <span>{{ p.name }}</span>
+      </button>
+      <button
+        class="w-7 h-7 rounded-full border border-paper-300 text-paper-500 hover:bg-paper-50 flex items-center justify-center text-sm transition-colors"
+        title="管理用户"
+        data-testid="user-manage"
+        @click="openProfileManager(null)"
+      >✎</button>
+      <button
+        class="w-7 h-7 rounded-full border border-coral-300 text-coral-500 hover:bg-coral-50 flex items-center justify-center text-sm transition-colors"
+        title="新增用户"
+        data-testid="user-add"
+        @click="openProfileManager(null)"
+      >+</button>
+    </div>
+
     <!-- 日期行 -->
     <div class="flex items-center justify-between px-1 mb-3">
-      <input
-        v-model="logDate"
-        type="date"
-        class="text-xs sm:text-sm font-medium text-ink bg-transparent border-none outline-none cursor-pointer"
-      />
+      <div class="flex items-center gap-2">
+        <input
+          v-model="logDate"
+          type="date"
+          class="text-xs sm:text-sm font-medium text-ink bg-transparent border-none outline-none cursor-pointer"
+        />
+        <span
+          v-if="store.activeProfile"
+          class="text-[11px] px-1.5 py-0.5 rounded-full"
+          :style="{ backgroundColor: store.activeProfile.color + '1A', color: store.activeProfile.color }"
+        >{{ store.activeProfile.emoji }} {{ store.activeProfile.name }} 的记录</span>
+      </div>
       <button
         class="text-[11px] text-coral-500 hover:text-coral-600 font-medium flex items-center gap-1"
         @click="showManage = true"
@@ -329,10 +386,12 @@ function applyTemplate(tmpl: MealTemplate): void {
       </button>
     </div>
 
-    <!-- 底部浮动添加按钮 -->
+    <!-- 底部浮动添加按钮（用当前用户主题色，便于区分归属） -->
     <div class="fixed bottom-4 right-4 z-30">
       <button
-        class="w-14 h-14 rounded-full bg-coral-500 text-white shadow-lg hover:bg-coral-400 transition-all flex items-center justify-center text-3xl"
+        class="w-14 h-14 rounded-full text-white shadow-lg hover:opacity-90 transition-all flex items-center justify-center text-3xl"
+        :style="{ backgroundColor: store.activeProfile?.color || '#fb7185' }"
+        data-testid="fab-add"
         @click="startPicker()"
       >
         +
@@ -557,6 +616,14 @@ function applyTemplate(tmpl: MealTemplate): void {
         </button>
       </div>
     </BaseModal>
+
+    <!-- 用户档案管理 -->
+    <ProfileManagerModal
+      :open="showProfileManager"
+      :editing-id="editingProfileId"
+      @close="showProfileManager = false"
+      @edit="onProfileEdit"
+    />
   </div>
 </template>
 

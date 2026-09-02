@@ -132,6 +132,8 @@ export interface MealTemplate {
   isDefault: boolean;
   defaultMealType: MealType;
   items: Array<{ ingredientId: number; amount: number }>;
+  /** 归属用户；缺省视为默认档案「我」（v2 多用户，旧数据兼容） */
+  userId?: string;
 }
 
 /** 知识库单行：关键词 -> 微量营养素 + 每 100g 宏量 */

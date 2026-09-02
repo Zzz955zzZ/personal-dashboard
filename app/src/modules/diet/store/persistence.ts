@@ -139,6 +139,8 @@ function normalizeMealTemplate(raw: unknown): MealTemplate | null {
           amount: Number(i.amount) || 0,
         }))
       : [],
+    // v2：保留归属用户；缺省视为默认档案「我」
+    userId: typeof raw.userId === 'string' && raw.userId ? raw.userId : undefined,
   };
 }
 

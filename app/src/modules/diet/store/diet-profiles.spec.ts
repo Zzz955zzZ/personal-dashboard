@@ -123,3 +123,74 @@ describe('持久化', () => {
     expect(reloaded.currentUserId).toBe(gid);
   });
 });
+
+describe('默认套餐按用户隔离', () => {
+  it('各用户只套用自己的默认套餐，互不串味', () => {
+    const store = freshStore();
+    // 清掉种子默认套餐，避免干扰断言
+    store.mealTemplates.forEach((t) => { t.isDefault = false; });
+    const a = store.ingredients[0]!.id;
+    const b = store.ingredients[1]!.id;
+
+    // 「我」的默认早餐（食材 a）
+    store.setCurrentUser('me');
+    store.saveTemplate(
+      { name: '我的早餐', emoji: '🍳', isDefault: true, defaultMealType: 'breakfast', items: [{ ingredientId: a, amount: 100 }] },
+      null,
+    );
+
+    // 新增女朋友并给她自己的默认早餐（食材 b）
+    store.saveProfile({ name: '女朋友', emoji: '🐱', color: '#6366f1' }, null);
+    const gid = store.profiles.find((p) => p.name === '女朋友')!.id;
+    store.setCurrentUser(gid);
+    store.saveTemplate(
+      { name: '女友早餐', emoji: '💕', isDefault: true, defaultMealType: 'breakfast', items: [{ ingredientId: b, amount: 50 }] },
+      null,
+    );
+
+    const date = '2026-05-20';
+
+    // 女朋友视角：只填她自己的默认（食材 b）
+    store.setCurrentUser(gid);
+    store.autoFillDefaults(date);
+    const gfBf = store.mealEntries(date, 'breakfast');
+    expect(gfBf).toHaveLength(1);
+    expect(gfBf[0]!.ingredientId).toBe(b);
+
+    // 我视角：只填我的默认（食材 a），不混入女友的
+    store.setCurrentUser('me');
+    store.autoFillDefaults(date);
+    const meBf = store.mealEntries(date, 'breakfast');
+    expect(meBf).toHaveLength(1);
+    expect(meBf[0]!.ingredientId).toBe(a);
+
+    // 底层全量仍含两个用户各自的记录（编辑/撤销依赖整日数组）
+    expect(store.getDayLog(date)).toHaveLength(2);
+  });
+
+  it('保存模板归属当前用户，且默认标记按用户各自单选', () => {
+    const store = freshStore();
+    store.mealTemplates.forEach((t) => { t.isDefault = false; });
+    store.setCurrentUser('me');
+    store.saveTemplate(
+      { name: '我的午餐', emoji: '🍱', isDefault: true, defaultMealType: 'lunch', items: [] },
+      null,
+    );
+    store.saveProfile({ name: '女朋友', emoji: '🐱', color: '#6366f1' }, null);
+    const gid = store.profiles.find((p) => p.name === '女朋友')!.id;
+
+    // 女友建默认午餐，不应清掉「我」的默认午餐
+    store.setCurrentUser(gid);
+    store.saveTemplate(
+      { name: '女友午餐', emoji: '🍱', isDefault: true, defaultMealType: 'lunch', items: [] },
+      null,
+    );
+    expect(store.mealTemplates.find((t) => t.name === '我的午餐')!.isDefault).toBe(true);
+    expect(store.mealTemplates.find((t) => t.name === '女友午餐')!.userId).toBe(gid);
+
+    // 「我」的模板列表看不到女友的
+    store.setCurrentUser('me');
+    const meList = store.mealTemplates.filter((t) => (t.userId ?? 'me') === 'me');
+    expect(meList.find((t) => t.name === '女友午餐')).toBeUndefined();
+  });
+});

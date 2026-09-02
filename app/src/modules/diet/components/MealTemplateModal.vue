@@ -4,7 +4,7 @@ import { computed, reactive, ref, watch } from 'vue';
 
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientChipPicker from './IngredientChipPicker.vue';
-import { MEAL_TYPES, mealTypeLabel } from '../constants';
+import { MEAL_TYPES, mealTypeLabel, DEFAULT_PROFILE_ID } from '../constants';
 import { unitLabel, toGrams, fromGrams } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import type { IngredientCategory, MealTemplate, MealType } from '../types';
@@ -55,6 +55,11 @@ const pickerSource = computed(() => {
   const added = form.items.map((x) => x.ingredientId);
   return store.ingredients.filter((i) => !added.includes(i.id));
 });
+
+/** 当前用户可见的已保存套餐（多用户隔离；旧数据无归属 → 默认档案「我」） */
+const visibleTemplates = computed(() =>
+  store.mealTemplates.filter((t) => (t.userId ?? DEFAULT_PROFILE_ID) === store.currentUserId),
+);
 
 /** 按类别给合理默认量（展示单位：个/g），省得每条都手填 */
 const DEFAULT_AMOUNT: Record<IngredientCategory, number> = {
@@ -213,11 +218,11 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
       </div>
     </form>
 
-    <div v-if="store.mealTemplates.length && !editing" class="mt-6 pt-5 border-t border-paper-300/60">
-      <div class="text-[11px] uppercase tracking-wide2 text-paper-500 mb-3">已保存的套餐</div>
+    <div v-if="visibleTemplates.length && !editing" class="mt-6 pt-5 border-t border-paper-300/60">
+      <div class="text-[11px] uppercase tracking-wide2 text-paper-500 mb-3">已保存的套餐（{{ store.activeProfile?.name ?? '我' }}）</div>
       <div class="space-y-2">
         <div
-          v-for="tmpl in store.mealTemplates"
+          v-for="tmpl in visibleTemplates"
           :key="tmpl.id"
           class="flex items-center gap-3 p-3 rounded-xl border border-paper-300/60 bg-white/70 group"
         >

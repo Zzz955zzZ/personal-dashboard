@@ -14,10 +14,12 @@ import { useUndo } from '@/shared/composables/use-undo';
 
 let warnSpy: ReturnType<typeof vi.spyOn>;
 let errorSpy: ReturnType<typeof vi.spyOn>;
+let pinia: ReturnType<typeof createPinia>;
 
 beforeEach(() => {
   localStorage.clear();
-  setActivePinia(createPinia());
+  pinia = createPinia();
+  setActivePinia(pinia);
   warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -30,9 +32,28 @@ afterEach(() => {
 async function mountFood(): Promise<VueWrapper> {
   // transition: true 让 <transition mode="out-in"> 直接渲染子节点，
   // 避免 jsdom 下离场动画不结束导致异步组件迟迟不挂载。
-  const wrapper = mount(FoodView, { attachTo: document.body, global: { stubs: { transition: true } } });
+  // 显式注入 pinia，保证挂载的组件与测试中 useDietStore() 指向同一实例
+  // （否则组件内部会解析到独立的 store，导致记录数断言对不上）。
+  const wrapper = mount(FoodView, {
+    attachTo: document.body,
+    global: { stubs: { transition: true }, plugins: [pinia] },
+  });
   await nextTick();
   await flushPromises();
+
+  // 隔离 autoFill：挂载完成后清空当天记录并取消所有默认套餐标记，
+  // 让各 UI 测试完全掌控条目集合。否则 autoFill 自动套用的默认早餐会
+  // 抢占首行与 [0] 下标、抬高 before 计数，导致「改分量/孤儿/删除/添加」断言错位。
+  // （store 层对 autoFill 的覆盖测试在 diet-profiles.spec.ts 单独进行。）
+  const s = useDietStore();
+  const u = useDietUi();
+  s.mealTemplates.forEach((t) => {
+    t.isDefault = false;
+  });
+  s.getDayLog(u.logDate.value).splice(0);
+  await nextTick();
+  await flushPromises();
+
   return wrapper;
 }
 
@@ -314,9 +335,7 @@ describe('修复：添加记录可撤回', () => {
     const { undoToast, executeUndo, dismissUndo } = useUndo();
     dismissUndo();
 
-    // 触发一次 DailyLogView 重挂载，让默认套餐先填充完毕（子组件 onMounted 早于
-    // FoodView 的 store.hydrate，故挂载时默认模板尚未就绪；这里主动切换页签触发填充，
-    // 避免后续 picker 流程再次挂载时填充默认条目、干扰计数断言）。
+    // 触发一次 DailyLogView 重挂载，让 hydrated 后的自动套用逻辑稳定
     ui.foodTab.value = 'ingredients';
     await nextTick();
     await flushPromises();

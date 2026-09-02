@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 
 import BaseModal from '@/shared/components/BaseModal.vue';
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import MealDetailModal from '../components/MealDetailModal.vue';
 import ProfileManagerModal from '../components/ProfileManagerModal.vue';
-import { MEAL_TYPES, mealTypeLabel } from '../constants';
+import { DEFAULT_PROFILE_ID, MEAL_TYPES, mealTypeLabel } from '../constants';
 import { entryFromGrams, entryToGrams, entryUnit, fmt1, round1 } from '../engine';
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
@@ -66,13 +66,24 @@ function fmtNutri(n: Nutrition): string {
   return `${fmt1(n.calories)}kcal · 碳${fmt1(n.carbs)}g · 蛋${fmt1(n.protein)}g · 脂${fmt1(n.fat)}g`;
 }
 
-/* 自动套用默认套餐 */
+/* 自动套用默认套餐：hydration 完成后、切换日期/用户时各触发一次。
+   子组件 onMounted 早于外壳的 store.hydrate()，故不能只在 mounted 里套用——
+   用 watch 等 hydrated 翻转后再填充，修复「默认早餐要点添加才出现」的时序 bug。 */
 function applyDefaults(): void {
+  if (!store.hydrated) return;
   store.autoFillDefaults(logDate.value);
 }
 
-onMounted(applyDefaults);
-watch(logDate, applyDefaults);
+watch(
+  [() => store.hydrated, logDate, () => store.currentUserId],
+  applyDefaults,
+  { immediate: true },
+);
+
+/* 当前用户可见的套餐（含旧数据无归属者 → 默认档案「我」） */
+const visibleTemplates = computed(() =>
+  store.mealTemplates.filter((t) => (t.userId ?? DEFAULT_PROFILE_ID) === store.currentUserId),
+);
 
 /* ==================== 餐次展开 ==================== */
 const expandedMeals = reactive<Record<MealType, boolean>>({
@@ -580,9 +591,10 @@ function applyTemplate(tmpl: MealTemplate): void {
       </div>
 
       <div v-if="manageTab === 'templates'">
+        <p class="text-[11px] text-paper-400 mb-3">以下为「{{ store.activeProfile?.name ?? '我' }}」的套餐</p>
         <div class="max-h-64 overflow-y-auto space-y-2 mb-3">
           <button
-            v-for="tmpl in store.mealTemplates"
+            v-for="tmpl in visibleTemplates"
             :key="tmpl.id"
             class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-coral-50 transition-colors flex items-center gap-3 border border-paper-300/60 bg-white/70"
             @click="applyTemplate(tmpl)"
@@ -594,7 +606,7 @@ function applyTemplate(tmpl: MealTemplate): void {
             </div>
             <span v-if="tmpl.isDefault" class="text-[10px] px-1.5 py-0.5 rounded-full bg-coral-100 text-coral-600">默认</span>
           </button>
-          <div v-if="!store.mealTemplates.length" class="text-center text-paper-400 py-6 text-sm">暂无套餐</div>
+          <div v-if="!visibleTemplates.length" class="text-center text-paper-400 py-6 text-sm">暂无套餐，点下方新建</div>
         </div>
         <div class="border-t border-paper-100 pt-3">
           <button

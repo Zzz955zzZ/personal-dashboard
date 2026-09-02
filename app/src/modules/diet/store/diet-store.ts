@@ -79,6 +79,8 @@ export const useDietStore = defineStore('diet', () => {
   const profiles = ref<DietProfile[]>([]);
   /** 当前正在查看/编辑的用户档案 id */
   const currentUserId = ref<string>('');
+  /** 是否已从 localStorage 完成 hydrate（首次自动套用默认套餐需等它反转） */
+  const hydrated = ref(false);
   /** 食材最近选用时间，用于选择器按「最近用过」排序 */
   const ingLastSelected = reactive<Record<number, number>>({});
   /** 数据损坏时保留原文，供 UI 提示并允许应急导出 */
@@ -167,6 +169,7 @@ export const useDietStore = defineStore('diet', () => {
     }
     // 把种子库最新的营养/解析同步到老用户的同名标准食材上
     syncSeedNutrition();
+    hydrated.value = true;
     if (found) persist();
   }
 
@@ -595,15 +598,20 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   function saveTemplate(data: Omit<MealTemplate, 'id'>, editingId: number | null): void {
+    // 新建/编辑都归属「当前用户」（隔离关闭时回落到默认档案「我」）
+    const owner = isolationOn.value ? currentUserId.value : DEFAULT_PROFILE_ID;
     if (data.isDefault) {
-      // 单选默认：设新的默认套餐时，自动取消其它默认标记
-      for (const t of mealTemplates.value) t.isDefault = false;
+      // 单选默认按「用户」隔离：只取消同归属套餐的默认标记，互不干扰
+      for (const t of mealTemplates.value) {
+        if (templateOwner(t) === owner) t.isDefault = false;
+      }
     }
     if (editingId !== null) {
       const t = mealTemplates.value.find((x) => x.id === editingId);
-      if (t) Object.assign(t, data);
+      // 保留原有归属：编辑时不清空 userId（data 不含该字段，必须显式回填）
+      if (t) Object.assign(t, { ...data, userId: t.userId ?? owner });
     } else {
-      mealTemplates.value.push({ id: Date.now(), ...data });
+      mealTemplates.value.push({ id: Date.now(), ...data, userId: owner });
     }
   }
 
@@ -612,17 +620,25 @@ export const useDietStore = defineStore('diet', () => {
     if (i > -1) mealTemplates.value.splice(i, 1);
   }
 
+  /** 套餐归属：无 userId 视为默认档案「我」（旧数据 / 种子模板兼容） */
+  function templateOwner(t: MealTemplate): string {
+    return t.userId ?? DEFAULT_PROFILE_ID;
+  }
+
   /**
    * 自动套用每个餐次的默认套餐。
    * 当某餐次为空且存在该餐次的默认模板时，自动填入。
+   * 【多用户】只套用「当前用户」自己的默认套餐，互不影响。
    * 返回总共填充了多少项。
    */
   function autoFillDefaults(date: string): number {
-    const defaults = mealTemplates.value.filter((t) => t.isDefault && t.items.length);
+    const uid = currentUserId.value;
+    const defaults = mealTemplates.value.filter(
+      (t) => t.isDefault && t.items.length && templateOwner(t) === uid,
+    );
     if (!defaults.length) return 0;
     // 按「当前用户」判断某餐是否已有记录，避免把其他用户的餐次当成已填充
     const userEntries = visibleForUser(getDayLog(date));
-    const uid = isolationOn.value ? currentUserId.value : undefined;
     let filled = 0;
     for (const tmpl of defaults) {
       const mealType = tmpl.defaultMealType || 'breakfast';
@@ -754,6 +770,7 @@ export const useDietStore = defineStore('diet', () => {
     corruptedRaw,
     profiles,
     currentUserId,
+    hydrated,
     activeProfile,
     isolationOn,
     // lifecycle

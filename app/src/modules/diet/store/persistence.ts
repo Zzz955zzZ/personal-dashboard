@@ -46,6 +46,18 @@ export const DEFAULT_TARGETS: Targets = {
   fat: 67,
 };
 
+/** 把任意对象规整为完整 Targets（缺失字段用默认补，脏值丢弃） */
+export function normalizeTargets(raw: unknown): Targets {
+  const out: Targets = { ...DEFAULT_TARGETS };
+  if (isRecord(raw)) {
+    for (const k of ['calories', 'carbs', 'protein', 'fat'] as const) {
+      const v = raw[k];
+      if (typeof v === 'number' && Number.isFinite(v)) out[k] = v;
+    }
+  }
+  return out;
+}
+
 const VALID_MEAL_TYPES: MealType[] = ['breakfast', 'lunch', 'dinner'];
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -192,11 +204,7 @@ export function normalizeState(
     state.dailyLogs = normalizeDailyLogs(raw.dailyLogs);
   }
   if (isRecord(raw.targets)) {
-    state.targets = { ...DEFAULT_TARGETS };
-    for (const k of ['calories', 'carbs', 'protein', 'fat'] as const) {
-      const v = raw.targets[k];
-      if (typeof v === 'number' && Number.isFinite(v)) state.targets[k] = v;
-    }
+    state.targets = normalizeTargets(raw.targets);
   }
   if (isRecord(raw.ingLastSelected)) {
     const m: Record<number, number> = {};
@@ -220,6 +228,7 @@ export function normalizeState(
         emoji: typeof p.emoji === 'string' ? p.emoji : '🙂',
         color: typeof p.color === 'string' ? p.color : '#fb7185',
         isDefault: !!p.isDefault,
+        targets: normalizeTargets(p.targets),
       }))
       .filter((p) => p.id);
   }

@@ -39,6 +39,7 @@ import {
   DEFAULT_TARGETS,
   loadState,
   normalizeState,
+  normalizeTargets,
   saveState,
   type PersistedState,
 } from './persistence';
@@ -73,7 +74,22 @@ export const useDietStore = defineStore('diet', () => {
   const pantry = ref<PantryItem[]>([]);
   const shopping = ref<ShoppingItem[]>([]);
   const dailyLogs = reactive<DailyLogs>({});
-  const targets = reactive<Targets>({ ...DEFAULT_TARGETS });
+  /**
+   * 每日营养目标（按用户隔离）。
+   * 直接返回当前激活档案的 targets 响应式对象，使 `store.targets.calories = x`
+   * 这类成员赋值能落到对应用户身上；切换用户时 getter 自动指向新用户的 targets。
+   * 无激活档案时回退默认目标（仅作展示，写入不落盘）。
+   */
+  const targets = computed<Targets>({
+    get(): Targets {
+      const p = activeProfile.value;
+      return p?.targets ? p.targets : { ...DEFAULT_TARGETS };
+    },
+    set(v: Targets): void {
+      const p = activeProfile.value;
+      if (p) p.targets = { ...v };
+    },
+  });
   const mealTemplates = ref<MealTemplate[]>([]);
   /** 多用户档案（协同记录）；至少保留一个默认档案「我」 */
   const profiles = ref<DietProfile[]>([]);
@@ -139,6 +155,29 @@ export const useDietStore = defineStore('diet', () => {
     }
   }
 
+  /**
+   * 保证每个档案都持有完整 targets：
+   * - 已有 targets 的档案保留（含从 v2 数据归一化得到的）；
+   * - 缺 targets 的档案用「遗留的全局 targets」补默认档案，其余用默认目标。
+   * legacy 来自 v1.0 / 早期版本的顶层 targets（当时是单用户全局值）。
+   */
+  function ensureProfileTargets(legacy?: Targets): void {
+    let legacyUsed = false;
+    for (const p of profiles.value) {
+      const owned =
+        p.targets &&
+        typeof p.targets.calories === 'number' &&
+        typeof p.targets.carbs === 'number';
+      if (owned) continue;
+      if (p.id === DEFAULT_PROFILE_ID && legacy && !legacyUsed) {
+        p.targets = { ...legacy };
+        legacyUsed = true;
+      } else {
+        p.targets = { ...DEFAULT_TARGETS };
+      }
+    }
+  }
+
   function hydrate(): void {
     const { found, state, corruptedRaw: bad } = loadState(detectMicrons);
     if (bad) corruptedRaw.value = bad;
@@ -148,7 +187,6 @@ export const useDietStore = defineStore('diet', () => {
       if (state.pantry) pantry.value = state.pantry;
       if (state.shopping) shopping.value = state.shopping;
       if (state.dailyLogs) Object.assign(dailyLogs, state.dailyLogs);
-      if (state.targets) Object.assign(targets, state.targets);
       if (state.ingLastSelected) Object.assign(ingLastSelected, state.ingLastSelected);
       if (state.mealTemplates) mealTemplates.value = state.mealTemplates;
       if (Array.isArray(state.profiles)) profiles.value = state.profiles;
@@ -169,6 +207,8 @@ export const useDietStore = defineStore('diet', () => {
     }
     // 把种子库最新的营养/解析同步到老用户的同名标准食材上
     syncSeedNutrition();
+    // 每个档案补上每日目标：遗留的全局 targets 归默认档案，其余用默认值
+    ensureProfileTargets(state.targets);
     hydrated.value = true;
     if (found) persist();
   }
@@ -180,7 +220,9 @@ export const useDietStore = defineStore('diet', () => {
       pantry: pantry.value,
       shopping: shopping.value,
       dailyLogs,
-      targets,
+      // 顶层 targets 保留给 v1.0 单文件版回退读取（取当前激活用户的目标）；
+      // 各用户自己的目标已随 profiles 一并写出，v2 以 profiles 内为准。
+      targets: activeProfile.value?.targets ? { ...activeProfile.value.targets } : { ...DEFAULT_TARGETS },
       ingLastSelected,
       mealTemplates: mealTemplates.value,
       profiles: profiles.value,
@@ -226,7 +268,6 @@ export const useDietStore = defineStore('diet', () => {
         pantry.value,
         shopping.value,
         dailyLogs,
-        targets,
         ingLastSelected,
         mealTemplates.value,
         profiles.value,
@@ -402,7 +443,7 @@ export const useDietStore = defineStore('diet', () => {
       const p = profiles.value.find((x) => x.id === editingId);
       if (p) Object.assign(p, data);
     } else {
-      profiles.value.push({ id: `u${Date.now()}`, ...data });
+      profiles.value.push({ id: `u${Date.now()}`, targets: { ...DEFAULT_TARGETS }, ...data });
     }
   }
 
@@ -726,10 +767,16 @@ export const useDietStore = defineStore('diet', () => {
       for (const k of Object.keys(dailyLogs)) delete dailyLogs[k];
       Object.assign(dailyLogs, d.dailyLogs);
     }
-    if (d.targets) Object.assign(targets, d.targets);
     if (d.ingLastSelected) Object.assign(ingLastSelected, d.ingLastSelected);
     if (Array.isArray(d.mealTemplates)) mealTemplates.value = d.mealTemplates;
     if (Array.isArray(d.profiles) && d.profiles.length) profiles.value = d.profiles;
+    // 导入场景：遗留的全局 targets 视为「我」的目标，覆盖写入默认档案
+    if (d.targets) {
+      const me = profiles.value.find((p) => p.id === DEFAULT_PROFILE_ID);
+      if (me) me.targets = normalizeTargets(d.targets);
+    }
+    // 其余档案补齐 targets（缺失才填，已有则保留）
+    ensureProfileTargets(d.targets);
     if (typeof d.currentUserId === 'string' && d.currentUserId) currentUserId.value = d.currentUserId;
     persist();
   }

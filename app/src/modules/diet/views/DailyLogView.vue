@@ -569,7 +569,7 @@ function applyTemplate(tmpl: MealTemplate): void {
       </div>
 
       <div v-if="manageTab === 'targets'">
-        <p class="text-[11px] text-paper-400 mb-3">设定后汇总条显示进度</p>
+        <p class="text-[11px] text-paper-400 mb-3">设定后汇总条显示进度 · 以下为「{{ store.activeProfile?.name ?? '我' }}」的目标</p>
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-[11px] text-paper-500 block mb-1">热量 kcal</label>

@@ -7,6 +7,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 
+import { DB_KEY, DEFAULT_TARGETS } from './persistence';
 import { useDietStore } from './diet-store';
 
 function freshStore() {
@@ -192,5 +193,55 @@ describe('默认套餐按用户隔离', () => {
     store.setCurrentUser('me');
     const meList = store.mealTemplates.filter((t) => (t.userId ?? 'me') === 'me');
     expect(meList.find((t) => t.name === '女友午餐')).toBeUndefined();
+  });
+});
+
+describe('每日营养目标按用户隔离', () => {
+  it('store.targets 反映当前用户，各用户互不串改且可持久化', () => {
+    const store = freshStore();
+    store.setCurrentUser('me');
+    store.targets.calories = 1800;
+    expect(store.targets.calories).toBe(1800);
+
+    store.saveProfile({ name: '女朋友', emoji: '🐱', color: '#6366f1' }, null);
+    const gid = store.profiles.find((p) => p.name === '女朋友')!.id;
+    store.setCurrentUser(gid);
+    // 新用户仍是默认目标，不受「我」改动影响
+    expect(store.targets.calories).toBe(DEFAULT_TARGETS.calories);
+    store.targets.calories = 1500;
+
+    // 切回「我」仍是 1800，女友仍是 1500
+    store.setCurrentUser('me');
+    expect(store.targets.calories).toBe(1800);
+    store.setCurrentUser(gid);
+    expect(store.targets.calories).toBe(1500);
+
+    // 持久化后重载仍各自保留
+    store.persist();
+    const reloaded = freshStore();
+    const rgid = reloaded.profiles.find((p) => p.name === '女朋友')!.id;
+    reloaded.setCurrentUser('me');
+    expect(reloaded.targets.calories).toBe(1800);
+    reloaded.setCurrentUser(rgid);
+    expect(reloaded.targets.calories).toBe(1500);
+  });
+
+  it('遗留全局 targets 迁到默认档案（v1 数据兼容）', () => {
+    localStorage.setItem(
+      DB_KEY,
+      JSON.stringify({
+        ingredients: [
+          { id: 1, name: 'x', category: 'protein', emoji: '', image: '', tags: [], nutrition: { calories: 0, carbs: 0, protein: 0, fat: 0 }, note: '' },
+        ],
+        targets: { calories: 1700, carbs: 180, protein: 130, fat: 55 },
+      }),
+    );
+    const store = freshStore();
+    expect(store.targets.calories).toBe(1700);
+    expect(store.targets.carbs).toBe(180);
+    // 持久化后重载仍在
+    store.persist();
+    const reloaded = freshStore();
+    expect(reloaded.targets.calories).toBe(1700);
   });
 });

@@ -111,6 +111,8 @@ export interface DietProfile {
   /** 主题强调色（十六进制），用于界面区分不同用户 */
   color: string;
   isDefault?: boolean;
+  /** 每日营养目标（按用户隔离）；缺省视为默认目标 */
+  targets?: Targets;
 }
 
 /** 按日期分组的记录，key 为 YYYY-MM-DD */

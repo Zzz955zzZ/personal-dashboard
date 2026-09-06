@@ -7,6 +7,7 @@ import IngredientChipPicker from './IngredientChipPicker.vue';
 import { MEAL_TYPES, mealTypeLabel, DEFAULT_PROFILE_ID } from '../constants';
 import { unitLabel, toGrams, fromGrams } from '../engine';
 import { useDietStore } from '../store/diet-store';
+import { selectOnFocus } from '@/shared/utils/input';
 import type { IngredientCategory, MealTemplate, MealType } from '../types';
 
 const props = defineProps<{ open: boolean; editing: MealTemplate | null }>();
@@ -169,6 +170,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
               type="number"
               min="0.1"
               step="0.1"
+              @focus="selectOnFocus"
               class="w-20 px-2 py-1 rounded border border-paper-300/60 bg-white text-xs text-right"
               @input="(e: Event) => { item.amount = toGrams(store.findIng(item.ingredientId), Number((e.target as HTMLInputElement).value)); }"
             />

@@ -10,6 +10,7 @@ import { entryFromGrams, entryToGrams, entryUnit, fmt1, round1 } from '../engine
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 import { useUndo } from '@/shared/composables/use-undo';
+import { selectOnFocus } from '@/shared/utils/input';
 import type { DietProfile, IngredientUnit, LogEntry, MealTemplate, MealType, Nutrition } from '../types';
 
 const store = useDietStore();
@@ -458,6 +459,7 @@ function applyTemplate(tmpl: MealTemplate): void {
                     type="number"
                     min="0.1"
                     step="0.1"
+                    @focus="selectOnFocus"
                     class="flex-1 px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
                   />
                   <div class="flex rounded-lg border border-paper-300/60 bg-white overflow-hidden">

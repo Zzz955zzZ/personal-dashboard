@@ -37,6 +37,8 @@ export interface PersistedState {
   profiles?: DietProfile[];
   /** 当前选中的用户档案 id（v2 新增，v1.0 忽略此字段） */
   currentUserId?: string;
+  /** 每个用户上次记录食材所用的单位：userId -> ingredientId -> 'g' | '个'（v2 新增，v1.0 忽略） */
+  lastUnitByUser?: Record<string, Record<number, IngredientUnit>>;
 }
 
 export const DEFAULT_TARGETS: Targets = {
@@ -198,6 +200,7 @@ export function normalizeState(
       ingredientId: Number(s.ingredientId),
       quantity: Number(s.quantity) || 0,
       done: !!s.done,
+      unit: (s.unit === '个' ? '个' : 'g') as IngredientUnit,
     }));
   }
   if (raw.dailyLogs !== undefined) {
@@ -234,6 +237,19 @@ export function normalizeState(
   }
   if (typeof raw.currentUserId === 'string' && raw.currentUserId) {
     state.currentUserId = raw.currentUserId;
+  }
+  if (isRecord(raw.lastUnitByUser)) {
+    const map: Record<string, Record<number, IngredientUnit>> = {};
+    for (const [uid, byIng] of Object.entries(raw.lastUnitByUser)) {
+      if (!isRecord(byIng)) continue;
+      const inner: Record<number, IngredientUnit> = {};
+      for (const [iidStr, u] of Object.entries(byIng)) {
+        const iid = Number(iidStr);
+        if (Number.isFinite(iid) && (u === '个' || u === 'g')) inner[iid] = u;
+      }
+      if (Object.keys(inner).length) map[uid] = inner;
+    }
+    if (Object.keys(map).length) state.lastUnitByUser = map;
   }
 
   return state;

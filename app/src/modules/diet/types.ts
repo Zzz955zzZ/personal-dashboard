@@ -80,6 +80,8 @@ export interface ShoppingItem {
   ingredientId: number;
   quantity: number;
   done: boolean;
+  /** 展示用计量单位；未指定时回退到食材自身的 unit（v2 新增，v1.0 忽略此字段） */
+  unit?: IngredientUnit;
 }
 
 /** 餐次 */

@@ -13,6 +13,7 @@ import BaseModal from '@/shared/components/BaseModal.vue';
 import { aiRecognize, catClass, detectMicrons, fmt1 } from '../engine';
 import { CAT_DEFS, EMOJI_OPTIONS } from '../constants';
 import { useDietStore } from '../store/diet-store';
+import { selectOnFocus } from '@/shared/utils/input';
 import type { Ingredient, IngredientCategory, IngredientUnit, Micro } from '../types';
 
 const props = defineProps<{ open: boolean; editing: Ingredient | null }>();
@@ -249,6 +250,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
               v-model.number="form.gramsPerUnit"
               type="number"
               min="1"
+              @focus="selectOnFocus"
               class="w-20 px-3 py-2 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
             />
             <span class="text-xs text-paper-500">g</span>
@@ -309,6 +311,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
             type="number"
             step="0.1"
             placeholder="热量(kcal)"
+            @focus="selectOnFocus"
             class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
           />
           <input
@@ -316,6 +319,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
             type="number"
             step="0.1"
             placeholder="碳水(g)"
+            @focus="selectOnFocus"
             class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
           />
           <input
@@ -323,6 +327,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
             type="number"
             step="0.1"
             placeholder="蛋白(g)"
+            @focus="selectOnFocus"
             class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
           />
           <input
@@ -330,6 +335,7 @@ const LABEL_CLS = 'text-[11px] uppercase tracking-wide2 text-paper-500';
             type="number"
             step="0.1"
             placeholder="脂肪(g)"
+            @focus="selectOnFocus"
             class="w-full px-3 py-2 rounded-lg border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
           />
         </div>

@@ -3,21 +3,26 @@ import { computed, ref, watch } from 'vue';
 
 import IngredientAvatar from '../components/IngredientAvatar.vue';
 import IngredientChipPicker from '../components/IngredientChipPicker.vue';
-import { fromGrams, round1, unitLabel } from '../engine';
+import { round1, unitLabel } from '../engine';
 import { useDietStore } from '../store/diet-store';
-import type { ShoppingItem } from '../types';
+import { selectOnFocus } from '@/shared/utils/input';
+import type { IngredientUnit, ShoppingItem } from '../types';
 
 const store = useDietStore();
 
 const mode = ref<'list' | 'add'>('list');
 
-const form = ref<{ ingredientId: number | null; qty: number | null }>({ ingredientId: null, qty: null });
+const form = ref<{ ingredientId: number | null; qty: number | null; unit: IngredientUnit }>({
+  ingredientId: null,
+  qty: null,
+  unit: 'g',
+});
 const search = ref('');
 const pickerOpen = ref(false);
 
 watch(mode, (m) => {
   if (m !== 'add') return;
-  form.value = { ingredientId: null, qty: null };
+  form.value = { ingredientId: null, qty: null, unit: 'g' };
   search.value = '';
   pickerOpen.value = true;
 });
@@ -30,7 +35,10 @@ const canSubmit = computed(() => form.value.ingredientId !== null && form.value.
 function pick(id: number): void {
   form.value.ingredientId = id;
   store.touchIngredient(id);
-  if (form.value.qty === null) form.value.qty = store.findIng(id)?.unit === '个' ? 1 : 500;
+  const ing = store.findIng(id);
+  // 默认沿用该食材的单位；若已填数量则保留，未填则按单位给合理默认值
+  form.value.unit = (ing?.unit as IngredientUnit) || 'g';
+  if (form.value.qty === null) form.value.qty = form.value.unit === '个' ? 1 : 500;
   pickerOpen.value = false;
 }
 
@@ -42,17 +50,22 @@ function clearPick(): void {
 
 function submit(): void {
   if (!canSubmit.value) return;
-  store.addShoppingItem(form.value.ingredientId as number, form.value.qty as number);
+  store.addShoppingItem(form.value.ingredientId as number, form.value.qty as number, form.value.unit);
   mode.value = 'list';
 }
 
 const shoppingList = computed(() => [...store.shopping]);
 const boughtCount = computed(() => store.shopping.filter((s) => s.done).length);
 
+/** 切换条目展示单位（只改展示，不改变存储克重） */
+function setShopUnit(item: ShoppingItem, unit: IngredientUnit): void {
+  item.unit = unit;
+}
+
 function onQtyChange(item: ShoppingItem, ev: Event): void {
   const el = ev.target as HTMLInputElement;
   const ok = store.updateShopQty(item, Number(el.value));
-  if (!ok) el.value = String(round1(fromGrams(store.findIng(item.ingredientId), item.quantity)));
+  if (!ok) el.value = String(round1(store.shopDisplayQty(item)));
 }
 </script>
 
@@ -85,13 +98,27 @@ function onQtyChange(item: ShoppingItem, ev: Event): void {
             <div class="flex items-center gap-1 shrink-0">
               <input
                 type="number"
-                :value="round1(fromGrams(store.findIng(s.ingredientId), s.quantity))"
+                :value="round1(store.shopDisplayQty(s))"
                 min="0.1"
                 step="0.1"
+                @focus="selectOnFocus"
                 class="w-16 px-2 py-1 rounded-lg border border-paper-300/60 bg-white text-xs focus:outline-none focus:border-coral-300"
                 @change="onQtyChange(s, $event)"
               />
-              <span class="text-xs text-paper-400">{{ unitLabel(store.findIng(s.ingredientId)) }}</span>
+              <div class="flex rounded-lg border border-paper-300/60 bg-white overflow-hidden">
+                <button
+                  type="button"
+                  class="px-2 py-1 text-[11px] font-medium transition-colors"
+                  :class="(s.unit ?? 'g') === 'g' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                  @click="setShopUnit(s, 'g')"
+                >g</button>
+                <button
+                  type="button"
+                  class="px-2 py-1 text-[11px] font-medium transition-colors"
+                  :class="(s.unit ?? 'g') === '个' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                  @click="setShopUnit(s, '个')"
+                >个</button>
+              </div>
             </div>
           </div>
           <button class="sm:opacity-0 sm:group-hover:opacity-100 text-paper-400 hover:text-red-500 transition-all text-sm px-2" @click="store.removeShopping(s.id)">
@@ -132,15 +159,32 @@ function onQtyChange(item: ShoppingItem, ev: Event): void {
         <div v-else class="text-xs text-paper-400">↑ 搜索或点击上方食材进行选择</div>
 
         <div>
-          <label class="text-[11px] uppercase tracking-wide2 text-paper-500">数量（{{ qtyUnitLabel }}）</label>
-          <input
-            v-model.number="form.qty"
-            type="number"
-            :placeholder="qtyPlaceholder"
-            min="0.1"
-            step="0.1"
-            class="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
-          />
+          <label class="text-[11px] uppercase tracking-wide2 text-paper-500">数量</label>
+          <div class="mt-1.5 flex items-center gap-2">
+            <input
+              v-model.number="form.qty"
+              type="number"
+              :placeholder="qtyPlaceholder"
+              min="0.1"
+              step="0.1"
+              @focus="selectOnFocus"
+              class="flex-1 px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
+            />
+            <div class="flex rounded-xl border border-paper-300/60 bg-white overflow-hidden">
+              <button
+                type="button"
+                class="px-3 py-2.5 text-sm font-medium transition-colors"
+                :class="form.unit === 'g' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                @click="form.unit = 'g'"
+              >g</button>
+              <button
+                type="button"
+                class="px-3 py-2.5 text-sm font-medium transition-colors"
+                :class="form.unit === '个' ? 'bg-coral-400 text-white' : 'text-paper-500 hover:bg-paper-50'"
+                @click="form.unit = '个'"
+              >个</button>
+            </div>
+          </div>
         </div>
 
         <div class="flex gap-3 mt-2">

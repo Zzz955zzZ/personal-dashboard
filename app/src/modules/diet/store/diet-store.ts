@@ -10,12 +10,13 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { defineStore } from 'pinia';
 
-import { detectMicrons, fromGrams, toGrams } from '../engine';
+import { detectMicrons, entryFromGrams, entryToGrams } from '../engine';
 import { DEFAULT_PROFILE_ID } from '../constants';
 import type {
   DailyLogs,
   DietProfile,
   Ingredient,
+  IngredientUnit,
   LogEntry,
   MealTemplate,
   MealType,
@@ -99,6 +100,8 @@ export const useDietStore = defineStore('diet', () => {
   const hydrated = ref(false);
   /** 食材最近选用时间，用于选择器按「最近用过」排序 */
   const ingLastSelected = reactive<Record<number, number>>({});
+  /** 每个用户上次记录某食材所用的单位（userId -> ingredientId -> 'g'|'个'），用于再次添加时自动沿用 */
+  const lastUnitByUser = reactive<Record<string, Record<number, IngredientUnit>>>({});
   /** 数据损坏时保留原文，供 UI 提示并允许应急导出 */
   const corruptedRaw = ref<string | null>(null);
 
@@ -188,6 +191,7 @@ export const useDietStore = defineStore('diet', () => {
       if (state.shopping) shopping.value = state.shopping;
       if (state.dailyLogs) Object.assign(dailyLogs, state.dailyLogs);
       if (state.ingLastSelected) Object.assign(ingLastSelected, state.ingLastSelected);
+      if (state.lastUnitByUser) Object.assign(lastUnitByUser, state.lastUnitByUser);
       if (state.mealTemplates) mealTemplates.value = state.mealTemplates;
       if (Array.isArray(state.profiles)) profiles.value = state.profiles;
       if (typeof state.currentUserId === 'string' && state.currentUserId) {
@@ -227,6 +231,7 @@ export const useDietStore = defineStore('diet', () => {
       mealTemplates: mealTemplates.value,
       profiles: profiles.value,
       currentUserId: currentUserId.value,
+      lastUnitByUser: JSON.parse(JSON.stringify(lastUnitByUser)) as Record<string, Record<number, IngredientUnit>>,
     };
   }
 
@@ -272,6 +277,7 @@ export const useDietStore = defineStore('diet', () => {
         mealTemplates.value,
         profiles.value,
         currentUserId.value,
+        lastUnitByUser,
       ],
       () => schedulePersist(),
       { deep: true },
@@ -304,12 +310,13 @@ export const useDietStore = defineStore('diet', () => {
           if (lastZero.includes(iid)) continue;
           const exists = shopping.value.find((s) => s.ingredientId === iid && !s.done);
           if (!exists) {
-            shopping.value.push({
-              id: Date.now() + Math.random(),
-              ingredientId: iid,
-              quantity: 500,
-              done: false,
-            });
+          shopping.value.push({
+            id: Date.now() + Math.random(),
+            ingredientId: iid,
+            quantity: 500,
+            unit: 'g',
+            done: false,
+          });
           }
         }
         lastZero = [...nowZero];
@@ -342,6 +349,24 @@ export const useDietStore = defineStore('diet', () => {
 
   function touchIngredient(id: number): void {
     ingLastSelected[id] = Date.now();
+  }
+
+  /**
+   * 取某食材「当前用户」上次记录所用的单位；无记录则回退到食材默认单位，再回退 'g'。
+   * 用于「再次添加同一食材时自动沿用上次单位」。
+   */
+  function getLastUnit(ingredientId: number): IngredientUnit {
+    const uid = currentUserId.value || DEFAULT_PROFILE_ID;
+    const u = lastUnitByUser[uid]?.[ingredientId];
+    if (u === '个' || u === 'g') return u;
+    return (findIng(ingredientId)?.unit as IngredientUnit) || 'g';
+  }
+
+  /** 记录当前用户在某食材上使用的单位（再次添加时沿用） */
+  function setLastUnit(ingredientId: number, unit: IngredientUnit): void {
+    const uid = currentUserId.value || DEFAULT_PROFILE_ID;
+    if (!lastUnitByUser[uid]) lastUnitByUser[uid] = {};
+    lastUnitByUser[uid][ingredientId] = unit;
   }
 
   /* ---------------- 库存 ---------------- */
@@ -380,10 +405,11 @@ export const useDietStore = defineStore('diet', () => {
   }
 
   /* ---------------- 采购 ---------------- */
-  function addShoppingItem(ingredientId: number, qty: number): void {
-    const grams = toGrams(findIng(ingredientId), qty);
+  /** 新增采购项；unit 为展示单位（'g' | '个'），内部统一按克存储，缺省 'g' */
+  function addShoppingItem(ingredientId: number, qty: number, unit: IngredientUnit = 'g'): void {
+    const grams = entryToGrams({ unit }, findIng(ingredientId), qty);
     touchIngredient(ingredientId);
-    shopping.value.push({ id: Date.now(), ingredientId, quantity: grams, done: false });
+    shopping.value.push({ id: Date.now(), ingredientId, quantity: grams, unit, done: false });
   }
 
   function removeShopping(id: number): void {
@@ -403,14 +429,15 @@ export const useDietStore = defineStore('diet', () => {
     restorePantry(item.ingredientId, item.quantity);
   }
 
+  /** 按「条目自身单位」把展示值换算回克；单位切换只改展示不改克重 */
   function updateShopQty(item: ShoppingItem, displayValue: number): boolean {
     if (!Number.isFinite(displayValue) || displayValue <= 0) return false;
-    item.quantity = toGrams(findIng(item.ingredientId), displayValue);
+    item.quantity = entryToGrams({ unit: item.unit }, findIng(item.ingredientId), displayValue);
     return true;
   }
 
   function shopDisplayQty(item: ShoppingItem): number {
-    return fromGrams(findIng(item.ingredientId), item.quantity);
+    return entryFromGrams({ unit: item.unit }, findIng(item.ingredientId), item.quantity);
   }
 
   /* ---------------- 用户档案 / 多用户隔离 ---------------- */
@@ -513,6 +540,9 @@ export const useDietStore = defineStore('diet', () => {
     if (isolationOn.value) newEntry.userId = currentUserId.value;
     list.push(newEntry);
     touchIngredient(entry.ingredientId);
+    // 记忆当前用户用过的单位，下次添加同一食材自动沿用
+    const u = entry.unit ?? findIng(entry.ingredientId)?.unit ?? 'g';
+    setLastUnit(entry.ingredientId, u);
     deductPantry(entry.ingredientId, entry.amount);
     return newEntry;
   }
@@ -549,7 +579,14 @@ export const useDietStore = defineStore('diet', () => {
     if (!old) return null;
     const before: LogEntry = { ...old };
 
-    list.splice(realIdx, 1, { ...next });
+    // 隔离铁律：编辑不得改变记录归属用户。next 未显式带 userId 时沿用原 owner，
+    // 否则副用户编辑后该条记录的 userId 丢失，会经 ownerOf 回落到默认档案「我」，
+    // 表现为「副用户的修改跳进了主用户的记录」。
+    const nextEntry: LogEntry = { ...next, userId: next.userId ?? before.userId };
+    list.splice(realIdx, 1, nextEntry);
+
+    // 记忆当前用户用过的单位
+    setLastUnit(nextEntry.ingredientId, nextEntry.unit ?? findIng(nextEntry.ingredientId)?.unit ?? 'g');
 
     if (before.ingredientId === next.ingredientId) {
       // 同一食材：只按差值调整库存
@@ -768,6 +805,7 @@ export const useDietStore = defineStore('diet', () => {
       Object.assign(dailyLogs, d.dailyLogs);
     }
     if (d.ingLastSelected) Object.assign(ingLastSelected, d.ingLastSelected);
+    if (d.lastUnitByUser) Object.assign(lastUnitByUser, d.lastUnitByUser);
     if (Array.isArray(d.mealTemplates)) mealTemplates.value = d.mealTemplates;
     if (Array.isArray(d.profiles) && d.profiles.length) profiles.value = d.profiles;
     // 导入场景：遗留的全局 targets 视为「我」的目标，覆盖写入默认档案
@@ -835,6 +873,8 @@ export const useDietStore = defineStore('diet', () => {
     hasInPantry,
     zeroStockIds,
     touchIngredient,
+    getLastUnit,
+    setLastUnit,
     // pantry
     getPantryEntry,
     deductPantry,

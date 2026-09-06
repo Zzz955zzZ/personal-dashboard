@@ -245,3 +245,68 @@ describe('每日营养目标按用户隔离', () => {
     expect(reloaded.targets.calories).toBe(1700);
   });
 });
+
+describe('编辑记录保持归属用户', () => {
+  it('副用户修改记录后归属不变，不会跳入主用户', () => {
+    const store = freshStore();
+    const id = store.ingredients[0]!.id;
+    // 主用户先加一条
+    store.setCurrentUser('me');
+    store.addLogEntry(DATE, { ingredientId: id, amount: 100, mealType: 'breakfast', unit: 'g' });
+    const meIdx = store.getDayLog(DATE).findIndex((e) => e.userId === 'me');
+    expect(store.getDayLog(DATE)[meIdx]!.userId).toBe('me');
+
+    // 新增女朋友并切换
+    store.saveProfile({ name: '女朋友', emoji: '🐱', color: '#6366f1' }, null);
+    const gid = store.profiles.find((p) => p.name === '女朋友')!.id;
+    store.setCurrentUser(gid);
+    store.addLogEntry(DATE, { ingredientId: id, amount: 50, mealType: 'breakfast', unit: 'g' });
+    const gfIdx = store.getDayLog(DATE).findIndex((e) => e.userId === gid);
+
+    // 女朋友编辑自己的记录（模拟 UI：next 不带 userId）
+    store.updateLogEntry(DATE, gfIdx, { ingredientId: id, amount: 80, mealType: 'breakfast', unit: 'g' });
+
+    // 归属仍为女朋友，未跳入主用户
+    expect(store.getDayLog(DATE)[gfIdx]!.userId).toBe(gid);
+    // 主用户看到的仍是自己那条，且数值未被改动
+    store.setCurrentUser('me');
+    expect(store.mealEntries(DATE, 'breakfast')).toHaveLength(1);
+    expect(store.mealEntries(DATE, 'breakfast')[0]!.amount).toBe(100);
+    // 女朋友看到的是改后那条
+    store.setCurrentUser(gid);
+    expect(store.mealEntries(DATE, 'breakfast')[0]!.amount).toBe(80);
+  });
+});
+
+describe('上次单位记忆（按用户）', () => {
+  it('记录食材后记住当前用户的单位，再次添加沿用，且各用户互不影响', () => {
+    const store = freshStore();
+    const id = store.ingredients[0]!.id;
+    store.setCurrentUser('me');
+    // 首次记录用「个」
+    store.addLogEntry(DATE, { ingredientId: id, amount: 2, mealType: 'breakfast', unit: '个' });
+    expect(store.getLastUnit(id)).toBe('个');
+
+    // 切换用户：新用户没有该食材的记忆，回退到食材默认单位
+    store.saveProfile({ name: '女朋友', emoji: '🐱', color: '#6366f1' }, null);
+    const gid = store.profiles.find((p) => p.name === '女朋友')!.id;
+    store.setCurrentUser(gid);
+    expect(store.getLastUnit(id)).toBe((store.findIng(id)?.unit as 'g' | '个') ?? 'g');
+
+    // 女朋友也用「个」后，主用户的记忆不受影响
+    store.addLogEntry(DATE, { ingredientId: id, amount: 3, mealType: 'breakfast', unit: '个' });
+    store.setCurrentUser('me');
+    expect(store.getLastUnit(id)).toBe('个');
+  });
+
+  it('lastUnitByUser 随快照持久化与恢复', () => {
+    const store = freshStore();
+    const id = store.ingredients[0]!.id;
+    store.setCurrentUser('me');
+    store.addLogEntry(DATE, { ingredientId: id, amount: 2, mealType: 'breakfast', unit: '个' });
+    store.persist();
+
+    const reloaded = freshStore();
+    expect(reloaded.getLastUnit(id)).toBe('个');
+  });
+});

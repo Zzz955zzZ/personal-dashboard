@@ -6,6 +6,7 @@ import { catClass, classifyTag, fmt1, healthTags, micronGroups, unitLabel } from
 import { useDietStore } from '../store/diet-store';
 import { useDietUi } from '../composables/use-diet-ui';
 import { useUndo } from '@/shared/composables/use-undo';
+import { selectOnFocus } from '@/shared/utils/input';
 import type { Ingredient, LogEntry } from '../types';
 
 const store = useDietStore();
@@ -23,7 +24,8 @@ watch(
   () => selectedIng.value,
   (ing) => {
     if (!ing) return;
-    addUnit.value = ing.unit === '个' ? '个' : 'g';
+    // 沿用当前用户上次记录该食材所用的单位；无记录则回退食材默认单位
+    addUnit.value = store.getLastUnit(ing.id);
     addQty.value = addUnit.value === '个' ? 1 : 100;
   },
   { immediate: true },
@@ -197,6 +199,7 @@ function onDelete(): void {
                 type="number"
                 min="0.1"
                 step="0.1"
+                @focus="selectOnFocus"
                 class="flex-1 px-4 py-2.5 rounded-xl border border-paper-300/60 bg-white text-sm focus:outline-none focus:border-coral-300"
               />
               <div class="flex rounded-xl border border-paper-300/60 bg-white overflow-hidden">

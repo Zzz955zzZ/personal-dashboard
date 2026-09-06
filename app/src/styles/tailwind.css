@@ -144,6 +144,8 @@
   }
 
   /* --- Undo toast -------------------------------------------------------- */
+  /* 非模态轻量提示：容器不拦截背景点击（pointer-events:none），
+     仅「撤销 / 关闭」按钮可点（pointer-events:auto），避免遮挡后续操作。 */
   .undo-toast {
     position: fixed;
     bottom: 24px;
@@ -153,17 +155,21 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 20px;
-    border-radius: 14px;
-    background: #1c1916;
+    max-width: calc(100vw - 32px);
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(28, 25, 22, 0.92);
     color: #fef5f4;
     font-size: 13px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    user-select: none;
     animation: undoIn 0.3s ease forwards;
   }
   .undo-toast button {
+    pointer-events: auto;
     padding: 6px 14px;
-    border-radius: 8px;
+    border-radius: 999px;
     background: #e85d5d;
     color: #fff;
     border: none;

@@ -1,8 +1,26 @@
 import { fileURLToPath, URL } from 'node:url';
+import { execSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import vue from '@vitejs/plugin-vue';
 import { viteSingleFile } from 'vite-plugin-singlefile';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * 构建版本戳：部署后写入 dist/version.json，同时打包进 bundle（__APP_BUILD_ID__）。
+ * 运行时把"线上最新版本"与"当前运行的版本"做比对，使更新提示摆脱对 Service Worker
+ * 生命周期的强依赖——这是 iOS PWA 收不到更新弹窗的关键可靠性修复。
+ */
+function resolveBuildId(): string {
+  try {
+    const sha = execSync('git rev-parse --short HEAD').toString().trim();
+    if (sha) return sha;
+  } catch {
+    /* 无 git 环境时回退到时间戳 */
+  }
+  return `dev-${Date.now()}`;
+}
+const BUILD_ID = resolveBuildId();
 
 // mode === 'single' -> 自包含单文件 HTML（拷一个文件就能跑，替代旧的 dashboard.html 形态）
 // 其余 mode        -> 常规多文件构建（部署 / PWA / Capacitor 封装用）
@@ -10,6 +28,10 @@ export default defineConfig(({ mode }) => {
   const single = mode === 'single';
   return {
     base: './',
+    // 把构建版本戳注入运行时，供更新检测比对
+    define: {
+      __APP_BUILD_ID__: JSON.stringify(BUILD_ID),
+    },
     plugins: [
       vue(),
       ...(single
@@ -54,6 +76,22 @@ export default defineConfig(({ mode }) => {
                 ],
               },
             }),
+            // 构建产物落盘 version.json：运行时与 __APP_BUILD_ID__ 比对，独立于 SW 检测新版本
+            {
+              name: 'emit-version-json',
+              apply: 'build' as const,
+              enforce: 'post' as const,
+              closeBundle() {
+                try {
+                  writeFileSync(
+                    'dist/version.json',
+                    JSON.stringify({ version: BUILD_ID, builtAt: new Date().toISOString() }),
+                  );
+                } catch {
+                  /* 忽略：dist 不存在等非致命情况 */
+                }
+              },
+            },
           ]),
     ],
     resolve: {

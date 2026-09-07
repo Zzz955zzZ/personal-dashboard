@@ -4,16 +4,21 @@
  * 使用 registerType: 'prompt' —— 发现新版本时不再静默刷新（会丢失正在填的数据），
  * 而是显示一条可手动确认的横幅，点击「立即更新」才激活新 Service Worker 并刷新。
  *
- * 移动端可靠性修复：
- * - 安装型 PWA 常驻后台时浏览器不会自动重新检测更新，故：
- *   ① 捕获 registration，定时（60s）主动 registration.update()；
- *   ② 在页面 visibilitychange → visible 时再触发一次，回到前台即可拿到新版本。
- * - 点击「更新」时先置 updating 状态、下一帧(rAF)再触发 reload，避免主线程被同步
- *   reload 卡住、且保证用户立刻看到「正在更新…」反馈；并设 1.5s 兜底强制刷新，
- *   防止个别浏览器未真正 reload 而表现为「点了没反应」。
+ * 移动端可靠性设计（相较旧版的核心改进）：
+ * 1. 双信号检测，解耦 SW 生命周期：
+ *    - 信号A：SW 自身 waiting 事件（needRefresh）—— 标准路径；
+ *    - 信号B：构建版本戳比对。运行时打包了 __APP_BUILD_ID__，并定期/回到前台时
+ *      拉取线上 dist/version.json，二者不一致即认为有更新。
+ *    信号B 不依赖 SW 是否正确触发 waiting，规避 iOS 上 SW 更新被系统吞掉、弹窗始终不出现的问题。
+ * 2. iOS 从主屏恢复检测：iOS 常把 PWA 冻结在页面缓存里，重新打开时不一定触发
+ *    visibilitychange，但一定会触发 pageshow（persisted=true）。故监听 pageshow 主动探活。
+ * 3. 重载竞态修复：needRefresh 时走 skipWaiting + controllerchange 驱动刷新；否则（多为
+ *    iOS 没拉到新 SW）直接强刷拉取最新资源，绕开卡住的 SW。两种路径都有兜底超时强刷。
  */
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRegisterSW } from 'virtual:pwa-register/vue';
+
+const BUILD_ID: string = typeof __APP_BUILD_ID__ !== 'undefined' ? __APP_BUILD_ID__ : 'dev';
 
 const { needRefresh, updateServiceWorker } = useRegisterSW({
   immediate: true,
@@ -26,42 +31,81 @@ const { needRefresh, updateServiceWorker } = useRegisterSW({
 });
 
 const swReg = ref<ServiceWorkerRegistration | undefined>(undefined);
+const versionMismatch = ref(false);
 const updating = ref(false);
 /** 本次会话内用户手动关闭后，不再弹出（直到下一次检测到新版本） */
 const dismissed = ref(false);
 
-const visible = computed(() => needRefresh.value && !dismissed.value && !updating.value);
+const visible = computed(
+  () => (needRefresh.value || versionMismatch.value) && !dismissed.value && !updating.value,
+);
+
+// ---- 版本信号检测（与 SW 生命周期解耦，移动端更可靠）----
+async function checkVersion(): Promise<void> {
+  try {
+    const res = await fetch('version.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = (await res.json()) as { version?: string };
+    if (data.version && data.version !== BUILD_ID) versionMismatch.value = true;
+  } catch {
+    /* 单文件版/离线/无 version.json 时静默忽略 */
+  }
+}
 
 // 周期性 + 回到前台时主动检测新版本（移动端关键）
-let pollTimer: ReturnType<typeof setInterval> | null = null;
 function checkUpdates(): void {
   void swReg.value?.update?.();
+  void checkVersion();
 }
+
+let pollTimer: ReturnType<typeof setInterval> | null = null;
 pollTimer = setInterval(checkUpdates, 60_000);
 document.addEventListener('visibilitychange', onVisible);
+// iOS 从主屏/后台恢复时可靠触发（frozen page 不一定发 visibilitychange）
+window.addEventListener('pageshow', onPageShow);
+
 function onVisible(): void {
   if (document.visibilityState === 'visible') checkUpdates();
 }
+function onPageShow(e: PageTransitionEvent): void {
+  if (e.persisted || document.visibilityState === 'visible') checkUpdates();
+}
+
+onMounted(() => {
+  void checkVersion();
+});
 
 function dismiss(): void {
   dismissed.value = true;
   needRefresh.value = false;
+  versionMismatch.value = false;
 }
 
 function refresh(): void {
   if (updating.value) return;
   updating.value = true;
-  // 下一帧再触发重载：先让按钮渲染出「正在更新…」状态，避免点击无反馈的卡顿感
-  requestAnimationFrame(() => {
+  let reloaded = false;
+  const reload = (): void => {
+    if (reloaded) return;
+    reloaded = true;
+    window.location.reload();
+  };
+  if (needRefresh.value) {
+    // SW 已处于 waiting：驱动 skipWaiting，待 controllerchange 后刷新
+    navigator.serviceWorker?.addEventListener('controllerchange', reload, { once: true });
     updateServiceWorker(true);
-    // 兜底：若 1.5s 内页面尚未重载（极个别浏览器未真正 reload），强制刷新拿到最新资源
-    window.setTimeout(() => window.location.reload(), 1500);
-  });
+  } else {
+    // 多为 iOS 未拉到新 SW：直接强刷，绕开卡住的 SW 更新流程
+    window.setTimeout(reload, 300);
+  }
+  // 兜底：个别浏览器 controllerchange 不触发时仍可更新，避免「点了没反应」
+  window.setTimeout(reload, 4000);
 }
 
 onBeforeUnmount(() => {
   if (pollTimer) clearInterval(pollTimer);
   document.removeEventListener('visibilitychange', onVisible);
+  window.removeEventListener('pageshow', onPageShow);
 });
 </script>
 
@@ -69,11 +113,11 @@ onBeforeUnmount(() => {
   <transition name="fade">
     <div
       v-if="visible || updating"
-      class="fixed top-16 inset-x-0 z-[70] px-3 py-2 flex items-center justify-center gap-2 flex-wrap
+      class="fixed top-16 inset-x-0 z-[70] px-3 py-2 pt-[calc(0.5rem+env(safe-area-inset-top))] flex items-center justify-center gap-2 flex-wrap
              bg-ink text-coral-50 text-sm shadow-lg
              pb-[calc(0.5rem+env(safe-area-inset-top))]"
       role="alert"
-      aria-live="polite"
+      aria-live="assertive"
     >
       <span class="flex-1 min-w-0 text-center sm:text-left">
         <template v-if="updating">🔄 正在更新…</template>
